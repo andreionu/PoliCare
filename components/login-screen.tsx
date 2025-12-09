@@ -43,7 +43,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground mb-4 shadow-lg">
             <Activity className="h-8 w-8" />
           </div>
-          <h1 className="text-3xl font-bold text-balance">MediClinic Admin</h1>
+          <h1 className="text-3xl font-bold text-balance">PoliCare Admin</h1>
           <p className="text-muted-foreground mt-2">Sign in to access your dashboard</p>
         </div>
 

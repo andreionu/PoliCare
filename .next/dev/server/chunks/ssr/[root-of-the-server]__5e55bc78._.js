@@ -70,7 +70,7 @@ var __TURBOPACK__imported__module__$5b$next$5d2f$internal$2f$font$2f$google$2f$g
 ;
 ;
 const metadata = {
-    title: 'MediClinic Admin - Gestionare Policlinică',
+    title: 'PoliCare Admin - Gestionare Policlinică',
     description: 'Panou de administrare pentru gestionarea pacienților, medicilor și programărilor',
     generator: 'v0.app',
     icons: {
