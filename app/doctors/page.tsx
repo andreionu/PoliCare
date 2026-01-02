@@ -6,11 +6,34 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Search, Plus, UserPlus, Stethoscope, Clock, Users, Star } from 'lucide-react'
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Search, UserPlus, Stethoscope, Clock, Users, Star, Upload } from "lucide-react"
 import { useState } from "react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { useToast } from "@/hooks/use-toast"
 
 export default function DoctorsPage() {
   const [searchQuery, setSearchQuery] = useState("")
+  const [isAddDoctorOpen, setIsAddDoctorOpen] = useState(false)
+  const [formData, setFormData] = useState({
+    name: "",
+    specialty: "",
+    email: "",
+    phone: "",
+    bio: "",
+    photo: "",
+  })
+  const [errors, setErrors] = useState<Record<string, boolean>>({})
+  const { toast } = useToast()
 
   const doctors = [
     {
@@ -18,85 +41,115 @@ export default function DoctorsPage() {
       name: "Dr. Ana Popescu",
       specialty: "Cardiologie",
       avatar: "/female-doctor.png",
-      email: "ana.popescu@mediclinic.ro",
+      email: "ana.popescu@medicare.ro",
       phone: "+40 721 234 567",
       patients: 156,
       experience: "15 ani",
       rating: 4.9,
       status: "Activ",
-      schedule: "Luni-Vineri, 9:00-17:00"
+      schedule: "Luni-Vineri, 9:00-17:00",
     },
     {
       id: 2,
       name: "Dr. Ion Marinescu",
       specialty: "ORL",
       avatar: "/male-doctor.png",
-      email: "ion.marinescu@mediclinic.ro",
+      email: "ion.marinescu@medicare.ro",
       phone: "+40 721 234 568",
       patients: 142,
       experience: "12 ani",
       rating: 4.8,
       status: "Activ",
-      schedule: "Luni-Vineri, 10:00-18:00"
+      schedule: "Luni-Vineri, 10:00-18:00",
     },
     {
       id: 3,
       name: "Dr. Maria Ionescu",
       specialty: "Oftalmologie",
       avatar: "/female-doctor-2.jpg",
-      email: "maria.ionescu@mediclinic.ro",
+      email: "maria.ionescu@medicare.ro",
       phone: "+40 721 234 569",
       patients: 198,
       experience: "18 ani",
       rating: 4.9,
       status: "Activ",
-      schedule: "Luni-Sâmbătă, 8:00-16:00"
+      schedule: "Luni-Sâmbătă, 8:00-16:00",
     },
     {
       id: 4,
       name: "Dr. Andrei Popa",
       specialty: "Dermatologie",
       avatar: "/male-doctor-2.jpg",
-      email: "andrei.popa@mediclinic.ro",
+      email: "andrei.popa@medicare.ro",
       phone: "+40 721 234 570",
       patients: 134,
       experience: "10 ani",
       rating: 4.7,
       status: "Activ",
-      schedule: "Marți-Vineri, 11:00-19:00"
+      schedule: "Marți-Vineri, 11:00-19:00",
     },
     {
       id: 5,
       name: "Dr. Elena Dumitrescu",
       specialty: "Pediatrie",
       avatar: "/female-doctor-3.jpg",
-      email: "elena.dumitrescu@mediclinic.ro",
+      email: "elena.dumitrescu@medicare.ro",
       phone: "+40 721 234 571",
       patients: 210,
       experience: "20 ani",
       rating: 5.0,
       status: "Activ",
-      schedule: "Luni-Vineri, 9:00-17:00"
+      schedule: "Luni-Vineri, 9:00-17:00",
     },
     {
       id: 6,
       name: "Dr. Cristian Radu",
       specialty: "Cardiologie",
       avatar: "/male-doctor-3.jpg",
-      email: "cristian.radu@mediclinic.ro",
+      email: "cristian.radu@medicare.ro",
       phone: "+40 721 234 572",
       patients: 89,
       experience: "8 ani",
       rating: 4.6,
       status: "În concediu",
-      schedule: "Luni-Vineri, 10:00-18:00"
-    }
+      schedule: "Luni-Vineri, 10:00-18:00",
+    },
   ]
 
-  const filteredDoctors = doctors.filter(doctor =>
-    doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredDoctors = doctors.filter(
+    (doctor) =>
+      doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase()),
   )
+
+  const handleAddDoctor = () => {
+    const newErrors: Record<string, boolean> = {}
+    if (!formData.name) newErrors.name = true
+    if (!formData.specialty) newErrors.specialty = true
+    if (!formData.email) newErrors.email = true
+    if (!formData.phone) newErrors.phone = true
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      toast({
+        title: "Eroare validare",
+        description: "Te rugăm să completezi toate câmpurile obligatorii.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    console.log("[v0] New doctor data:", formData)
+
+    toast({
+      title: "Medic adăugat",
+      description: `Dr. ${formData.name} a fost adăugat cu succes în sistem.`,
+    })
+
+    setIsAddDoctorOpen(false)
+    setFormData({ name: "", specialty: "", email: "", phone: "", bio: "", photo: "" })
+    setErrors({})
+  }
 
   return (
     <AdminLayout>
@@ -107,7 +160,7 @@ export default function DoctorsPage() {
               <h1 className="text-3xl font-semibold text-foreground mb-2">Medici</h1>
               <p className="text-muted-foreground">Gestionează medicii și specialitățile</p>
             </div>
-            <Button className="gap-2">
+            <Button className="gap-2" onClick={() => setIsAddDoctorOpen(true)}>
               <UserPlus className="w-4 h-4" />
               Adaugă Medic
             </Button>
@@ -134,7 +187,7 @@ export default function DoctorsPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Medici Activi</p>
-                  <p className="text-2xl font-semibold">{doctors.filter(d => d.status === "Activ").length}</p>
+                  <p className="text-2xl font-semibold">{doctors.filter((d) => d.status === "Activ").length}</p>
                 </div>
               </div>
             </Card>
@@ -158,7 +211,7 @@ export default function DoctorsPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">În Concediu</p>
-                  <p className="text-2xl font-semibold">{doctors.filter(d => d.status === "În concediu").length}</p>
+                  <p className="text-2xl font-semibold">{doctors.filter((d) => d.status === "În concediu").length}</p>
                 </div>
               </div>
             </Card>
@@ -184,14 +237,17 @@ export default function DoctorsPage() {
                 <div className="flex items-start gap-4 mb-4">
                   <Avatar className="w-16 h-16">
                     <AvatarImage src={doctor.avatar || "/placeholder.svg"} />
-                    <AvatarFallback>{doctor.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                    <AvatarFallback>
+                      {doctor.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg mb-1">{doctor.name}</h3>
                     <p className="text-sm text-muted-foreground mb-2">{doctor.specialty}</p>
-                    <Badge variant={doctor.status === "Activ" ? "default" : "secondary"}>
-                      {doctor.status}
-                    </Badge>
+                    <Badge variant={doctor.status === "Activ" ? "default" : "secondary"}>{doctor.status}</Badge>
                   </div>
                 </div>
 
@@ -213,7 +269,7 @@ export default function DoctorsPage() {
                 <div className="pt-4 border-t">
                   <p className="text-xs text-muted-foreground mb-3">{doctor.schedule}</p>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1">
+                    <Button variant="outline" size="sm" className="flex-1 bg-transparent">
                       Vezi Profil
                     </Button>
                     <Button size="sm" className="flex-1">
@@ -226,6 +282,144 @@ export default function DoctorsPage() {
           </div>
         </div>
       </div>
+
+      <Dialog open={isAddDoctorOpen} onOpenChange={setIsAddDoctorOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Adaugă Medic Nou</DialogTitle>
+            <DialogDescription>Completează informațiile medicului</DialogDescription>
+          </DialogHeader>
+
+          <div className="py-6 space-y-6">
+            {/* Photo Upload */}
+            <div>
+              <Label>Fotografie profil</Label>
+              <div className="mt-2 flex items-center gap-4">
+                <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center">
+                  {formData.photo ? (
+                    <img
+                      src={formData.photo || "/placeholder.svg"}
+                      alt="Preview"
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <UserPlus className="w-8 h-8 text-muted-foreground" />
+                  )}
+                </div>
+                <Button variant="outline" className="gap-2 bg-transparent">
+                  <Upload className="w-4 h-4" />
+                  Încarcă fotografie
+                </Button>
+              </div>
+            </div>
+
+            {/* Name */}
+            <div>
+              <Label htmlFor="name">
+                Nume complet <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="name"
+                placeholder="Dr. Ion Popescu"
+                value={formData.name}
+                onChange={(e) => {
+                  setFormData({ ...formData, name: e.target.value })
+                  setErrors({ ...errors, name: false })
+                }}
+                className={`mt-2 ${errors.name ? "border-destructive" : ""}`}
+              />
+              {errors.name && <p className="text-sm text-destructive mt-1">Numele este obligatoriu</p>}
+            </div>
+
+            {/* Specialty */}
+            <div>
+              <Label htmlFor="specialty">
+                Specialitate <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={formData.specialty}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, specialty: value })
+                  setErrors({ ...errors, specialty: false })
+                }}
+              >
+                <SelectTrigger className={`mt-2 ${errors.specialty ? "border-destructive" : ""}`}>
+                  <SelectValue placeholder="Selectează specialitatea" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Cardiologie">Cardiologie</SelectItem>
+                  <SelectItem value="Dermatologie">Dermatologie</SelectItem>
+                  <SelectItem value="ORL">ORL</SelectItem>
+                  <SelectItem value="Oftalmologie">Oftalmologie</SelectItem>
+                  <SelectItem value="Pediatrie">Pediatrie</SelectItem>
+                  <SelectItem value="Ginecologie">Ginecologie</SelectItem>
+                  <SelectItem value="Orthopedie">Orthopedie</SelectItem>
+                  <SelectItem value="Neurologie">Neurologie</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.specialty && <p className="text-sm text-destructive mt-1">Specialitatea este obligatorie</p>}
+            </div>
+
+            {/* Email */}
+            <div>
+              <Label htmlFor="email">
+                Email <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="doctor@medicare.ro"
+                value={formData.email}
+                onChange={(e) => {
+                  setFormData({ ...formData, email: e.target.value })
+                  setErrors({ ...errors, email: false })
+                }}
+                className={`mt-2 ${errors.email ? "border-destructive" : ""}`}
+              />
+              {errors.email && <p className="text-sm text-destructive mt-1">Email-ul este obligatoriu</p>}
+            </div>
+
+            {/* Phone */}
+            <div>
+              <Label htmlFor="phone">
+                Telefon <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="+40 721 234 567"
+                value={formData.phone}
+                onChange={(e) => {
+                  setFormData({ ...formData, phone: e.target.value })
+                  setErrors({ ...errors, phone: false })
+                }}
+                className={`mt-2 ${errors.phone ? "border-destructive" : ""}`}
+              />
+              {errors.phone && <p className="text-sm text-destructive mt-1">Telefonul este obligatoriu</p>}
+            </div>
+
+            {/* Bio */}
+            <div>
+              <Label htmlFor="bio">Biografie</Label>
+              <Textarea
+                id="bio"
+                placeholder="Experiență profesională, calificări, domenii de expertiză..."
+                value={formData.bio}
+                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                rows={4}
+                className="resize-none mt-2"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDoctorOpen(false)}>
+              Anulează
+            </Button>
+            <Button onClick={handleAddDoctor}>Adaugă Medic</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   )
 }

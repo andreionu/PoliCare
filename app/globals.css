@@ -1,24 +1,24 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
+@import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
   /* Modern, clean medical theme with subtle colors and excellent contrast */
   --background: oklch(0.99 0 0);
-  --foreground: oklch(0.10 0 0);
+  --foreground: oklch(0.1 0 0);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.10 0 0);
+  --card-foreground: oklch(0.1 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.10 0 0);
+  --popover-foreground: oklch(0.1 0 0);
   --primary: oklch(0.45 0.12 250);
   --primary-foreground: oklch(0.99 0 0);
   --secondary: oklch(0.96 0.005 250);
-  --secondary-foreground: oklch(0.10 0 0);
+  --secondary-foreground: oklch(0.1 0 0);
   --muted: oklch(0.97 0.002 250);
   --muted-foreground: oklch(0.52 0.01 250);
   --accent: oklch(0.96 0.005 250);
-  --accent-foreground: oklch(0.10 0 0);
+  --accent-foreground: oklch(0.1 0 0);
   --destructive: oklch(0.55 0.22 25);
   --destructive-foreground: oklch(0.99 0 0);
   --success: oklch(0.58 0.15 150);
@@ -28,7 +28,7 @@
   --border: oklch(0.93 0.003 250);
   --input: oklch(0.93 0.003 250);
   --ring: oklch(0.45 0.12 250);
-  --chart-1: oklch(0.50 0.15 250);
+  --chart-1: oklch(0.5 0.15 250);
   --chart-2: oklch(0.58 0.15 150);
   --chart-3: oklch(0.65 0.12 200);
   --chart-4: oklch(0.72 0.14 70);
@@ -45,7 +45,7 @@
 }
 
 .dark {
-  --background: oklch(0.10 0.01 250);
+  --background: oklch(0.1 0.01 250);
   --foreground: oklch(0.98 0.005 250);
   --card: oklch(0.13 0.01 250);
   --card-foreground: oklch(0.98 0.005 250);
@@ -59,12 +59,12 @@
   --muted-foreground: oklch(0.62 0.02 250);
   --accent: oklch(0.18 0.02 250);
   --accent-foreground: oklch(0.98 0.005 250);
-  --destructive: oklch(0.50 0.22 25);
+  --destructive: oklch(0.5 0.22 25);
   --destructive-foreground: oklch(0.98 0 0);
   --success: oklch(0.55 0.15 150);
   --success-foreground: oklch(0.98 0 0);
   --warning: oklch(0.65 0.14 70);
-  --warning-foreground: oklch(0.10 0 0);
+  --warning-foreground: oklch(0.1 0 0);
   --border: oklch(0.22 0.02 250);
   --input: oklch(0.22 0.02 250);
   --ring: oklch(0.58 0.15 250);
@@ -72,7 +72,7 @@
   --chart-2: oklch(0.55 0.15 150);
   --chart-3: oklch(0.62 0.12 200);
   --chart-4: oklch(0.65 0.14 70);
-  --chart-5: oklch(0.50 0.22 25);
+  --chart-5: oklch(0.5 0.22 25);
   --sidebar: oklch(0.12 0.01 250);
   --sidebar-foreground: oklch(0.98 0.005 250);
   --sidebar-primary: oklch(0.58 0.15 250);
@@ -84,8 +84,8 @@
 }
 
 @theme inline {
-  --font-sans: 'Geist', 'Geist Fallback';
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-sans: "Geist", "Geist Fallback";
+  --font-mono: "Geist Mono", "Geist Mono Fallback";
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -134,5 +134,11 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .modal-open {
+    overflow: hidden;
   }
 }

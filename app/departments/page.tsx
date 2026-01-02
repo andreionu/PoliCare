@@ -5,9 +5,32 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Heart, Ear, Eye, Stethoscope, Baby, Plus, Users, Clock, Activity } from 'lucide-react'
+import { Heart, Ear, Eye, Stethoscope, Baby, Plus, Users, Clock, Activity } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useState } from "react"
+import { useToast } from "@/hooks/use-toast"
 
 export default function DepartmentsPage() {
+  const { toast } = useToast()
+  const [isAddDepartmentOpen, setIsAddDepartmentOpen] = useState(false)
+  const [departmentFormData, setDepartmentFormData] = useState({
+    name: "",
+    icon: "",
+    description: "",
+  })
+  const [departmentErrors, setDepartmentErrors] = useState<Record<string, boolean>>({})
+
   const departments = [
     {
       id: 1,
@@ -19,7 +42,7 @@ export default function DepartmentsPage() {
       occupancy: 85,
       avgWaitTime: "15 min",
       status: "Activ",
-      description: "Diagnostic și tratament boli cardiovasculare"
+      description: "Diagnostic și tratament boli cardiovasculare",
     },
     {
       id: 2,
@@ -31,7 +54,7 @@ export default function DepartmentsPage() {
       occupancy: 68,
       avgWaitTime: "10 min",
       status: "Activ",
-      description: "Otorinolaringologie - diagnostic și tratament"
+      description: "Otorinolaringologie - diagnostic și tratament",
     },
     {
       id: 3,
@@ -43,7 +66,7 @@ export default function DepartmentsPage() {
       occupancy: 92,
       avgWaitTime: "20 min",
       status: "Activ",
-      description: "Îngrijire completă pentru sănătatea ochilor"
+      description: "Îngrijire completă pentru sănătatea ochilor",
     },
     {
       id: 4,
@@ -55,7 +78,7 @@ export default function DepartmentsPage() {
       occupancy: 72,
       avgWaitTime: "12 min",
       status: "Activ",
-      description: "Tratamente pentru afecțiuni dermatologice"
+      description: "Tratamente pentru afecțiuni dermatologice",
     },
     {
       id: 5,
@@ -67,14 +90,46 @@ export default function DepartmentsPage() {
       occupancy: 78,
       avgWaitTime: "18 min",
       status: "Activ",
-      description: "Îngrijire medicală specializată pentru copii"
-    }
+      description: "Îngrijire medicală specializată pentru copii",
+    },
   ]
 
   const getOccupancyColor = (occupancy: number) => {
     if (occupancy >= 90) return "text-red-600"
     if (occupancy >= 70) return "text-yellow-600"
     return "text-green-600"
+  }
+
+  const handleAddDepartment = () => {
+    const newErrors: Record<string, boolean> = {}
+    if (!departmentFormData.name) newErrors.name = true
+    if (!departmentFormData.icon) newErrors.icon = true
+    if (!departmentFormData.description) newErrors.description = true
+
+    if (Object.keys(newErrors).length > 0) {
+      setDepartmentErrors(newErrors)
+      toast({
+        title: "Eroare validare",
+        description: "Te rugăm să completezi toate câmpurile obligatorii.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    console.log("[v0] New department data:", departmentFormData)
+
+    toast({
+      title: "Departament adăugat",
+      description: `Departamentul ${departmentFormData.name} a fost creat cu succes.`,
+    })
+
+    setIsAddDepartmentOpen(false)
+    setDepartmentFormData({
+      name: "",
+      icon: "",
+      description: "",
+    })
+    setDepartmentErrors({})
   }
 
   return (
@@ -86,7 +141,7 @@ export default function DepartmentsPage() {
               <h1 className="text-3xl font-semibold text-foreground mb-2">Departamente</h1>
               <p className="text-muted-foreground">Gestionează departamentele clinicii</p>
             </div>
-            <Button className="gap-2">
+            <Button className="gap-2" onClick={() => setIsAddDepartmentOpen(true)}>
               <Plus className="w-4 h-4" />
               Adaugă Departament
             </Button>
@@ -188,15 +243,13 @@ export default function DepartmentsPage() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1">
+                    <Button variant="outline" size="sm" className="flex-1 bg-transparent">
                       Vezi Medici
                     </Button>
-                    <Button variant="outline" size="sm" className="flex-1">
+                    <Button variant="outline" size="sm" className="flex-1 bg-transparent">
                       Vezi Programări
                     </Button>
-                    <Button size="sm">
-                      Gestionează
-                    </Button>
+                    <Button size="sm">Gestionează</Button>
                   </div>
                 </Card>
               )
@@ -204,6 +257,92 @@ export default function DepartmentsPage() {
           </div>
         </div>
       </div>
+
+      <Dialog open={isAddDepartmentOpen} onOpenChange={setIsAddDepartmentOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Adaugă Departament Nou</DialogTitle>
+            <DialogDescription>Completează informațiile departamentului</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Name */}
+            <div>
+              <Label htmlFor="dept-name">
+                Nume departament <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="dept-name"
+                placeholder="ex: Neurologie"
+                value={departmentFormData.name}
+                onChange={(e) => {
+                  setDepartmentFormData({ ...departmentFormData, name: e.target.value })
+                  setDepartmentErrors({ ...departmentErrors, name: false })
+                }}
+                className={departmentErrors.name ? "border-destructive mt-2" : "mt-2"}
+              />
+              {departmentErrors.name && (
+                <p className="text-sm text-destructive mt-1">Numele departamentului este obligatoriu</p>
+              )}
+            </div>
+
+            {/* Icon */}
+            <div>
+              <Label htmlFor="icon">
+                Icon <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={departmentFormData.icon}
+                onValueChange={(value) => {
+                  setDepartmentFormData({ ...departmentFormData, icon: value })
+                  setDepartmentErrors({ ...departmentErrors, icon: false })
+                }}
+              >
+                <SelectTrigger className={departmentErrors.icon ? "border-destructive mt-2" : "mt-2"}>
+                  <SelectValue placeholder="Selectează iconița" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="heart">❤️ Inimă</SelectItem>
+                  <SelectItem value="brain">🧠 Creier</SelectItem>
+                  <SelectItem value="eye">👁️ Ochi</SelectItem>
+                  <SelectItem value="ear">👂 Ureche</SelectItem>
+                  <SelectItem value="stethoscope">🩺 Stetoscop</SelectItem>
+                  <SelectItem value="baby">👶 Bebeluș</SelectItem>
+                </SelectContent>
+              </Select>
+              {departmentErrors.icon && <p className="text-sm text-destructive mt-1">Iconița este obligatorie</p>}
+            </div>
+
+            {/* Description */}
+            <div>
+              <Label htmlFor="description">
+                Descriere <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="description"
+                placeholder="Descriere scurtă a departamentului..."
+                value={departmentFormData.description}
+                onChange={(e) => {
+                  setDepartmentFormData({ ...departmentFormData, description: e.target.value })
+                  setDepartmentErrors({ ...departmentErrors, description: false })
+                }}
+                rows={3}
+                className={departmentErrors.description ? "border-destructive resize-none mt-2" : "resize-none mt-2"}
+              />
+              {departmentErrors.description && (
+                <p className="text-sm text-destructive mt-1">Descrierea este obligatorie</p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDepartmentOpen(false)}>
+              Anulează
+            </Button>
+            <Button onClick={handleAddDepartment}>Adaugă Departament</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   )
 }
