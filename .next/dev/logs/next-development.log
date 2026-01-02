@@ -1,4 +1,473 @@
-[00:00:00.901] Server  LOG      ✓ Ready in 585ms
-[00:00:12.984] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:00:53.638] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:00:57.967] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:01.479] Server  LOG     
+[00:00:01.479] Server  LOG        We detected TypeScript in your project and reconfigured your tsconfig.json file for you.
+[00:00:01.479] Server  LOG        The following suggested values were added to your tsconfig.json. These values can be changed to fit your project's needs:
+
+[00:00:01.480] Server  LOG        	- include was updated to add '.next/dev/types/**/*.ts'
+[00:00:01.480] Server  LOG     
+[00:00:01.480] Server  LOG        The following mandatory changes were made to your tsconfig.json:
+
+[00:00:01.480] Server  LOG        	- jsx was set to react-jsx (next.js uses the React automatic runtime)
+[00:00:01.480] Server  LOG     
+[00:00:01.766] Server  LOG      ✓ Ready in 1167ms
+[00:00:26.012] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:26.184] Browser ERROR   A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <script>
+                      <RootLayout>
+                        <html
+                          lang="ro"
+-                         data-jetski-tab-id="1530711933"
+                        >
+                  ...
+
+[00:00:51.513] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:51.635] Browser ERROR   A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/admin" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <script>
+                      <RootLayout>
+                        <html
+                          lang="ro"
+-                         data-jetski-tab-id="1530711933"
+                        >
+                  ...
+
+[00:02:01.998] Server  ERROR    ⨯ ./app/appointments/page.tsx:629:19
+Parsing ecmascript source code failed
+  627 |                       </div>
+  628 |                     </div>
+> 629 |                 ))}
+      |                   ^
+  630 |               </div>
+  631 |             </Card>
+  632 |           ) : (
+
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+
+
+
+./app/appointments/page.tsx:631:14
+Parsing ecmascript source code failed
+  629 |                 ))}
+  630 |               </div>
+> 631 |             </Card>
+      |              ^^^^^^
+  632 |           ) : (
+  633 |             <Card className="overflow-x-auto">
+  634 |               <div className="min-w-[1200px]">
+
+Unterminated regexp literal
+
+
+[00:02:02.170] Browser ERROR   ./app/appointments/page.tsx:629:19
+Parsing ecmascript source code failed
+  627 |                       </div>
+  628 |                     </div>
+> 629 |                 ))}
+      |                   ^
+  630 |               </div>
+  631 |             </Card>
+  632 |           ) : (
+
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+[00:02:02.170] Browser ERROR   ./app/appointments/page.tsx:631:14
+Parsing ecmascript source code failed
+  629 |                 ))}
+  630 |               </div>
+> 631 |             </Card>
+      |              ^^^^^^
+  632 |           ) : (
+  633 |             <Card className="overflow-x-auto">
+  634 |               <div className="min-w-[1200px]">
+
+Unterminated regexp literal
+[00:02:02.170] Browser ERROR   ./app/appointments/page.tsx:629:19
+Parsing ecmascript source code failed
+  627 |                       </div>
+  628 |                     </div>
+> 629 |                 ))}
+      |                   ^
+  630 |               </div>
+  631 |             </Card>
+  632 |           ) : (
+
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+[00:02:02.170] Browser ERROR   ./app/appointments/page.tsx:631:14
+Parsing ecmascript source code failed
+  629 |                 ))}
+  630 |               </div>
+> 631 |             </Card>
+      |              ^^^^^^
+  632 |           ) : (
+  633 |             <Card className="overflow-x-auto">
+  634 |               <div className="min-w-[1200px]">
+
+Unterminated regexp literal
+[00:02:02.719] Browser ERROR   ./app/appointments/page.tsx:629:19
+Parsing ecmascript source code failed
+  627 |                       </div>
+  628 |                     </div>
+> 629 |                 ))}
+      |                   ^
+  630 |               </div>
+  631 |             </Card>
+  632 |           ) : (
+
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+[00:02:02.719] Browser ERROR   ./app/appointments/page.tsx:631:14
+Parsing ecmascript source code failed
+  629 |                 ))}
+  630 |               </div>
+> 631 |             </Card>
+      |              ^^^^^^
+  632 |           ) : (
+  633 |             <Card className="overflow-x-auto">
+  634 |               <div className="min-w-[1200px]">
+
+Unterminated regexp literal
+[00:02:02.719] Browser ERROR   ./app/appointments/page.tsx:629:19
+Parsing ecmascript source code failed
+  627 |                       </div>
+  628 |                     </div>
+> 629 |                 ))}
+      |                   ^
+  630 |               </div>
+  631 |             </Card>
+  632 |           ) : (
+
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+[00:02:02.719] Browser ERROR   ./app/appointments/page.tsx:631:14
+Parsing ecmascript source code failed
+  629 |                 ))}
+  630 |               </div>
+> 631 |             </Card>
+      |              ^^^^^^
+  632 |           ) : (
+  633 |             <Card className="overflow-x-auto">
+  634 |               <div className="min-w-[1200px]">
+
+Unterminated regexp literal
+[00:02:03.085] Browser ERROR   ./app/appointments/page.tsx:629:19
+Parsing ecmascript source code failed
+  627 |                       </div>
+  628 |                     </div>
+> 629 |                 ))}
+      |                   ^
+  630 |               </div>
+  631 |             </Card>
+  632 |           ) : (
+
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+[00:02:03.085] Browser ERROR   ./app/appointments/page.tsx:631:14
+Parsing ecmascript source code failed
+  629 |                 ))}
+  630 |               </div>
+> 631 |             </Card>
+      |              ^^^^^^
+  632 |           ) : (
+  633 |             <Card className="overflow-x-auto">
+  634 |               <div className="min-w-[1200px]">
+
+Unterminated regexp literal
+[00:02:03.125] Server  ERROR    ⨯ ./app/appointments/page.tsx:629:19
+Parsing ecmascript source code failed
+  627 |                       </div>
+  628 |                     </div>
+> 629 |                 ))}
+      |                   ^
+  630 |               </div>
+  631 |             </Card>
+  632 |           ) : (
+
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+
+
+
+./app/appointments/page.tsx:631:14
+Parsing ecmascript source code failed
+  629 |                 ))}
+  630 |               </div>
+> 631 |             </Card>
+      |              ^^^^^^
+  632 |           ) : (
+  633 |             <Card className="overflow-x-auto">
+  634 |               <div className="min-w-[1200px]">
+
+Unterminated regexp literal
+
+
+[00:02:03.382] Browser ERROR   uncaughtError: Error: ./app/appointments/page.tsx:629:19
+Parsing ecmascript source code failed
+  627 |                       </div>
+  628 |                     </div>
+> 629 |                 ))}
+      |                   ^
+  630 |               </div>
+  631 |             </Card>
+  632 |           ) : (
+
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+
+
+[00:02:03.562] Browser ERROR   ./app/appointments/page.tsx:629:19
+Parsing ecmascript source code failed
+  627 |                       </div>
+  628 |                     </div>
+> 629 |                 ))}
+      |                   ^
+  630 |               </div>
+  631 |             </Card>
+  632 |           ) : (
+
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+[00:02:03.562] Browser ERROR   ./app/appointments/page.tsx:631:14
+Parsing ecmascript source code failed
+  629 |                 ))}
+  630 |               </div>
+> 631 |             </Card>
+      |              ^^^^^^
+  632 |           ) : (
+  633 |             <Card className="overflow-x-auto">
+  634 |               <div className="min-w-[1200px]">
+
+Unterminated regexp literal
+[00:02:03.563] Browser ERROR   ./app/appointments/page.tsx:629:19
+Parsing ecmascript source code failed
+  627 |                       </div>
+  628 |                     </div>
+> 629 |                 ))}
+      |                   ^
+  630 |               </div>
+  631 |             </Card>
+  632 |           ) : (
+
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+[00:02:03.563] Browser ERROR   ./app/appointments/page.tsx:631:14
+Parsing ecmascript source code failed
+  629 |                 ))}
+  630 |               </div>
+> 631 |             </Card>
+      |              ^^^^^^
+  632 |           ) : (
+  633 |             <Card className="overflow-x-auto">
+  634 |               <div className="min-w-[1200px]">
+
+Unterminated regexp literal
+[00:02:33.589] Browser ERROR   ./app/appointments/page.tsx:1099:2
+Parsing ecmascript source code failed
+  1097 |     </AdminLayout>
+  1098 |   )
+> 1099 | }\
+       |  ^
+  1100 |
+
+Expected unicode escape
+[00:02:46.930] Server  LOG      ✓ Compiled in 121ms
+[00:02:47.723] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:02:47.888] Browser ERROR   A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/appointments" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <script>
+                      <RootLayout>
+                        <html
+                          lang="ro"
+-                         data-jetski-tab-id="1530711933"
+                        >
+                  ...
+
+[00:03:10.218] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:03:10.366] Browser ERROR   A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/appointments" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <script>
+                      <RootLayout>
+                        <html
+                          lang="ro"
+-                         data-jetski-tab-id="1530711935"
+                        >
+                          <body
++                           className="font-sans antialiased"
+-                           className="font-sans antialiased antigravity-scroll-lock"
+                          >
+                  ...
+
+[00:05:19.273] Server  LOG      ✓ Compiled in 68ms
+[00:05:39.814] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:05:39.964] Browser ERROR   A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <script>
+                      <RootLayout>
+                        <html
+                          lang="ro"
+-                         data-jetski-tab-id="1530712039"
+                        >
+                  ...
+
+[00:05:44.650] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:05:44.897] Browser ERROR   A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/appointments" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <script>
+                      <RootLayout>
+                        <html
+                          lang="ro"
+-                         data-jetski-tab-id="1530712040"
+                        >
+                          <body
++                           className="font-sans antialiased"
+-                           className="font-sans antialiased antigravity-scroll-lock"
+                          >
+                  ...
+

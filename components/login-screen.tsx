@@ -56,12 +56,12 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     setIsLoading(true)
 
     setTimeout(() => {
-      if (sanitizedEmail === "admin@medicare.ro" && password === "admin123") {
+      if (sanitizedEmail === "admin@policare.ro" && password === "admin123") {
         setLoginAttempts(0)
         setLockoutTime(null)
         toast({
           title: "Autentificare reușită",
-          description: "Bine ai venit în panoul de administrare MediCare!",
+          description: "Bine ai venit în panoul de administrare PoliCare!",
         })
         onLogin()
       } else {
@@ -85,7 +85,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     }, 1000)
   }
 
-  const isLocked = lockoutTime && Date.now() < lockoutTime
+  const isLocked = lockoutTime !== null && Date.now() < lockoutTime
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-accent/20 to-background p-4">
@@ -95,7 +95,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground mb-4 shadow-lg">
             <Activity className="h-8 w-8" />
           </div>
-          <h1 className="text-3xl font-bold text-balance">MediCare Admin</h1>
+          <h1 className="text-3xl font-bold text-balance">PoliCare Admin</h1>
           <p className="text-muted-foreground mt-2">Sign in to access your dashboard</p>
         </div>
 
@@ -112,7 +112,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@medicare.ro"
+                  placeholder="admin@policare.ro"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -171,7 +171,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
 
             <div className="mt-6 p-4 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground mb-2 font-medium">Demo Credentials:</p>
-              <p className="text-xs text-muted-foreground">Email: admin@medicare.ro</p>
+              <p className="text-xs text-muted-foreground">Email: admin@policare.ro</p>
               <p className="text-xs text-muted-foreground">Password: admin123</p>
             </div>
           </CardContent>

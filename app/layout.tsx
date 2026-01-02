@@ -8,7 +8,7 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "MediCare Admin - Gestionare Policlinică",
+  title: "PoliCare Admin - Gestionare Policlinică",
   description: "Panou de administrare pentru gestionarea pacienților, medicilor și programărilor",
   generator: "v0.app",
   icons: {

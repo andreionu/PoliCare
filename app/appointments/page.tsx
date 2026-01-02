@@ -56,6 +56,8 @@ export default function AppointmentsPage() {
   const [patientMode, setPatientMode] = useState<"existing" | "new">("existing")
   const [selectedPatientId, setSelectedPatientId] = useState("")
   const [patientSearchTerm, setPatientSearchTerm] = useState("")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("Toate")
 
   const [appointmentFormData, setAppointmentFormData] = useState({
     patientName: "",
@@ -393,8 +395,10 @@ export default function AppointmentsPage() {
   }
 
   const filteredAppointments = appointments.filter((apt) => {
-    const matchesSearch = apt.patientName.toLowerCase().includes("") || apt.doctorName.toLowerCase().includes("")
-    const matchesFilter = "" === "Toate" || apt.status === ""
+    const matchesSearch =
+      apt.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      apt.doctorName.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesFilter = statusFilter === "Toate" || apt.status === statusFilter
     return matchesSearch && matchesFilter
   })
 
@@ -511,11 +515,21 @@ export default function AppointmentsPage() {
             <div className="flex gap-4 flex-1">
               <div className="relative max-w-md flex-1">
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input placeholder="Caută pacient sau medic..." value="" onChange={(e) => {}} className="pl-10" />
+                <Input
+                  placeholder="Caută pacient sau medic..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
               <div className="flex gap-2">
                 {["Toate", "Confirmat", "În așteptare", "Anulat"].map((status) => (
-                  <Button key={status} variant={"" === status ? "default" : "outline"} size="sm" onClick={() => {}}>
+                  <Button
+                    key={status}
+                    variant={statusFilter === status ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setStatusFilter(status)}
+                  >
                     {status}
                   </Button>
                 ))}
@@ -626,6 +640,7 @@ export default function AppointmentsPage() {
                         </Button>
                       </div>
                     </div>
+                  </div>
                 ))}
               </div>
             </Card>
@@ -1095,4 +1110,4 @@ export default function AppointmentsPage() {
       </Dialog>
     </AdminLayout>
   )
-}\
+}

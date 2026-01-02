@@ -41,7 +41,7 @@ export default function DoctorsPage() {
       name: "Dr. Ana Popescu",
       specialty: "Cardiologie",
       avatar: "/female-doctor.png",
-      email: "ana.popescu@medicare.ro",
+      email: "ana.popescu@policare.ro",
       phone: "+40 721 234 567",
       patients: 156,
       experience: "15 ani",
@@ -54,7 +54,7 @@ export default function DoctorsPage() {
       name: "Dr. Ion Marinescu",
       specialty: "ORL",
       avatar: "/male-doctor.png",
-      email: "ion.marinescu@medicare.ro",
+      email: "ion.marinescu@policare.ro",
       phone: "+40 721 234 568",
       patients: 142,
       experience: "12 ani",
@@ -67,7 +67,7 @@ export default function DoctorsPage() {
       name: "Dr. Maria Ionescu",
       specialty: "Oftalmologie",
       avatar: "/female-doctor-2.jpg",
-      email: "maria.ionescu@medicare.ro",
+      email: "maria.ionescu@policare.ro",
       phone: "+40 721 234 569",
       patients: 198,
       experience: "18 ani",
@@ -80,7 +80,7 @@ export default function DoctorsPage() {
       name: "Dr. Andrei Popa",
       specialty: "Dermatologie",
       avatar: "/male-doctor-2.jpg",
-      email: "andrei.popa@medicare.ro",
+      email: "andrei.popa@policare.ro",
       phone: "+40 721 234 570",
       patients: 134,
       experience: "10 ani",
@@ -93,7 +93,7 @@ export default function DoctorsPage() {
       name: "Dr. Elena Dumitrescu",
       specialty: "Pediatrie",
       avatar: "/female-doctor-3.jpg",
-      email: "elena.dumitrescu@medicare.ro",
+      email: "elena.dumitrescu@policare.ro",
       phone: "+40 721 234 571",
       patients: 210,
       experience: "20 ani",
@@ -106,7 +106,7 @@ export default function DoctorsPage() {
       name: "Dr. Cristian Radu",
       specialty: "Cardiologie",
       avatar: "/male-doctor-3.jpg",
-      email: "cristian.radu@medicare.ro",
+      email: "cristian.radu@policare.ro",
       phone: "+40 721 234 572",
       patients: 89,
       experience: "8 ani",
@@ -368,7 +368,7 @@ export default function DoctorsPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="doctor@medicare.ro"
+                placeholder="doctor@policare.ro"
                 value={formData.email}
                 onChange={(e) => {
                   setFormData({ ...formData, email: e.target.value })

@@ -36,7 +36,7 @@ export default function SettingsPage() {
                 <div className="p-6 space-y-4">
                   <div>
                     <Label htmlFor="clinic-name">Nume Clinică</Label>
-                    <Input id="clinic-name" defaultValue="MediCare București" className="mt-1.5" />
+                    <Input id="clinic-name" defaultValue="PoliCare București" className="mt-1.5" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -45,7 +45,7 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" defaultValue="contact@medicare.ro" className="mt-1.5" />
+                      <Input id="email" type="email" defaultValue="contact@policare.ro" className="mt-1.5" />
                     </div>
                   </div>
                   <div>
@@ -171,7 +171,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex items-center gap-3 text-sm">
                     <Mail className="w-4 h-4 text-muted-foreground" />
-                    <span>contact@medicare.ro</span>
+                    <span>contact@policare.ro</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm">
                     <MapPin className="w-4 h-4 text-muted-foreground" />
