@@ -8,9 +8,10 @@ import { Header } from "@/components/header"
 
 interface AdminLayoutProps {
   children: React.ReactNode
+  userRole?: "super-admin" | "front-desk" | null
 }
 
-export function AdminLayout({ children }: AdminLayoutProps) {
+export function AdminLayout({ children, userRole }: AdminLayoutProps) {
   return (
     <div className="flex min-h-screen bg-background">
       <aside className="hidden lg:flex w-64 flex-col border-r bg-card sticky top-0 h-screen">
@@ -19,12 +20,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             <Activity className="h-5 w-5" />
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-semibold">PoliCare</span>
+            <span className="text-sm font-semibold">MediCare</span>
             <span className="text-xs text-muted-foreground">Admin Portal</span>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto py-6">
-          <SidebarNav />
+          <SidebarNav userRole={userRole} />
         </div>
       </aside>
 

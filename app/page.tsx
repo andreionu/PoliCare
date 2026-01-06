@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { BookingWizard } from "@/components/booking-wizard"
 import { Calendar, Heart, Clock, Users, Star, Phone, Mail, MapPin } from "lucide-react"
+import { Preloader } from "@/components/preloader"
 
 export default function LandingPage() {
   const [showBooking, setShowBooking] = useState(false)
@@ -20,8 +21,7 @@ export default function LandingPage() {
   }, [showBooking])
 
   return (
-    <>
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-blue-50">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-blue-50">
         {/* Header */}
         <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-40">
           <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -29,7 +29,7 @@ export default function LandingPage() {
               <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
                 <Heart className="w-6 h-6 text-white" />
               </div>
-              <span className="font-bold text-xl">PoliCare</span>
+              <span className="font-bold text-xl">MediCare</span>
             </div>
             <nav className="hidden md:flex items-center gap-6">
               <a href="#services" className="text-sm font-medium hover:text-primary transition-colors">
@@ -41,6 +41,7 @@ export default function LandingPage() {
               <a href="#contact" className="text-sm font-medium hover:text-primary transition-colors">
                 Contact
               </a>
+
             </nav>
           </div>
         </header>
@@ -90,7 +91,11 @@ export default function LandingPage() {
             {/* Hero Image */}
             <div className="relative">
               <div className="aspect-square rounded-3xl overflow-hidden bg-gradient-to-br from-blue-100 to-blue-200">
-                <img src="/modern-medical-clinic-reception-with-friendly-staf.jpg" alt="Medical Clinic" className="w-full h-full object-cover" />
+                <img
+                  src="/modern-medical-clinic-reception-with-friendly-staf.jpg"
+                  alt="Medical Clinic"
+                  className="w-full h-full object-cover"
+                />
               </div>
               {/* Floating Card */}
               <div className="absolute -bottom-6 -left-6 bg-white rounded-2xl shadow-xl p-4 flex items-center gap-4">
@@ -174,7 +179,11 @@ export default function LandingPage() {
                 </div>
               </div>
               <div className="aspect-square rounded-3xl overflow-hidden bg-gradient-to-br from-blue-100 to-blue-200">
-                <img src="/happy-patient-consultation-with-doctor.jpg" alt="Patient Care" className="w-full h-full object-cover" />
+                <img
+                  src="/happy-patient-consultation-with-doctor.jpg"
+                  alt="Patient Care"
+                  className="w-full h-full object-cover"
+                />
               </div>
             </div>
           </div>
@@ -201,7 +210,7 @@ export default function LandingPage() {
                   <Mail className="w-6 h-6 text-primary" />
                 </div>
                 <h3 className="font-semibold mb-2">Email</h3>
-                <p className="text-muted-foreground">contact@policare.ro</p>
+                <p className="text-muted-foreground">contact@medicare.ro</p>
               </div>
               <div className="text-center p-6">
                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -223,7 +232,7 @@ export default function LandingPage() {
                   <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
                     <Heart className="w-5 h-5 text-primary" />
                   </div>
-                  <span className="font-bold text-lg">PoliCare</span>
+                  <span className="font-bold text-lg">MediCare</span>
                 </div>
                 <p className="text-slate-400 text-sm">Îngrijire medicală de calitate pentru toată familia.</p>
               </div>
@@ -255,14 +264,13 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="border-t border-slate-800 pt-8 text-center text-sm text-slate-400">
-              <p>&copy; 2025 PoliCare. Toate drepturile rezervate.</p>
+              <p>&copy; 2025 MediCare. Toate drepturile rezervate.</p>
             </div>
           </div>
         </footer>
-      </div>
 
       {/* Booking Wizard Modal */}
       {showBooking && <BookingWizard onClose={() => setShowBooking(false)} />}
-    </>
+    </div>
   )
 }

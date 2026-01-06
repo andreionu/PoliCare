@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast"
 
 interface LoginScreenProps {
-  onLogin: () => void
+  onLogin: (role: "super-admin" | "front-desk") => void
 }
 
 export function LoginScreen({ onLogin }: LoginScreenProps) {
@@ -63,7 +63,15 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
           title: "Autentificare reușită",
           description: "Bine ai venit în panoul de administrare PoliCare!",
         })
-        onLogin()
+        onLogin("super-admin")
+      } else if (sanitizedEmail === "receptie@policare.ro" && password === "receptie123") {
+        setLoginAttempts(0)
+        setLockoutTime(null)
+        toast({
+          title: "Autentificare reușită",
+          description: "Bine ai venit!",
+        })
+        onLogin("front-desk")
       } else {
         const newAttempts = loginAttempts + 1
         setLoginAttempts(newAttempts)
@@ -85,7 +93,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     }, 1000)
   }
 
-  const isLocked = lockoutTime !== null && Date.now() < lockoutTime
+  const isLocked = !!(lockoutTime && Date.now() < lockoutTime)
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-accent/20 to-background p-4">
@@ -171,8 +179,18 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
 
             <div className="mt-6 p-4 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground mb-2 font-medium">Demo Credentials:</p>
-              <p className="text-xs text-muted-foreground">Email: admin@policare.ro</p>
-              <p className="text-xs text-muted-foreground">Password: admin123</p>
+              <div className="space-y-2">
+                <div>
+                  <p className="text-xs text-muted-foreground font-semibold">Super Admin:</p>
+                  <p className="text-xs text-muted-foreground">Email: admin@policare.ro</p>
+                  <p className="text-xs text-muted-foreground">Password: admin123</p>
+                </div>
+                <div className="pt-2 border-t border-border">
+                  <p className="text-xs text-muted-foreground font-semibold">Recepție:</p>
+                  <p className="text-xs text-muted-foreground">Email: receptie@policare.ro</p>
+                  <p className="text-xs text-muted-foreground">Password: receptie123</p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

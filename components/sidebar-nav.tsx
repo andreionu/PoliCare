@@ -1,14 +1,28 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from 'next/navigation'
+import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Users, Calendar, Stethoscope, Building2, FileText, Settings, Activity } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Users,
+  Calendar,
+  Stethoscope,
+  Building2,
+  FileText,
+  Settings,
+  Activity,
+  UserCog,
+} from "lucide-react"
+
+interface SidebarNavProps {
+  userRole?: "super-admin" | "front-desk" | null
+}
 
 const navItems = [
   {
     title: "Dashboard",
-    href: "/",
+    href: "/admin",
     icon: LayoutDashboard,
   },
   {
@@ -48,7 +62,15 @@ const navItems = [
   },
 ]
 
-export function SidebarNav() {
+const superAdminNavItems = [
+  {
+    title: "Utilizatori",
+    href: "/users",
+    icon: UserCog,
+  },
+]
+
+export function SidebarNav({ userRole }: SidebarNavProps) {
   const pathname = usePathname()
 
   return (
@@ -64,7 +86,7 @@ export function SidebarNav() {
               "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
               isActive
                 ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
             )}
           >
             <Icon className="h-4 w-4" />
@@ -72,6 +94,31 @@ export function SidebarNav() {
           </Link>
         )
       })}
+
+      {userRole === "super-admin" && (
+        <>
+          <div className="my-4 border-t border-border" />
+          {superAdminNavItems.map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {item.title}
+              </Link>
+            )
+          })}
+        </>
+      )}
     </nav>
   )
 }
