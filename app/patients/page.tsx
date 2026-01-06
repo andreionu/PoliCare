@@ -16,20 +16,34 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 
 export default function PatientsPage() {
   const { toast } = useToast()
   const [searchQuery, setSearchQuery] = useState("")
   const [role, setRole] = useState<"super-admin" | "front-desk" | null>(null)
-
-  useEffect(() => {
-    // Read role from local storage to pass to layout
-    const storedRole = localStorage.getItem("userRole") as "super-admin" | "front-desk" | null
-    setRole(storedRole)
-  }, [])
+  
+  // Modal state
+  const [showAddPatient, setShowAddPatient] = useState(false)
+  const [newPatient, setNewPatient] = useState({
+    name: "",
+    cnp: "",
+    age: "",
+    gender: "",
+    email: "",
+    phone: "",
+  })
 
   // Mock patient data
-  const patients = [
+  const [patients, setPatients] = useState([
     {
       id: "PAC-001",
       name: "Alexandru Popa",
@@ -63,12 +77,58 @@ export default function PatientsPage() {
       status: "Nou",
       doctor: "Nedefinit"
     }
-  ]
+  ])
+
+  useEffect(() => {
+    // Read role from local storage to pass to layout
+    const storedRole = localStorage.getItem("userRole") as "super-admin" | "front-desk" | null
+    setRole(storedRole)
+  }, [])
 
   const filteredPatients = patients.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     p.id.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  const handleAddPatient = () => {
+    // Basic validation
+    if (!newPatient.name || !newPatient.cnp || !newPatient.phone) {
+      toast({
+        title: "Eroare",
+        description: "Vă rugăm să completați toate câmpurile obligatorii (Nume, CNP, Telefon).",
+        variant: "destructive"
+      })
+      return
+    }
+
+    const patient = {
+      id: `PAC-00${patients.length + 1}`,
+      name: newPatient.name,
+      age: Number(newPatient.age) || 0,
+      gender: newPatient.gender || "Nedefinit",
+      phone: newPatient.phone,
+      email: newPatient.email,
+      lastVisit: "Inexistent",
+      status: "Nou",
+      doctor: "Nedefinit"
+    }
+
+    setPatients([...patients, patient])
+    setShowAddPatient(false)
+    setNewPatient({
+      name: "",
+      cnp: "",
+      age: "",
+      gender: "",
+      email: "",
+      phone: "",
+    })
+    
+    toast({
+      title: "Succes",
+      description: "Pacientul a fost adăugat cu succes.",
+    })
+  }
 
   return (
     <AdminLayout userRole={role}>
@@ -80,7 +140,7 @@ export default function PatientsPage() {
               <h1 className="text-3xl font-bold">Pacienți</h1>
               <p className="text-muted-foreground mt-1">Gestionează baza de date a pacienților</p>
             </div>
-            <Button size="lg">
+            <Button size="lg" onClick={() => setShowAddPatient(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Pacient Nou
             </Button>
@@ -156,6 +216,92 @@ export default function PatientsPage() {
           </div>
         </div>
       </main>
+
+      {/* Add Patient Modal */}
+      <Dialog open={showAddPatient} onOpenChange={setShowAddPatient}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Adaugă Pacient Nou</DialogTitle>
+            <DialogDescription>Introduceți datele personale ale noului pacient</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nume Complet *</Label>
+              <Input
+                id="name"
+                placeholder="ex: Andrei Popescu"
+                value={newPatient.name}
+                onChange={(e) => setNewPatient({ ...newPatient, name: e.target.value })}
+              />
+            </div>
+            
+             <div className="space-y-2">
+              <Label htmlFor="cnp">CNP *</Label>
+              <Input
+                id="cnp"
+                placeholder="ex: 1900101..."
+                value={newPatient.cnp}
+                onChange={(e) => setNewPatient({ ...newPatient, cnp: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="age">Vârstă</Label>
+                <Input
+                  id="age"
+                  type="number"
+                  placeholder="ex: 35"
+                  value={newPatient.age}
+                  onChange={(e) => setNewPatient({ ...newPatient, age: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gender">Gen</Label>
+                <select 
+                  id="gender"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={newPatient.gender}
+                   onChange={(e) => setNewPatient({ ...newPatient, gender: e.target.value })}
+                >
+                  <option value="">Selectează</option>
+                  <option value="Masculin">Masculin</option>
+                  <option value="Feminin">Feminin</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Telefon *</Label>
+              <Input
+                id="phone"
+                placeholder="07xx xxx xxx"
+                value={newPatient.phone}
+                onChange={(e) => setNewPatient({ ...newPatient, phone: e.target.value })}
+              />
+            </div>
+
+             <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="email@exemplu.com"
+                value={newPatient.email}
+                onChange={(e) => setNewPatient({ ...newPatient, email: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddPatient(false)}>
+              Anulează
+            </Button>
+            <Button onClick={handleAddPatient}>Salvează Pacient</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   )
 }

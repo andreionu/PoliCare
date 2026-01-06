@@ -20,7 +20,7 @@ export function AdminLayout({ children, userRole }: AdminLayoutProps) {
             <Activity className="h-5 w-5" />
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-semibold">MediCare</span>
+            <span className="text-sm font-semibold">PoliCare</span>
             <span className="text-xs text-muted-foreground">Admin Portal</span>
           </div>
         </div>

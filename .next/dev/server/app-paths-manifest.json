@@ -1,9 +1,11 @@
 {
+  "/activity/page": "app/activity/page.js",
   "/admin/page": "app/admin/page.js",
   "/appointments/page": "app/appointments/page.js",
   "/departments/page": "app/departments/page.js",
-  "/page": "app/page.js",
+  "/doctors/page": "app/doctors/page.js",
   "/patients/page": "app/patients/page.js",
+  "/reports/page": "app/reports/page.js",
   "/settings/page": "app/settings/page.js",
   "/users/page": "app/users/page.js"
 }
