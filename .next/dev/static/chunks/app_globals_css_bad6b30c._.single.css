@@ -108,6 +108,7 @@
     --color-blue-100: #dbeafe;
     --color-blue-200: #bedbff;
     --color-blue-600: #155dfc;
+    --color-blue-700: #1447e6;
     --color-purple-100: #f3e8ff;
     --color-purple-600: #9810fa;
     --color-purple-700: #8200da;
@@ -206,6 +207,7 @@
       --color-blue-100: lab(92.0301% -2.24757 -11.6453);
       --color-blue-200: lab(86.15% -4.04379 -21.0797);
       --color-blue-600: lab(44.0605% 29.0279 -86.0352);
+      --color-blue-700: lab(36.9089% 35.0961 -85.6872);
       --color-purple-100: lab(93.3333% 6.9744 -9.83434);
       --color-purple-600: lab(43.0295% 75.21 -86.5669);
       --color-purple-700: lab(36.1758% 69.8525 -80.0381);
@@ -1870,6 +1872,11 @@
     border-style: dashed;
   }
 
+  .border-none {
+    --tw-border-style: none;
+    border-style: none;
+  }
+
   .border-\(--color-border\) {
     border-color: var(--color-border);
   }
@@ -2617,6 +2624,10 @@
     color: var(--color-blue-600);
   }
 
+  .text-blue-700 {
+    color: var(--color-blue-700);
+  }
+
   .text-card-foreground {
     color: var(--card-foreground);
   }
@@ -2661,6 +2672,10 @@
 
   .text-green-600 {
     color: var(--color-green-600);
+  }
+
+  .text-green-700 {
+    color: var(--color-green-700);
   }
 
   .text-green-900 {
@@ -3518,6 +3533,12 @@
       .hover\:bg-destructive\/90:hover {
         background-color: color-mix(in oklab, var(--destructive) 90%, transparent);
       }
+    }
+  }
+
+  @media (hover: hover) {
+    .hover\:bg-green-100:hover {
+      background-color: var(--color-green-100);
     }
   }
 

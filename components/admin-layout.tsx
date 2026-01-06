@@ -8,7 +8,7 @@ import { Header } from "@/components/header"
 
 interface AdminLayoutProps {
   children: React.ReactNode
-  userRole?: "super-admin" | "front-desk" | null
+  userRole?: "super-admin" | "front-desk" | null | string
 }
 
 export function AdminLayout({ children, userRole }: AdminLayoutProps) {
@@ -25,7 +25,7 @@ export function AdminLayout({ children, userRole }: AdminLayoutProps) {
           </div>
         </div>
         <div className="flex-1 overflow-y-auto py-6">
-          <SidebarNav userRole={userRole} />
+          <SidebarNav userRole={userRole as any} />
         </div>
       </aside>
 

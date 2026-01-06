@@ -63,6 +63,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
           title: "Autentificare reușită",
           description: "Bine ai venit în panoul de administrare PoliCare!",
         })
+        localStorage.setItem("userRole", "super-admin")
         onLogin("super-admin")
       } else if (sanitizedEmail === "receptie@policare.ro" && password === "receptie123") {
         setLoginAttempts(0)
@@ -71,6 +72,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
           title: "Autentificare reușită",
           description: "Bine ai venit!",
         })
+        localStorage.setItem("userRole", "front-desk")
         onLogin("front-desk")
       } else {
         const newAttempts = loginAttempts + 1
