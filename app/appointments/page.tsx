@@ -32,8 +32,44 @@ import {
   ChevronRight,
   AlertCircle,
   Search,
+  Loader2,
 } from "lucide-react"
 import { Label } from "@/components/ui/label"
+
+// Types
+interface Patient {
+  id: string
+  name: string
+  phone: string
+  email: string | null
+}
+
+interface Doctor {
+  id: string
+  name: string
+  specialty: string | null
+  departmentId: string | null
+}
+
+interface Department {
+  id: string
+  name: string
+  color: string | null
+}
+
+interface Appointment {
+  id: string
+  date: string
+  startTime: string
+  endTime: string | null
+  duration: number
+  status: string
+  type: string | null
+  notes: string | null
+  patient: Patient
+  doctor: Doctor
+  department: Department | null
+}
 
 const getMonday = (date: Date) => {
   const day = date.getDay()
@@ -41,12 +77,32 @@ const getMonday = (date: Date) => {
   return new Date(date.setDate(diff))
 }
 
+// Status mapping for display
+const getStatusDisplay = (status: string) => {
+  switch (status) {
+    case "CONFIRMAT":
+      return "Confirmat"
+    case "IN_ASTEPTARE":
+      return "În așteptare"
+    case "ANULAT":
+      return "Anulat"
+    case "FINALIZAT":
+      return "Finalizat"
+    default:
+      return status
+  }
+}
+
+
 export default function AppointmentsPage() {
+  const { toast } = useToast()
+
+  // View and UI state
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list")
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(getMonday(new Date()))
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
   const [declineModalOpen, setDeclineModalOpen] = useState(false)
-  const [selectedAppointment, setSelectedAppointment] = useState<any>(null)
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
   const [sendEmail, setSendEmail] = useState(true)
   const [sendSMS, setSendSMS] = useState(false)
   const [declineReason, setDeclineReason] = useState("")
@@ -59,12 +115,22 @@ export default function AppointmentsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("Toate")
 
+  // Data state
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [doctors, setDoctors] = useState<Doctor[]>([])
+  const [departments, setDepartments] = useState<Department[]>([])
+
+  // Loading states
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
   const [appointmentFormData, setAppointmentFormData] = useState({
     patientName: "",
     patientPhone: "",
     patientEmail: "",
-    department: "",
-    doctor: "",
+    departmentId: "",
+    doctorId: "",
     date: "",
     time: "",
     notes: "",
@@ -83,7 +149,46 @@ export default function AppointmentsPage() {
     Altul: "",
   }
 
-  const { toast } = useToast()
+  // Fetch all data on mount
+  const fetchData = async () => {
+    try {
+      const [appointmentsRes, patientsRes, doctorsRes, departmentsRes] = await Promise.all([
+        fetch("/api/appointments"),
+        fetch("/api/patients"),
+        fetch("/api/doctors"),
+        fetch("/api/departments"),
+      ])
+
+      if (!appointmentsRes.ok || !patientsRes.ok || !doctorsRes.ok || !departmentsRes.ok) {
+        throw new Error("Failed to fetch data")
+      }
+
+      const [appointmentsData, patientsData, doctorsData, departmentsData] = await Promise.all([
+        appointmentsRes.json(),
+        patientsRes.json(),
+        doctorsRes.json(),
+        departmentsRes.json(),
+      ])
+
+      setAppointments(appointmentsData)
+      setPatients(patientsData)
+      setDoctors(doctorsData)
+      setDepartments(departmentsData)
+    } catch (error) {
+      console.error("Error fetching data:", error)
+      toast({
+        title: "Eroare",
+        description: "Nu s-au putut încărca datele.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   useEffect(() => {
     if (confirmModalOpen || declineModalOpen || isNewAppointmentOpen) {
@@ -104,12 +209,12 @@ export default function AppointmentsPage() {
     }
   }, [declineReason])
 
-  const handleConfirmClick = (appointment: any) => {
+  const handleConfirmClick = (appointment: Appointment) => {
     setSelectedAppointment(appointment)
     setConfirmModalOpen(true)
   }
 
-  const handleDeclineClick = (appointment: any) => {
+  const handleDeclineClick = (appointment: Appointment) => {
     setSelectedAppointment(appointment)
     setDeclineReason("")
     setDeclineMessage("")
@@ -117,64 +222,98 @@ export default function AppointmentsPage() {
     setDeclineModalOpen(true)
   }
 
-  const handleFinalConfirm = () => {
-    console.log("[v0] Confirming appointment for:", selectedAppointment?.patientName)
-    console.log("[v0] Send Email:", sendEmail)
-    console.log("[v0] Send SMS:", sendSMS)
-    
-    toast({
-      title: "Programare confirmată",
-      description: `Programarea pentru ${selectedAppointment?.patientName} a fost confirmată cu succes.`,
-    })
-    
-    setConfirmModalOpen(false)
-    setSelectedAppointment(null)
-    setSendEmail(true)
-    setSendSMS(false)
+  const handleFinalConfirm = async () => {
+    if (!selectedAppointment) return
+
+    setSaving(true)
+    try {
+      const response = await fetch(`/api/appointments/${selectedAppointment.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "CONFIRMAT" }),
+      })
+
+      if (!response.ok) throw new Error("Failed to confirm appointment")
+
+      await fetchData()
+
+      toast({
+        title: "Programare confirmată",
+        description: `Programarea pentru ${selectedAppointment.patient.name} a fost confirmată cu succes.`,
+      })
+
+      setConfirmModalOpen(false)
+      setSelectedAppointment(null)
+      setSendEmail(true)
+      setSendSMS(false)
+    } catch (error) {
+      console.error("Error confirming appointment:", error)
+      toast({
+        title: "Eroare",
+        description: "Nu s-a putut confirma programarea.",
+        variant: "destructive",
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const handleFinalDecline = () => {
-    console.log("[v0] Declining appointment for:", selectedAppointment?.patientName)
-    console.log("[v0] Decline Reason:", declineReason)
-    console.log("[v0] Decline Message:", declineMessage)
-    console.log("[v0] Send Notification:", sendDeclineNotification)
-    
-    toast({
-      title: "Programare respinsă",
-      description: `Programarea pentru ${selectedAppointment?.patientName} a fost respinsă.`,
-      variant: "destructive",
-    })
-    
-    setDeclineModalOpen(false)
-    setSelectedAppointment(null)
-    setDeclineReason("")
-    setDeclineMessage("")
-    setSendDeclineNotification(true)
+  const handleFinalDecline = async () => {
+    if (!selectedAppointment) return
+
+    setSaving(true)
+    try {
+      const response = await fetch(`/api/appointments/${selectedAppointment.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "ANULAT",
+          notes: `Motiv: ${declineReason}. ${declineMessage}`,
+        }),
+      })
+
+      if (!response.ok) throw new Error("Failed to decline appointment")
+
+      await fetchData()
+
+      toast({
+        title: "Programare respinsă",
+        description: `Programarea pentru ${selectedAppointment.patient.name} a fost respinsă.`,
+        variant: "destructive",
+      })
+
+      setDeclineModalOpen(false)
+      setSelectedAppointment(null)
+      setDeclineReason("")
+      setDeclineMessage("")
+      setSendDeclineNotification(true)
+    } catch (error) {
+      console.error("Error declining appointment:", error)
+      toast({
+        title: "Eroare",
+        description: "Nu s-a putut respinge programarea.",
+        variant: "destructive",
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const availablePatients = [
-    { id: "P-2024-001", name: "Ana Popescu", phone: "+40 712 345 678", email: "ana.popescu@email.com" },
-    { id: "PAT-002", name: "Elena Dragomir", phone: "+40 734 567 890", email: "elena.d@email.com" },
-    { id: "PAT-003", name: "Mihai Constantin", phone: "+40 745 678 901", email: "mihai.c@email.com" },
-    { id: "PAT-004", name: "Ana Marin", phone: "+40 756 789 012", email: "ana.marin@email.com" },
-    { id: "PAT-005", name: "George Stanciu", phone: "+40 767 890 123", email: "g.stanciu@email.com" },
-    { id: "PAT-006", name: "Diana Florescu", phone: "+40 778 901 234", email: "diana.f@email.com" },
-  ]
-
-  const filteredPatients = availablePatients.filter(
+  // Filter patients for search
+  const filteredPatients = patients.filter(
     (patient) =>
       patient.name.toLowerCase().includes(patientSearchTerm.toLowerCase()) ||
       patient.phone.includes(patientSearchTerm) ||
-      patient.email.toLowerCase().includes(patientSearchTerm.toLowerCase()),
+      (patient.email && patient.email.toLowerCase().includes(patientSearchTerm.toLowerCase())),
   )
 
-  const handleSelectPatient = (patient: (typeof availablePatients)[0]) => {
+  const handleSelectPatient = (patient: Patient) => {
     setSelectedPatientId(patient.id)
     setAppointmentFormData({
       ...appointmentFormData,
       patientName: patient.name,
       patientPhone: patient.phone,
-      patientEmail: patient.email,
+      patientEmail: patient.email || "",
     })
     setAppointmentErrors({
       ...appointmentErrors,
@@ -183,12 +322,12 @@ export default function AppointmentsPage() {
     })
   }
 
-  const handleAddAppointment = () => {
+  const handleAddAppointment = async () => {
     const errors: Record<string, boolean> = {
       patientName: !appointmentFormData.patientName,
       patientPhone: !appointmentFormData.patientPhone,
-      department: !appointmentFormData.department,
-      doctor: !appointmentFormData.doctor,
+      departmentId: !appointmentFormData.departmentId,
+      doctorId: !appointmentFormData.doctorId,
       date: !appointmentFormData.date,
       time: !appointmentFormData.time,
     }
@@ -208,161 +347,95 @@ export default function AppointmentsPage() {
       return
     }
 
-    console.log("New appointment created:", appointmentFormData)
-    
-    toast({
-      title: "Programare creată",
-      description: "Programarea a fost adăugată cu succes în sistem.",
-    })
-    
-    setIsNewAppointmentOpen(false)
-    setPatientMode("existing")
-    setSelectedPatientId("")
-    setPatientSearchTerm("")
-    setAppointmentFormData({
-      patientName: "",
-      patientPhone: "",
-      patientEmail: "",
-      department: "",
-      doctor: "",
-      date: "",
-      time: "",
-      notes: "",
-    })
-    setAppointmentErrors({})
-  }
+    setSaving(true)
+    try {
+      // If new patient mode, create patient first
+      let patientId = selectedPatientId
+      if (patientMode === "new") {
+        const patientRes = await fetch("/api/patients", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: appointmentFormData.patientName,
+            phone: appointmentFormData.patientPhone,
+            email: appointmentFormData.patientEmail || null,
+            status: "NOU",
+          }),
+        })
+        if (!patientRes.ok) throw new Error("Failed to create patient")
+        const newPatient = await patientRes.json()
+        patientId = newPatient.id
+      }
 
-  const appointments = [
-    {
-      id: 1,
-      patientName: "Maria Popescu",
-      doctorName: "Dr. Ana Popescu",
-      department: "Cardiologie",
-      date: "2024-01-18",
-      time: "09:00",
-      duration: "30 min",
-      status: "Confirmat",
-      type: "Consultație",
-      dayOfWeek: 4, // Thursday
-    },
-    {
-      id: 2,
-      patientName: "Ion Georgescu",
-      doctorName: "Dr. Ion Marinescu",
-      department: "ORL",
-      date: "2024-01-18",
-      time: "10:00",
-      duration: "45 min",
-      status: "În așteptare",
-      type: "Control",
-      dayOfWeek: 4,
-    },
-    {
-      id: 3,
-      patientName: "Elena Ionescu",
-      doctorName: "Dr. Maria Ionescu",
-      department: "Oftalmologie",
-      date: "2024-01-18",
-      time: "11:30",
-      duration: "30 min",
-      status: "Confirmat",
-      type: "Consultație",
-      dayOfWeek: 4,
-    },
-    {
-      id: 4,
-      patientName: "Andrei Dumitrescu",
-      doctorName: "Dr. Andrei Popa",
-      department: "Dermatologie",
-      date: "2024-01-18",
-      time: "14:00",
-      duration: "30 min",
-      status: "Confirmat",
-      type: "Tratament",
-      dayOfWeek: 4,
-    },
-    {
-      id: 5,
-      patientName: "Ana Radu",
-      doctorName: "Dr. Elena Dumitrescu",
-      department: "Pediatrie",
-      date: "2024-01-18",
-      time: "15:00",
-      duration: "20 min",
-      status: "Anulat",
-      type: "Consultație",
-      dayOfWeek: 4,
-    },
-    {
-      id: 6,
-      patientName: "Mihai Constantinescu",
-      doctorName: "Dr. Ana Popescu",
-      department: "Cardiologie",
-      date: "2024-01-18",
-      time: "16:00",
-      duration: "45 min",
-      status: "În așteptare",
-      type: "Investigație",
-      dayOfWeek: 4,
-    },
-    {
-      id: 7,
-      patientName: "Cristina Vasile",
-      doctorName: "Dr. Ion Marinescu",
-      department: "ORL",
-      date: "2024-01-15",
-      time: "09:30",
-      duration: "30 min",
-      status: "Confirmat",
-      type: "Consultație",
-      dayOfWeek: 1, // Monday
-    },
-    {
-      id: 8,
-      patientName: "Gheorghe Matei",
-      doctorName: "Dr. Maria Ionescu",
-      department: "Oftalmologie",
-      date: "2024-01-16",
-      time: "13:00",
-      duration: "30 min",
-      status: "Confirmat",
-      type: "Control",
-      dayOfWeek: 2, // Tuesday
-    },
-    {
-      id: 9,
-      patientName: "Laura Badea",
-      doctorName: "Dr. Andrei Popa",
-      department: "Dermatologie",
-      date: "2024-01-17",
-      time: "10:30",
-      duration: "30 min",
-      status: "În așteptare",
-      type: "Consultație",
-      dayOfWeek: 3, // Wednesday
-    },
-    {
-      id: 10,
-      patientName: "Vlad Serban",
-      doctorName: "Dr. Elena Dumitrescu",
-      department: "Pediatrie",
-      date: "2024-01-19",
-      time: "11:00",
-      duration: "20 min",
-      status: "Confirmat",
-      type: "Vaccinare",
-      dayOfWeek: 5, // Friday
-    },
-  ]
+      // Calculate end time (30 min default)
+      const [hours, minutes] = appointmentFormData.time.split(":").map(Number)
+      const endHours = hours + Math.floor((minutes + 30) / 60)
+      const endMinutes = (minutes + 30) % 60
+      const endTime = `${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}`
+
+      const response = await fetch("/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: appointmentFormData.date,
+          startTime: appointmentFormData.time,
+          endTime: endTime,
+          duration: 30,
+          status: "IN_ASTEPTARE",
+          type: "CONSULTATIE",
+          notes: appointmentFormData.notes || null,
+          patientId: patientId,
+          doctorId: appointmentFormData.doctorId,
+          departmentId: appointmentFormData.departmentId,
+        }),
+      })
+
+      if (!response.ok) throw new Error("Failed to create appointment")
+
+      await fetchData()
+
+      toast({
+        title: "Programare creată",
+        description: "Programarea a fost adăugată cu succes în sistem.",
+      })
+
+      setIsNewAppointmentOpen(false)
+      setPatientMode("existing")
+      setSelectedPatientId("")
+      setPatientSearchTerm("")
+      setAppointmentFormData({
+        patientName: "",
+        patientPhone: "",
+        patientEmail: "",
+        departmentId: "",
+        doctorId: "",
+        date: "",
+        time: "",
+        notes: "",
+      })
+      setAppointmentErrors({})
+    } catch (error) {
+      console.error("Error creating appointment:", error)
+      toast({
+        title: "Eroare",
+        description: "Nu s-a putut crea programarea.",
+        variant: "destructive",
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Confirmat":
+      case "CONFIRMAT":
         return "default"
-      case "În așteptare":
+      case "IN_ASTEPTARE":
         return "secondary"
-      case "Anulat":
+      case "ANULAT":
         return "destructive"
+      case "FINALIZAT":
+        return "default"
       default:
         return "secondary"
     }
@@ -370,12 +443,14 @@ export default function AppointmentsPage() {
 
   const getStatusBgColor = (status: string) => {
     switch (status) {
-      case "Confirmat":
+      case "CONFIRMAT":
         return "bg-green-100 border-green-200"
-      case "În așteptare":
+      case "IN_ASTEPTARE":
         return "bg-yellow-100 border-yellow-200"
-      case "Anulat":
+      case "ANULAT":
         return "bg-red-100 border-red-200"
+      case "FINALIZAT":
+        return "bg-blue-100 border-blue-200"
       default:
         return "bg-gray-100 border-gray-200"
     }
@@ -383,12 +458,14 @@ export default function AppointmentsPage() {
 
   const getStatusTextColor = (status: string) => {
     switch (status) {
-      case "Confirmat":
+      case "CONFIRMAT":
         return "text-green-900"
-      case "În așteptare":
+      case "IN_ASTEPTARE":
         return "text-yellow-900"
-      case "Anulat":
+      case "ANULAT":
         return "text-red-900"
+      case "FINALIZAT":
+        return "text-blue-900"
       default:
         return "text-gray-900"
     }
@@ -396,9 +473,9 @@ export default function AppointmentsPage() {
 
   const filteredAppointments = appointments.filter((apt) => {
     const matchesSearch =
-      apt.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      apt.doctorName.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesFilter = statusFilter === "Toate" || apt.status === statusFilter
+      apt.patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      apt.doctor.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesFilter = statusFilter === "Toate" || getStatusDisplay(apt.status) === statusFilter
     return matchesSearch && matchesFilter
   })
 
@@ -421,9 +498,11 @@ export default function AppointmentsPage() {
 
   const getAppointmentsForSlot = (day: number, time: string) => {
     return filteredAppointments.filter((apt) => {
-      const aptHour = Number.parseInt(apt.time.split(":")[0])
+      const aptDate = new Date(apt.date)
+      const aptDayOfWeek = aptDate.getDay() === 0 ? 7 : aptDate.getDay() // Convert Sunday from 0 to 7
+      const aptHour = Number.parseInt(apt.startTime.split(":")[0])
       const slotHour = Number.parseInt(time.split(":")[0])
-      return apt.dayOfWeek === day && aptHour === slotHour
+      return aptDayOfWeek === day && aptHour === slotHour
     })
   }
 
@@ -464,7 +543,7 @@ export default function AppointmentsPage() {
                   <CalendarIcon className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Azi</p>
+                  <p className="text-sm text-muted-foreground">Total</p>
                   <p className="text-2xl font-semibold">{appointments.length}</p>
                 </div>
               </div>
@@ -478,7 +557,7 @@ export default function AppointmentsPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Confirmate</p>
                   <p className="text-2xl font-semibold">
-                    {appointments.filter((a) => a.status === "Confirmat").length}
+                    {appointments.filter((a) => a.status === "CONFIRMAT").length}
                   </p>
                 </div>
               </div>
@@ -492,7 +571,7 @@ export default function AppointmentsPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">În Așteptare</p>
                   <p className="text-2xl font-semibold">
-                    {appointments.filter((a) => a.status === "În așteptare").length}
+                    {appointments.filter((a) => a.status === "IN_ASTEPTARE").length}
                   </p>
                 </div>
               </div>
@@ -505,7 +584,7 @@ export default function AppointmentsPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Anulate</p>
-                  <p className="text-2xl font-semibold">{appointments.filter((a) => a.status === "Anulat").length}</p>
+                  <p className="text-2xl font-semibold">{appointments.filter((a) => a.status === "ANULAT").length}</p>
                 </div>
               </div>
             </Card>
@@ -586,63 +665,76 @@ export default function AppointmentsPage() {
 
           {viewMode === "list" ? (
             <Card>
-              <div className="divide-y">
-                {appointments.map((appointment) => (
-                  <div key={appointment.id} className="p-6 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-4 mb-3">
-                          <div className="flex items-center gap-2">
-                            <XCircle className="w-4 h-4 text-muted-foreground" />
-                            <span className="font-semibold">{appointment.patientName}</span>
+              {loading ? (
+                <div className="p-8 text-center">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+                  <p className="mt-2 text-muted-foreground">Se încarcă programările...</p>
+                </div>
+              ) : filteredAppointments.length === 0 ? (
+                <div className="p-8 text-center">
+                  <p className="text-muted-foreground">Nu există programări.</p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {filteredAppointments.map((appointment) => (
+                    <div key={appointment.id} className="p-6 hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-4 mb-3">
+                            <div className="flex items-center gap-2">
+                              <XCircle className="w-4 h-4 text-muted-foreground" />
+                              <span className="font-semibold">{appointment.patient.name}</span>
+                            </div>
+                            <Badge variant={getStatusColor(appointment.status)}>
+                              {getStatusDisplay(appointment.status)}
+                            </Badge>
+                            {appointment.type && <Badge variant="outline">{appointment.type}</Badge>}
                           </div>
-                          <Badge variant={getStatusColor(appointment.status)}>{appointment.status}</Badge>
-                          <Badge variant="outline">{appointment.type}</Badge>
+
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="w-4 h-4" />
+                              <span>{appointment.doctor.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <CalendarIcon className="w-4 h-4" />
+                              <span>{new Date(appointment.date).toLocaleDateString("ro-RO")}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4" />
+                              <span>
+                                {appointment.startTime} ({appointment.duration} min)
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium">{appointment.department?.name || "—"}</span>
+                            </div>
+                          </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="w-4 h-4" />
-                            <span>{appointment.doctorName}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <CalendarIcon className="w-4 h-4" />
-                            <span>{appointment.date}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4" />
-                            <span>
-                              {appointment.time} ({appointment.duration})
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-medium">{appointment.department}</span>
-                          </div>
+                        <div className="flex gap-2 ml-4">
+                          {appointment.status === "IN_ASTEPTARE" && (
+                            <>
+                              <Button variant="default" size="sm" onClick={() => handleConfirmClick(appointment)}>
+                                Confirmă
+                              </Button>
+                              <Button variant="destructive" size="sm" onClick={() => handleDeclineClick(appointment)}>
+                                Respinge
+                              </Button>
+                            </>
+                          )}
+                          <Button variant="outline" size="sm">
+                            Vezi Detalii
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            Reprogramează
+                          </Button>
                         </div>
-                      </div>
-
-                      <div className="flex gap-2 ml-4">
-                        {appointment.status === "În așteptare" && (
-                          <>
-                            <Button variant="default" size="sm" onClick={() => handleConfirmClick(appointment)}>
-                              Confirmă
-                            </Button>
-                            <Button variant="destructive" size="sm" onClick={() => handleDeclineClick(appointment)}>
-                              Respinge
-                            </Button>
-                          </>
-                        )}
-                        <Button variant="outline" size="sm">
-                          Vezi Detalii
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          Reprogramează
-                        </Button>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </Card>
           ) : (
             <Card className="overflow-x-auto">
@@ -673,16 +765,16 @@ export default function AppointmentsPage() {
                                 className={`p-2 rounded-lg border mb-2 cursor-pointer hover:shadow-md transition-shadow ${getStatusBgColor(apt.status)}`}
                               >
                                 <div className={`text-xs font-semibold ${getStatusTextColor(apt.status)} mb-1`}>
-                                  {apt.time}
+                                  {apt.startTime}
                                 </div>
                                 <div className={`text-xs font-medium ${getStatusTextColor(apt.status)} mb-1`}>
-                                  {apt.patientName}
+                                  {apt.patient.name}
                                 </div>
                                 <div className={`text-xs ${getStatusTextColor(apt.status)} opacity-80`}>
-                                  {apt.doctorName}
+                                  {apt.doctor.name}
                                 </div>
                                 <div className={`text-xs ${getStatusTextColor(apt.status)} opacity-70 mt-1`}>
-                                  {apt.department}
+                                  {apt.department?.name || "—"}
                                 </div>
                               </div>
                             ))}
@@ -829,24 +921,24 @@ export default function AppointmentsPage() {
                 Departament <span className="text-destructive">*</span>
               </Label>
               <Select
-                value={appointmentFormData.department}
+                value={appointmentFormData.departmentId}
                 onValueChange={(value) => {
-                  setAppointmentFormData({ ...appointmentFormData, department: value })
-                  setAppointmentErrors({ ...appointmentErrors, department: false })
+                  setAppointmentFormData({ ...appointmentFormData, departmentId: value, doctorId: "" })
+                  setAppointmentErrors({ ...appointmentErrors, departmentId: false })
                 }}
               >
-                <SelectTrigger className={`mt-2 ${appointmentErrors.department ? "border-destructive" : ""}`}>
+                <SelectTrigger className={`mt-2 ${appointmentErrors.departmentId ? "border-destructive" : ""}`}>
                   <SelectValue placeholder="Selectează departamentul" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Cardiologie">Cardiologie</SelectItem>
-                  <SelectItem value="ORL">ORL</SelectItem>
-                  <SelectItem value="Oftalmologie">Oftalmologie</SelectItem>
-                  <SelectItem value="Dermatologie">Dermatologie</SelectItem>
-                  <SelectItem value="Pediatrie">Pediatrie</SelectItem>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              {appointmentErrors.department && (
+              {appointmentErrors.departmentId && (
                 <p className="text-sm text-destructive mt-1">Departamentul este obligatoriu</p>
               )}
             </div>
@@ -856,22 +948,26 @@ export default function AppointmentsPage() {
                 Medic <span className="text-destructive">*</span>
               </Label>
               <Select
-                value={appointmentFormData.doctor}
+                value={appointmentFormData.doctorId}
                 onValueChange={(value) => {
-                  setAppointmentFormData({ ...appointmentFormData, doctor: value })
-                  setAppointmentErrors({ ...appointmentErrors, doctor: false })
+                  setAppointmentFormData({ ...appointmentFormData, doctorId: value })
+                  setAppointmentErrors({ ...appointmentErrors, doctorId: false })
                 }}
               >
-                <SelectTrigger className={`mt-2 ${appointmentErrors.doctor ? "border-destructive" : ""}`}>
+                <SelectTrigger className={`mt-2 ${appointmentErrors.doctorId ? "border-destructive" : ""}`}>
                   <SelectValue placeholder="Selectează medicul" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Dr. Ana Popescu">Dr. Ana Popescu</SelectItem>
-                  <SelectItem value="Dr. Ion Marinescu">Dr. Ion Marinescu</SelectItem>
-                  <SelectItem value="Dr. Maria Ionescu">Dr. Maria Ionescu</SelectItem>
+                  {doctors
+                    .filter((doc) => !appointmentFormData.departmentId || doc.departmentId === appointmentFormData.departmentId)
+                    .map((doc) => (
+                      <SelectItem key={doc.id} value={doc.id}>
+                        {doc.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
-              {appointmentErrors.doctor && <p className="text-sm text-destructive mt-1">Medicul este obligatoriu</p>}
+              {appointmentErrors.doctorId && <p className="text-sm text-destructive mt-1">Medicul este obligatoriu</p>}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -934,10 +1030,19 @@ export default function AppointmentsPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsNewAppointmentOpen(false)}>
+            <Button variant="outline" onClick={() => setIsNewAppointmentOpen(false)} disabled={saving}>
               Anulează
             </Button>
-            <Button onClick={handleAddAppointment}>Creează Programare</Button>
+            <Button onClick={handleAddAppointment} disabled={saving}>
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Se salvează...
+                </>
+              ) : (
+                "Creează Programare"
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -947,7 +1052,7 @@ export default function AppointmentsPage() {
           <DialogHeader>
             <DialogTitle>Confirmă Programarea</DialogTitle>
             <DialogDescription>
-              Ești sigur că vrei să confirmi această programare pentru {selectedAppointment?.patientName}?
+              Ești sigur că vrei să confirmi această programare pentru {selectedAppointment?.patient.name}?
             </DialogDescription>
           </DialogHeader>
 
@@ -956,17 +1061,17 @@ export default function AppointmentsPage() {
               <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
                 <XCircle className="w-4 h-4 text-muted-foreground" />
                 <div className="flex-1">
-                  <div className="text-sm font-medium">{selectedAppointment?.patientName}</div>
+                  <div className="text-sm font-medium">{selectedAppointment?.patient.name}</div>
                   <div className="text-xs text-muted-foreground">
-                    {selectedAppointment?.date} la {selectedAppointment?.time}
+                    {selectedAppointment?.date && new Date(selectedAppointment.date).toLocaleDateString("ro-RO")} la {selectedAppointment?.startTime}
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
                 <CheckCircle className="w-4 h-4 text-muted-foreground" />
                 <div className="flex-1">
-                  <div className="text-sm font-medium">{selectedAppointment?.doctorName}</div>
-                  <div className="text-xs text-muted-foreground">{selectedAppointment?.department}</div>
+                  <div className="text-sm font-medium">{selectedAppointment?.doctor.name}</div>
+                  <div className="text-xs text-muted-foreground">{selectedAppointment?.department?.name || "—"}</div>
                 </div>
               </div>
             </div>
@@ -1001,10 +1106,19 @@ export default function AppointmentsPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmModalOpen(false)}>
+            <Button variant="outline" onClick={() => setConfirmModalOpen(false)} disabled={saving}>
               Anulează
             </Button>
-            <Button onClick={handleFinalConfirm}>Confirmă & Notifică</Button>
+            <Button onClick={handleFinalConfirm} disabled={saving}>
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Se confirmă...
+                </>
+              ) : (
+                "Confirmă & Notifică"
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1019,7 +1133,7 @@ export default function AppointmentsPage() {
               Respinge Programarea
             </DialogTitle>
             <DialogDescription>
-              Această acțiune va anula programarea și va notifica pacientul {selectedAppointment?.patientName} cu
+              Această acțiune va anula programarea și va notifica pacientul {selectedAppointment?.patient.name} cu
               explicațiile tale.
             </DialogDescription>
           </DialogHeader>
@@ -1029,17 +1143,17 @@ export default function AppointmentsPage() {
               <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
                 <XCircle className="w-4 h-4 text-muted-foreground" />
                 <div className="flex-1">
-                  <div className="text-sm font-medium">{selectedAppointment?.patientName}</div>
+                  <div className="text-sm font-medium">{selectedAppointment?.patient.name}</div>
                   <div className="text-xs text-muted-foreground">
-                    {selectedAppointment?.date} la {selectedAppointment?.time}
+                    {selectedAppointment?.date && new Date(selectedAppointment.date).toLocaleDateString("ro-RO")} la {selectedAppointment?.startTime}
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
                 <CheckCircle className="w-4 h-4 text-muted-foreground" />
                 <div className="flex-1">
-                  <div className="text-sm font-medium">{selectedAppointment?.doctorName}</div>
-                  <div className="text-xs text-muted-foreground">{selectedAppointment?.department}</div>
+                  <div className="text-sm font-medium">{selectedAppointment?.doctor.name}</div>
+                  <div className="text-xs text-muted-foreground">{selectedAppointment?.department?.name || "—"}</div>
                 </div>
               </div>
             </div>
@@ -1099,11 +1213,18 @@ export default function AppointmentsPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeclineModalOpen(false)}>
+            <Button variant="outline" onClick={() => setDeclineModalOpen(false)} disabled={saving}>
               Anulează
             </Button>
-            <Button variant="destructive" onClick={handleFinalDecline} disabled={!declineReason || !declineMessage}>
-              Confirmă Respingerea
+            <Button variant="destructive" onClick={handleFinalDecline} disabled={saving || !declineReason || !declineMessage}>
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Se respinge...
+                </>
+              ) : (
+                "Confirmă Respingerea"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

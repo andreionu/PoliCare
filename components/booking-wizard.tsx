@@ -1,45 +1,40 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { X, Heart, Users, Baby, Eye, Ear, ChevronRight, Check } from "lucide-react"
+import { X, Heart, Users, Baby, Eye, Ear, ChevronRight, Check, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
 
 interface BookingWizardProps {
   onClose: () => void
 }
 
-const departments = [
-  { id: 1, name: "Cardiologie", icon: Heart },
-  { id: 2, name: "Pediatrie", icon: Baby },
-  { id: 3, name: "ORL", icon: Ear },
-  { id: 4, name: "Oftalmologie", icon: Eye },
-  { id: 5, name: "Dermatologie", icon: Users },
-]
-
-const servicesByDepartment = {
-  1: ["Consultație Generală", "EKG (Electrocardiogramă)", "Ecocardiogramă", "Monitorizare Holter"],
-  2: ["Consultație Pediatrică", "Vaccinare", "Control Dezvoltare", "Consultație Nutriție Copii"],
-  3: ["Consultație ORL", "Audiometrie", "Endoscopie Nazală", "Tratament Sinuzită"],
-  4: ["Consultație Oftalmologică", "Control Vedere", "Tratament Glaucom", "Consultație Lentile de Contact"],
-  5: ["Consultație Dermatologică", "Tratament Acnee", "Screening Cancer Piele", "Tratament Alergii Cutanate"],
+interface Department {
+  id: string
+  name: string
+  description: string | null
+  color: string | null
 }
 
-const doctors = {
-  1: [
-    { id: 1, name: "Dr. Maria Popescu", avatar: "/female-doctor.png", rating: 4.9, specialty: "Cardiologie" },
-    { id: 2, name: "Dr. Ion Ionescu", avatar: "/male-doctor.png", rating: 4.8, specialty: "Cardiologie" },
-  ],
-  2: [
-    { id: 3, name: "Dr. Ana Marinescu", avatar: "/female-doctor-2.jpg", rating: 4.9, specialty: "Pediatrie" },
-    { id: 4, name: "Dr. Mihai Gheorghe", avatar: "/male-doctor-2.jpg", rating: 4.7, specialty: "Pediatrie" },
-  ],
-  3: [{ id: 5, name: "Dr. Elena Dumitrescu", avatar: "/female-doctor-3.jpg", rating: 4.8, specialty: "ORL" }],
-  4: [{ id: 6, name: "Dr. Alexandru Stan", avatar: "/male-doctor-3.jpg", rating: 4.9, specialty: "Oftalmologie" }],
-  5: [{ id: 7, name: "Dr. Carmen Vasile", avatar: "/female-doctor.png", rating: 4.7, specialty: "Dermatologie" }],
+interface Doctor {
+  id: string
+  name: string
+  specialty: string | null
+  departmentId: string | null
+}
+
+// Icon mapping for departments
+const departmentIcons: Record<string, any> = {
+  Cardiologie: Heart,
+  Pediatrie: Baby,
+  ORL: Ear,
+  Oftalmologie: Eye,
+  Dermatologie: Users,
+  default: Heart,
 }
 
 const timeSlots = [
@@ -59,11 +54,17 @@ const timeSlots = [
 ]
 
 export function BookingWizard({ onClose }: BookingWizardProps) {
+  const { toast } = useToast()
   const [step, setStep] = useState(1)
-  const [selectedDepartment, setSelectedDepartment] = useState<number | null>(null)
+  const [departments, setDepartments] = useState<Department[]>([])
+  const [doctors, setDoctors] = useState<Doctor[]>([])
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+
+  const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null)
   const [selectedService, setSelectedService] = useState<string>("")
   const [otherServiceDescription, setOtherServiceDescription] = useState<string>("")
-  const [selectedDoctor, setSelectedDoctor] = useState<number | null>(null)
+  const [selectedDoctor, setSelectedDoctor] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<string>("")
   const [selectedTime, setSelectedTime] = useState<string>("")
   const [formData, setFormData] = useState({
@@ -72,6 +73,37 @@ export function BookingWizard({ onClose }: BookingWizardProps) {
     email: "",
   })
   const [isSubmitted, setIsSubmitted] = useState(false)
+
+  // Fetch departments and doctors on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [deptRes, doctorsRes] = await Promise.all([
+          fetch("/api/departments"),
+          fetch("/api/doctors"),
+        ])
+
+        const [deptData, doctorsData] = await Promise.all([
+          deptRes.json(),
+          doctorsRes.json(),
+        ])
+
+        setDepartments(deptData)
+        setDoctors(doctorsData)
+      } catch (error) {
+        console.error("Error fetching data:", error)
+        toast({
+          title: "Eroare",
+          description: "Nu s-au putut încărca datele. Vă rugăm reîncercați.",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
 
   const handleNext = () => {
     if (step < 5) setStep(step + 1)
@@ -95,43 +127,101 @@ export function BookingWizard({ onClose }: BookingWizardProps) {
     return phoneRegex.test(phone)
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const sanitizedName = sanitizeInput(formData.name)
     const sanitizedEmail = sanitizeInput(formData.email.toLowerCase())
     const sanitizedPhone = sanitizeInput(formData.phone)
 
     if (!sanitizedName || sanitizedName.length < 2) {
-      alert("Please enter a valid name (at least 2 characters)")
+      toast({
+        title: "Eroare",
+        description: "Vă rugăm introduceți un nume valid (minim 2 caractere)",
+        variant: "destructive",
+      })
       return
     }
 
     if (!validateEmail(sanitizedEmail)) {
-      alert("Please enter a valid email address")
+      toast({
+        title: "Eroare",
+        description: "Vă rugăm introduceți o adresă de email validă",
+        variant: "destructive",
+      })
       return
     }
 
     if (!validatePhone(sanitizedPhone)) {
-      alert("Please enter a valid phone number")
+      toast({
+        title: "Eroare",
+        description: "Vă rugăm introduceți un număr de telefon valid",
+        variant: "destructive",
+      })
       return
     }
 
-    // In production, send sanitized data to backend
-    console.log("Booking data:", {
-      name: sanitizedName,
-      email: sanitizedEmail,
-      phone: sanitizedPhone,
-      department: selectedDepartment,
-      service: selectedService === "Altul / Nu este listat" ? sanitizeInput(otherServiceDescription) : selectedService,
-      doctor: selectedDoctor,
-      date: selectedDate,
-      time: selectedTime,
-    })
+    setSubmitting(true)
+    try {
+      // First, create or find the patient
+      const patientRes = await fetch("/api/patients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: sanitizedName,
+          phone: sanitizedPhone,
+          email: sanitizedEmail || null,
+          status: "NOU",
+        }),
+      })
 
-    setIsSubmitted(true)
-    setTimeout(() => {
-      onClose()
-    }, 3000)
+      if (!patientRes.ok) throw new Error("Failed to create patient")
+      const patient = await patientRes.json()
+
+      // Calculate end time (30 min default)
+      const [hours, minutes] = selectedTime.split(":").map(Number)
+      const endHours = hours + Math.floor((minutes + 30) / 60)
+      const endMinutes = (minutes + 30) % 60
+      const endTime = `${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}`
+
+      // Create the appointment
+      const appointmentRes = await fetch("/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: selectedDate,
+          startTime: selectedTime,
+          endTime: endTime,
+          duration: 30,
+          status: "IN_ASTEPTARE",
+          type: selectedService === "Altul / Nu este listat" ? "CONSULTATIE" : selectedService.toUpperCase(),
+          notes: selectedService === "Altul / Nu este listat" ? sanitizeInput(otherServiceDescription) : null,
+          patientId: patient.id,
+          doctorId: selectedDoctor,
+          departmentId: selectedDepartment,
+        }),
+      })
+
+      if (!appointmentRes.ok) throw new Error("Failed to create appointment")
+
+      setIsSubmitted(true)
+      setTimeout(() => {
+        onClose()
+      }, 3000)
+    } catch (error) {
+      console.error("Error creating appointment:", error)
+      toast({
+        title: "Eroare",
+        description: "Nu s-a putut crea programarea. Vă rugăm reîncercați.",
+        variant: "destructive",
+      })
+    } finally {
+      setSubmitting(false)
+    }
   }
+
+  // Get filtered doctors based on selected department
+  const filteredDoctors = selectedDepartment
+    ? doctors.filter((doc) => doc.departmentId === selectedDepartment)
+    : []
 
   const canProceed = () => {
     switch (step) {
@@ -226,25 +316,37 @@ export function BookingWizard({ onClose }: BookingWizardProps) {
                 <p className="text-muted-foreground">Selectează specialitatea medicală de care ai nevoie</p>
               </div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {departments.map((dept) => (
-                  <button
-                    key={dept.id}
-                    onClick={() => setSelectedDepartment(dept.id)}
-                    className={cn(
-                      "p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105 hover:shadow-lg",
-                      selectedDepartment === dept.id
-                        ? "border-primary bg-blue-50"
-                        : "border-gray-200 hover:border-primary/50",
-                    )}
-                  >
-                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4 mx-auto">
-                      <dept.icon
-                        className={cn("w-6 h-6", selectedDepartment === dept.id ? "text-primary" : "text-gray-600")}
-                      />
+                {loading ? (
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="p-6 rounded-2xl border-2 animate-pulse">
+                      <div className="w-12 h-12 bg-gray-200 rounded-xl mb-4 mx-auto" />
+                      <div className="h-5 bg-gray-200 rounded w-3/4 mx-auto" />
                     </div>
-                    <h4 className="font-semibold text-center">{dept.name}</h4>
-                  </button>
-                ))}
+                  ))
+                ) : (
+                  departments.map((dept) => {
+                    const IconComponent = departmentIcons[dept.name] || departmentIcons.default
+                    return (
+                      <button
+                        key={dept.id}
+                        onClick={() => setSelectedDepartment(dept.id)}
+                        className={cn(
+                          "p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105 hover:shadow-lg",
+                          selectedDepartment === dept.id
+                            ? "border-primary bg-blue-50"
+                            : "border-gray-200 hover:border-primary/50",
+                        )}
+                      >
+                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                          <IconComponent
+                            className={cn("w-6 h-6", selectedDepartment === dept.id ? "text-primary" : "text-gray-600")}
+                          />
+                        </div>
+                        <h4 className="font-semibold text-center">{dept.name}</h4>
+                      </button>
+                    )
+                  })
+                )}
               </div>
             </div>
           )}
@@ -256,7 +358,7 @@ export function BookingWizard({ onClose }: BookingWizardProps) {
                 <p className="text-muted-foreground">Ce tip de consultație sau tratament necesiți?</p>
               </div>
               <div className="max-w-2xl mx-auto space-y-3">
-                {servicesByDepartment[selectedDepartment as keyof typeof servicesByDepartment]?.map((service) => (
+                {["Consultație Generală", "Control", "Tratament", "Investigație"].map((service) => (
                   <button
                     key={service}
                     onClick={() => {
@@ -331,33 +433,33 @@ export function BookingWizard({ onClose }: BookingWizardProps) {
                 <p className="text-muted-foreground">Selectează specialistul preferat</p>
               </div>
               <div className="space-y-4 max-w-2xl mx-auto">
-                {doctors[selectedDepartment as keyof typeof doctors]?.map((doctor) => (
-                  <button
-                    key={doctor.id}
-                    onClick={() => setSelectedDoctor(doctor.id)}
-                    className={cn(
-                      "w-full p-6 rounded-2xl border-2 transition-all duration-200 hover:shadow-lg flex items-center gap-4 text-left",
-                      selectedDoctor === doctor.id
-                        ? "border-primary bg-blue-50"
-                        : "border-gray-200 hover:border-primary/50",
-                    )}
-                  >
-                    <img
-                      src={doctor.avatar || "/placeholder.svg"}
-                      alt={doctor.name}
-                      className="w-16 h-16 rounded-full object-cover border-2 border-white shadow"
-                    />
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-lg">{doctor.name}</h4>
-                      <p className="text-sm text-muted-foreground">{doctor.specialty}</p>
-                      <div className="flex items-center gap-1 mt-1">
-                        <span className="text-yellow-500">★</span>
-                        <span className="text-sm font-medium">{doctor.rating}</span>
+                {filteredDoctors.length === 0 ? (
+                  <div className="text-center p-8 text-muted-foreground">
+                    <p>Nu există medici disponibili pentru acest departament momentan.</p>
+                  </div>
+                ) : (
+                  filteredDoctors.map((doctor) => (
+                    <button
+                      key={doctor.id}
+                      onClick={() => setSelectedDoctor(doctor.id)}
+                      className={cn(
+                        "w-full p-6 rounded-2xl border-2 transition-all duration-200 hover:shadow-lg flex items-center gap-4 text-left",
+                        selectedDoctor === doctor.id
+                          ? "border-primary bg-blue-50"
+                          : "border-gray-200 hover:border-primary/50",
+                      )}
+                    >
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-2xl font-semibold text-primary">
+                        {doctor.name.charAt(0)}
                       </div>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-gray-400" />
-                  </button>
-                ))}
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-lg">{doctor.name}</h4>
+                        <p className="text-sm text-muted-foreground">{doctor.specialty || "Specialist"}</p>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -505,9 +607,18 @@ export function BookingWizard({ onClose }: BookingWizardProps) {
               <ChevronRight className="ml-2 w-4 h-4" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={!canProceed()} className="px-8 bg-green-600 hover:bg-green-700">
-              <Check className="mr-2 w-4 h-4" />
-              Confirmă Programarea
+            <Button onClick={handleSubmit} disabled={!canProceed() || submitting} className="px-8 bg-green-600 hover:bg-green-700">
+              {submitting ? (
+                <>
+                  <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+                  Se creează...
+                </>
+              ) : (
+                <>
+                  <Check className="mr-2 w-4 h-4" />
+                  Confirmă Programarea
+                </>
+              )}
             </Button>
           )}
         </div>

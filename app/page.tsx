@@ -3,11 +3,69 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { BookingWizard } from "@/components/booking-wizard"
-import { Calendar, Heart, Clock, Users, Star, Phone, Mail, MapPin } from "lucide-react"
+import { Calendar, Heart, Clock, Users, Star, Phone, Mail, MapPin, Ear, Eye, Baby } from "lucide-react"
 import { Preloader } from "@/components/preloader"
+
+interface Department {
+  id: string
+  name: string
+  description: string | null
+  color: string | null
+}
+
+interface Stats {
+  totalPatients: number
+  totalDoctors: number
+  totalDepartments: number
+}
+
+// Icon mapping for departments
+const departmentIcons: Record<string, any> = {
+  Cardiologie: Heart,
+  Pediatrie: Baby,
+  ORL: Ear,
+  Oftalmologie: Eye,
+  Dermatologie: Users,
+  "Medicina Generală": Star,
+  default: Heart,
+}
 
 export default function LandingPage() {
   const [showBooking, setShowBooking] = useState(false)
+  const [departments, setDepartments] = useState<Department[]>([])
+  const [stats, setStats] = useState<Stats>({ totalPatients: 0, totalDoctors: 0, totalDepartments: 0 })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [departmentsRes, patientsRes, doctorsRes] = await Promise.all([
+          fetch("/api/departments"),
+          fetch("/api/patients"),
+          fetch("/api/doctors"),
+        ])
+
+        const [departmentsData, patientsData, doctorsData] = await Promise.all([
+          departmentsRes.json(),
+          patientsRes.json(),
+          doctorsRes.json(),
+        ])
+
+        setDepartments(departmentsData)
+        setStats({
+          totalPatients: patientsData.length,
+          totalDoctors: doctorsData.length,
+          totalDepartments: departmentsData.length,
+        })
+      } catch (error) {
+        console.error("Error fetching data:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
 
   useEffect(() => {
     if (showBooking) {
@@ -74,16 +132,16 @@ export default function LandingPage() {
               {/* Stats */}
               <div className="grid grid-cols-3 gap-4 pt-8">
                 <div className="space-y-1">
-                  <div className="text-3xl font-bold text-primary">15K+</div>
+                  <div className="text-3xl font-bold text-primary">{loading ? "..." : `${stats.totalPatients}+`}</div>
                   <div className="text-sm text-muted-foreground">Pacienți</div>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-3xl font-bold text-primary">50+</div>
+                  <div className="text-3xl font-bold text-primary">{loading ? "..." : `${stats.totalDoctors}+`}</div>
                   <div className="text-sm text-muted-foreground">Medici</div>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-3xl font-bold text-primary">98%</div>
-                  <div className="text-sm text-muted-foreground">Satisfacție</div>
+                  <div className="text-3xl font-bold text-primary">{loading ? "..." : `${stats.totalDepartments}`}</div>
+                  <div className="text-sm text-muted-foreground">Departamente</div>
                 </div>
               </div>
             </div>
@@ -122,25 +180,35 @@ export default function LandingPage() {
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[
-                { icon: Heart, name: "Cardiologie", desc: "Îngrijire cardiacă avansată" },
-                { icon: Users, name: "Pediatrie", desc: "Grija pentru copiii tăi" },
-                { icon: Calendar, name: "ORL", desc: "Specialiști urechi, nas, gât" },
-                { icon: Star, name: "Oftalmologie", desc: "Sănătatea ochilor" },
-                { icon: Clock, name: "Dermatologie", desc: "Îngrijirea pielii" },
-                { icon: Heart, name: "Medicina Generală", desc: "Consultații complete" },
-              ].map((service, i) => (
-                <div
-                  key={i}
-                  className="group p-6 rounded-2xl border hover:border-primary hover:shadow-lg transition-all duration-300"
-                >
-                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-primary group-hover:scale-110 transition-all duration-300">
-                    <service.icon className="w-6 h-6 text-primary group-hover:text-white transition-colors" />
+              {loading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="p-6 rounded-2xl border animate-pulse">
+                    <div className="w-12 h-12 bg-gray-200 rounded-xl mb-4" />
+                    <div className="h-6 bg-gray-200 rounded mb-2 w-2/3" />
+                    <div className="h-4 bg-gray-200 rounded w-full" />
                   </div>
-                  <h3 className="font-bold text-lg mb-2">{service.name}</h3>
-                  <p className="text-muted-foreground">{service.desc}</p>
+                ))
+              ) : departments.length > 0 ? (
+                departments.map((dept) => {
+                  const IconComponent = departmentIcons[dept.name] || departmentIcons.default
+                  return (
+                    <div
+                      key={dept.id}
+                      className="group p-6 rounded-2xl border hover:border-primary hover:shadow-lg transition-all duration-300"
+                    >
+                      <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-primary group-hover:scale-110 transition-all duration-300">
+                        <IconComponent className="w-6 h-6 text-primary group-hover:text-white transition-colors" />
+                      </div>
+                      <h3 className="font-bold text-lg mb-2">{dept.name}</h3>
+                      <p className="text-muted-foreground">{dept.description || "Servicii medicale de specialitate"}</p>
+                    </div>
+                  )
+                })
+              ) : (
+                <div className="col-span-full text-center text-muted-foreground">
+                  <p>Nu există departamente disponibile momentan.</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </section>
@@ -239,10 +307,9 @@ export default function LandingPage() {
               <div>
                 <h4 className="font-semibold mb-4">Servicii</h4>
                 <ul className="space-y-2 text-sm text-slate-400">
-                  <li>Cardiologie</li>
-                  <li>Pediatrie</li>
-                  <li>ORL</li>
-                  <li>Oftalmologie</li>
+                  {departments.slice(0, 4).map((dept) => (
+                    <li key={dept.id}>{dept.name}</li>
+                  ))}
                 </ul>
               </div>
               <div>

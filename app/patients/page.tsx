@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Search, Plus, Calendar, MoreHorizontal, MapPin, Phone } from "lucide-react"
+import { Search, Plus, MoreHorizontal, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
   DropdownMenu,
@@ -26,13 +26,37 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 
+// Type for patient from API
+interface Patient {
+  id: string
+  name: string
+  cnp: string
+  age: number | null
+  gender: string
+  phone: string
+  email: string | null
+  status: string
+  primaryDoctor: {
+    id: string
+    name: string
+    specialty: string
+  } | null
+  createdAt: string
+  _count: {
+    appointments: number
+    medicalRecords: number
+  }
+}
+
 export default function PatientsPage() {
   const { toast } = useToast()
   const [searchQuery, setSearchQuery] = useState("")
   const [role, setRole] = useState<"super-admin" | "front-desk" | null>(null)
-  
+  const [loading, setLoading] = useState(true)
+
   // Modal state
   const [showAddPatient, setShowAddPatient] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [newPatient, setNewPatient] = useState({
     name: "",
     cnp: "",
@@ -42,47 +66,35 @@ export default function PatientsPage() {
     phone: "",
   })
 
-  // Mock patient data
-  const [patients, setPatients] = useState([
-    {
-      id: "PAC-001",
-      name: "Alexandru Popa",
-      age: 45,
-      gender: "Masculin",
-      phone: "0722111222",
-      email: "alex.popa@email.com",
-      lastVisit: "2024-03-01",
-      status: "Programat",
-      doctor: "Dr. Elena Radu"
-    },
-    {
-      id: "PAC-002",
-      name: "Elena Dumitrescu",
-      age: 32,
-      gender: "Feminin",
-      phone: "0733444555",
-      email: "elena.d@email.com",
-      lastVisit: "2024-02-15",
-      status: "Activ",
-      doctor: "Dr. Andrei Ionescu"
-    },
-    {
-      id: "PAC-003",
-      name: "Mihai Stanciu",
-      age: 28,
-      gender: "Masculin",
-      phone: "0744777888",
-      email: "mihai.s@email.com",
-      lastVisit: "Inexistent",
-      status: "Nou",
-      doctor: "Nedefinit"
+  // Real patient data from API
+  const [patients, setPatients] = useState<Patient[]>([])
+
+  // Fetch patients from API
+  const fetchPatients = async () => {
+    try {
+      const response = await fetch("/api/patients")
+      if (!response.ok) throw new Error("Failed to fetch")
+      const data = await response.json()
+      setPatients(data)
+    } catch (error) {
+      console.error("Error fetching patients:", error)
+      toast({
+        title: "Eroare",
+        description: "Nu s-au putut încărca pacienții.",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
     }
-  ])
+  }
 
   useEffect(() => {
     // Read role from local storage to pass to layout
     const storedRole = localStorage.getItem("userRole") as "super-admin" | "front-desk" | null
     setRole(storedRole)
+
+    // Fetch patients from database
+    fetchPatients()
   }, [])
 
   const filteredPatients = patients.filter(p => 
@@ -90,44 +102,109 @@ export default function PatientsPage() {
     p.id.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const handleAddPatient = () => {
+  const handleAddPatient = async () => {
     // Basic validation
-    if (!newPatient.name || !newPatient.cnp || !newPatient.phone) {
+    if (!newPatient.name || !newPatient.cnp || !newPatient.phone || !newPatient.gender) {
       toast({
         title: "Eroare",
-        description: "Vă rugăm să completați toate câmpurile obligatorii (Nume, CNP, Telefon).",
+        description: "Vă rugăm să completați toate câmpurile obligatorii (Nume, CNP, Gen, Telefon).",
         variant: "destructive"
       })
       return
     }
 
-    const patient = {
-      id: `PAC-00${patients.length + 1}`,
-      name: newPatient.name,
-      age: Number(newPatient.age) || 0,
-      gender: newPatient.gender || "Nedefinit",
-      phone: newPatient.phone,
-      email: newPatient.email,
-      lastVisit: "Inexistent",
-      status: "Nou",
-      doctor: "Nedefinit"
-    }
+    setSaving(true)
 
-    setPatients([...patients, patient])
-    setShowAddPatient(false)
-    setNewPatient({
-      name: "",
-      cnp: "",
-      age: "",
-      gender: "",
-      email: "",
-      phone: "",
-    })
-    
-    toast({
-      title: "Succes",
-      description: "Pacientul a fost adăugat cu succes.",
-    })
+    try {
+      const response = await fetch("/api/patients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newPatient.name,
+          cnp: newPatient.cnp,
+          age: newPatient.age ? Number(newPatient.age) : null,
+          gender: newPatient.gender,
+          phone: newPatient.phone,
+          email: newPatient.email || null,
+          status: "NOU",
+        }),
+      })
+
+      if (!response.ok) throw new Error("Failed to create patient")
+
+      // Refresh the list
+      await fetchPatients()
+
+      setShowAddPatient(false)
+      setNewPatient({
+        name: "",
+        cnp: "",
+        age: "",
+        gender: "",
+        email: "",
+        phone: "",
+      })
+
+      toast({
+        title: "Succes",
+        description: "Pacientul a fost adăugat cu succes.",
+      })
+    } catch (error) {
+      console.error("Error creating patient:", error)
+      toast({
+        title: "Eroare",
+        description: "Nu s-a putut adăuga pacientul.",
+        variant: "destructive"
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Delete patient
+  const handleDeletePatient = async (id: string) => {
+    try {
+      const response = await fetch(`/api/patients/${id}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) throw new Error("Failed to delete patient")
+
+      await fetchPatients()
+
+      toast({
+        title: "Succes",
+        description: "Pacientul a fost șters.",
+      })
+    } catch (error) {
+      console.error("Error deleting patient:", error)
+      toast({
+        title: "Eroare",
+        description: "Nu s-a putut șterge pacientul.",
+        variant: "destructive"
+      })
+    }
+  }
+
+  // Helper to format status for display
+  const getStatusDisplay = (status: string) => {
+    const statusMap: Record<string, string> = {
+      NOU: "Nou",
+      ACTIV: "Activ",
+      PROGRAMAT: "Programat",
+      INACTIV: "Inactiv",
+    }
+    return statusMap[status] || status
+  }
+
+  // Helper to format gender for display
+  const getGenderDisplay = (gender: string) => {
+    const genderMap: Record<string, string> = {
+      MASCULIN: "Masculin",
+      FEMININ: "Feminin",
+      ALTUL: "Altul",
+    }
+    return genderMap[gender] || gender
   }
 
   return (
@@ -166,53 +243,76 @@ export default function PatientsPage() {
 
           {/* Patients List */}
           <div className="grid gap-4">
-            {filteredPatients.map((patient) => (
-              <Card key={patient.id} className="p-4 transition-all hover:shadow-md">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg">
-                      {patient.name.charAt(0)}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg hover:underline cursor-pointer">{patient.name}</h3>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                        <span>{patient.id}</span>
-                        <span>•</span>
-                        <span>{patient.age} ani</span>
-                        <span>•</span>
-                        <span>{patient.gender}</span>
+            {loading ? (
+              <Card className="p-8 text-center">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+                <p className="mt-2 text-muted-foreground">Se încarcă pacienții...</p>
+              </Card>
+            ) : filteredPatients.length === 0 ? (
+              <Card className="p-8 text-center">
+                <p className="text-muted-foreground">
+                  {searchQuery ? "Nu s-au găsit pacienți." : "Nu există pacienți. Adaugă primul pacient!"}
+                </p>
+              </Card>
+            ) : (
+              filteredPatients.map((patient) => (
+                <Card key={patient.id} className="p-4 transition-all hover:shadow-md">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg">
+                        {patient.name.charAt(0)}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg hover:underline cursor-pointer">{patient.name}</h3>
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                          <span>{patient.cnp}</span>
+                          <span>•</span>
+                          <span>{patient.age ? `${patient.age} ani` : "Vârstă nedefinită"}</span>
+                          <span>•</span>
+                          <span>{getGenderDisplay(patient.gender)}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-6">
-                    <div className="hidden md:block text-right">
-                       <p className="text-sm font-medium">Ultima vizită</p>
-                       <p className="text-sm text-muted-foreground">{patient.lastVisit}</p>
+                    <div className="flex items-center gap-6">
+                      <div className="hidden md:block text-right">
+                        <p className="text-sm font-medium">Doctor asignat</p>
+                        <p className="text-sm text-muted-foreground">
+                          {patient.primaryDoctor?.name || "Nealocat"}
+                        </p>
+                      </div>
+
+                      <Badge
+                        variant={patient.status === "ACTIV" ? "secondary" : "outline"}
+                        className={patient.status === "PROGRAMAT" ? "bg-green-100 text-green-700 hover:bg-green-100 border-none" : ""}
+                      >
+                        {getStatusDisplay(patient.status)}
+                      </Badge>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Acțiuni</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem>Vezi Fișa</DropdownMenuItem>
+                          <DropdownMenuItem>Programare Nouă</DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDeletePatient(patient.id)}
+                          >
+                            Șterge
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                    
-                    <Badge variant={patient.status === "Activ" ? "secondary" : "outline"} className={patient.status === "Programat" ? "bg-green-100 text-green-700 hover:bg-green-100 border-none" : ""}>
-                      {patient.status}
-                    </Badge>
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Acțiuni</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem>Vezi Fișa</DropdownMenuItem>
-                        <DropdownMenuItem>Programare Nouă</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">Șterge</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
                   </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              ))
+            )}
           </div>
         </div>
       </main>
@@ -258,16 +358,17 @@ export default function PatientsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="gender">Gen</Label>
-                <select 
+                <Label htmlFor="gender">Gen *</Label>
+                <select
                   id="gender"
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   value={newPatient.gender}
-                   onChange={(e) => setNewPatient({ ...newPatient, gender: e.target.value })}
+                  onChange={(e) => setNewPatient({ ...newPatient, gender: e.target.value })}
                 >
                   <option value="">Selectează</option>
-                  <option value="Masculin">Masculin</option>
-                  <option value="Feminin">Feminin</option>
+                  <option value="MASCULIN">Masculin</option>
+                  <option value="FEMININ">Feminin</option>
+                  <option value="ALTUL">Altul</option>
                 </select>
               </div>
             </div>
@@ -295,10 +396,19 @@ export default function PatientsPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddPatient(false)}>
+            <Button variant="outline" onClick={() => setShowAddPatient(false)} disabled={saving}>
               Anulează
             </Button>
-            <Button onClick={handleAddPatient}>Salvează Pacient</Button>
+            <Button onClick={handleAddPatient} disabled={saving}>
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Se salvează...
+                </>
+              ) : (
+                "Salvează Pacient"
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

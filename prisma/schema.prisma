@@ -1,0 +1,281 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// USER & AUTHENTICATION
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String
+  phone     String?
+  password  String
+  role      Role       @default(FRONT_DESK)
+  status    UserStatus @default(ACTIVE)
+
+  createdPatients     Patient[]     @relation("PatientCreatedBy")
+  updatedPatients     Patient[]     @relation("PatientUpdatedBy")
+  createdAppointments Appointment[] @relation("AppointmentCreatedBy")
+  activityLogs        ActivityLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  SUPER_ADMIN
+  FRONT_DESK
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// DEPARTMENT
+model Department {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  description String?
+  color       String?
+  icon        String?
+  status      DepartmentStatus @default(ACTIV)
+
+  doctors      Doctor[]
+  appointments Appointment[]
+  services     Service[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum DepartmentStatus {
+  ACTIV
+  INACTIV
+}
+
+// DOCTOR
+model Doctor {
+  id         String       @id @default(cuid())
+  name       String
+  email      String       @unique
+  phone      String
+  avatar     String?
+  specialty  String
+  experience String
+  rating     Float        @default(5.0)
+  status     DoctorStatus @default(ACTIV)
+  bio        String?
+
+  department   Department @relation(fields: [departmentId], references: [id])
+  departmentId String
+
+  appointments Appointment[]
+  schedules    DoctorSchedule[]
+  patients     Patient[]        @relation("PrimaryDoctor")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([departmentId])
+  @@index([status])
+}
+
+enum DoctorStatus {
+  ACTIV
+  IN_CONCEDIU
+  INDISPONIBIL
+}
+
+// DOCTOR SCHEDULE
+model DoctorSchedule {
+  id        String  @id @default(cuid())
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  isActive  Boolean @default(true)
+
+  doctor   Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  doctorId String
+
+  @@unique([doctorId, dayOfWeek])
+  @@index([doctorId])
+}
+
+// PATIENT
+model Patient {
+  id        String        @id @default(cuid())
+  name      String
+  cnp       String        @unique
+  birthDate DateTime?
+  age       Int?
+  gender    Gender
+  phone     String
+  email     String?
+  address   String?
+  status    PatientStatus @default(NOU)
+  notes     String?
+
+  primaryDoctor   Doctor? @relation("PrimaryDoctor", fields: [primaryDoctorId], references: [id])
+  primaryDoctorId String?
+
+  appointments   Appointment[]
+  medicalRecords MedicalRecord[]
+
+  createdBy   User?   @relation("PatientCreatedBy", fields: [createdById], references: [id])
+  createdById String?
+  updatedBy   User?   @relation("PatientUpdatedBy", fields: [updatedById], references: [id])
+  updatedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([primaryDoctorId])
+  @@index([status])
+  @@index([name])
+}
+
+enum Gender {
+  MASCULIN
+  FEMININ
+  ALTUL
+}
+
+enum PatientStatus {
+  NOU
+  ACTIV
+  PROGRAMAT
+  INACTIV
+}
+
+// SERVICE
+model Service {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  duration    Int
+  price       Float?
+  isActive    Boolean @default(true)
+
+  department   Department @relation(fields: [departmentId], references: [id])
+  departmentId String
+
+  appointments Appointment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([departmentId])
+}
+
+// APPOINTMENT
+model Appointment {
+  id        String            @id @default(cuid())
+  date      DateTime
+  startTime String
+  endTime   String
+  duration  Int
+  status    AppointmentStatus @default(IN_ASTEPTARE)
+  type      String?
+  notes     String?
+
+  patient   Patient @relation(fields: [patientId], references: [id])
+  patientId String
+
+  doctor   Doctor @relation(fields: [doctorId], references: [id])
+  doctorId String
+
+  department   Department @relation(fields: [departmentId], references: [id])
+  departmentId String
+
+  service   Service? @relation(fields: [serviceId], references: [id])
+  serviceId String?
+
+  medicalRecord MedicalRecord?
+
+  createdBy   User?   @relation("AppointmentCreatedBy", fields: [createdById], references: [id])
+  createdById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([departmentId])
+  @@index([date])
+  @@index([status])
+}
+
+enum AppointmentStatus {
+  IN_ASTEPTARE
+  CONFIRMAT
+  IN_DESFASURARE
+  FINALIZAT
+  ANULAT
+  NEPREZENTARE
+}
+
+// MEDICAL RECORD
+model MedicalRecord {
+  id               String    @id @default(cuid())
+  visitDate        DateTime  @default(now())
+  symptoms         String?
+  diagnosis        String?
+  treatment        String?
+  prescription     String?
+  notes            String?
+  followUpRequired Boolean   @default(false)
+  followUpDate     DateTime?
+
+  patient   Patient @relation(fields: [patientId], references: [id])
+  patientId String
+
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  appointmentId String?      @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([visitDate])
+}
+
+// ACTIVITY LOG
+model ActivityLog {
+  id          String  @id @default(cuid())
+  action      String
+  entity      String
+  entityId    String?
+  description String
+  metadata    Json?
+  ipAddress   String?
+
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entity])
+  @@index([createdAt])
+}
+
+// SETTINGS
+model Settings {
+  id                         String  @id @default("clinic_settings")
+  clinicName                 String  @default("Policare")
+  clinicPhone                String?
+  clinicEmail                String?
+  clinicAddress              String?
+  emailNotifications         Boolean @default(true)
+  smsNotifications           Boolean @default(false)
+  defaultAppointmentDuration Int     @default(30)
+  workdayStart               String  @default("08:00")
+  workdayEnd                 String  @default("18:00")
+
+  updatedAt DateTime @updatedAt
+}

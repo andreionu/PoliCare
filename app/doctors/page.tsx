@@ -9,8 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, UserPlus, Stethoscope, Clock, Users, Star, Upload } from "lucide-react"
-import { useState } from "react"
+import { Search, UserPlus, Stethoscope, Clock, Users, Star, Loader2 } from "lucide-react"
+import { useState, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -21,100 +21,88 @@ import {
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 
+// Types
+interface Doctor {
+  id: string
+  name: string
+  email: string
+  phone: string
+  avatar: string | null
+  specialty: string
+  experience: string
+  rating: number
+  status: string
+  bio: string | null
+  department: {
+    id: string
+    name: string
+  }
+  _count: {
+    appointments: number
+    patients: number
+  }
+}
+
+interface Department {
+  id: string
+  name: string
+}
+
 export default function DoctorsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [isAddDoctorOpen, setIsAddDoctorOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [doctors, setDoctors] = useState<Doctor[]>([])
+  const [departments, setDepartments] = useState<Department[]>([])
+
   const [formData, setFormData] = useState({
     name: "",
     specialty: "",
     email: "",
     phone: "",
     bio: "",
-    photo: "",
+    experience: "",
+    departmentId: "",
   })
   const [errors, setErrors] = useState<Record<string, boolean>>({})
   const { toast } = useToast()
 
-  const doctors = [
-    {
-      id: 1,
-      name: "Dr. Ana Popescu",
-      specialty: "Cardiologie",
-      avatar: "/female-doctor.png",
-      email: "ana.popescu@policare.ro",
-      phone: "+40 721 234 567",
-      patients: 156,
-      experience: "15 ani",
-      rating: 4.9,
-      status: "Activ",
-      schedule: "Luni-Vineri, 9:00-17:00",
-    },
-    {
-      id: 2,
-      name: "Dr. Ion Marinescu",
-      specialty: "ORL",
-      avatar: "/male-doctor.png",
-      email: "ion.marinescu@policare.ro",
-      phone: "+40 721 234 568",
-      patients: 142,
-      experience: "12 ani",
-      rating: 4.8,
-      status: "Activ",
-      schedule: "Luni-Vineri, 10:00-18:00",
-    },
-    {
-      id: 3,
-      name: "Dr. Maria Ionescu",
-      specialty: "Oftalmologie",
-      avatar: "/female-doctor-2.jpg",
-      email: "maria.ionescu@policare.ro",
-      phone: "+40 721 234 569",
-      patients: 198,
-      experience: "18 ani",
-      rating: 4.9,
-      status: "Activ",
-      schedule: "Luni-Sâmbătă, 8:00-16:00",
-    },
-    {
-      id: 4,
-      name: "Dr. Andrei Popa",
-      specialty: "Dermatologie",
-      avatar: "/male-doctor-2.jpg",
-      email: "andrei.popa@policare.ro",
-      phone: "+40 721 234 570",
-      patients: 134,
-      experience: "10 ani",
-      rating: 4.7,
-      status: "Activ",
-      schedule: "Marți-Vineri, 11:00-19:00",
-    },
-    {
-      id: 5,
-      name: "Dr. Elena Dumitrescu",
-      specialty: "Pediatrie",
-      avatar: "/female-doctor-3.jpg",
-      email: "elena.dumitrescu@policare.ro",
-      phone: "+40 721 234 571",
-      patients: 210,
-      experience: "20 ani",
-      rating: 5.0,
-      status: "Activ",
-      schedule: "Luni-Vineri, 9:00-17:00",
-    },
-    {
-      id: 6,
-      name: "Dr. Cristian Radu",
-      specialty: "Cardiologie",
-      avatar: "/male-doctor-3.jpg",
-      email: "cristian.radu@policare.ro",
-      phone: "+40 721 234 572",
-      patients: 89,
-      experience: "8 ani",
-      rating: 4.6,
-      status: "În concediu",
-      schedule: "Luni-Vineri, 10:00-18:00",
-    },
-  ]
+  // Fetch doctors from API
+  const fetchDoctors = async () => {
+    try {
+      const response = await fetch("/api/doctors")
+      if (!response.ok) throw new Error("Failed to fetch")
+      const data = await response.json()
+      setDoctors(data)
+    } catch (error) {
+      console.error("Error fetching doctors:", error)
+      toast({
+        title: "Eroare",
+        description: "Nu s-au putut încărca medicii.",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Fetch departments for the select dropdown
+  const fetchDepartments = async () => {
+    try {
+      const response = await fetch("/api/departments")
+      if (!response.ok) throw new Error("Failed to fetch")
+      const data = await response.json()
+      setDepartments(data)
+    } catch (error) {
+      console.error("Error fetching departments:", error)
+    }
+  }
+
+  useEffect(() => {
+    fetchDoctors()
+    fetchDepartments()
+  }, [])
 
   const filteredDoctors = doctors.filter(
     (doctor) =>
@@ -122,12 +110,21 @@ export default function DoctorsPage() {
       doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
-  const handleAddDoctor = () => {
+  // Stats
+  const totalDoctors = doctors.length
+  const activeDoctors = doctors.filter((d) => d.status === "ACTIV").length
+  const onLeaveDoctors = doctors.filter((d) => d.status === "IN_CONCEDIU").length
+  const avgRating = doctors.length > 0
+    ? (doctors.reduce((sum, d) => sum + d.rating, 0) / doctors.length).toFixed(1)
+    : "0"
+
+  const handleAddDoctor = async () => {
     const newErrors: Record<string, boolean> = {}
     if (!formData.name) newErrors.name = true
     if (!formData.specialty) newErrors.specialty = true
     if (!formData.email) newErrors.email = true
     if (!formData.phone) newErrors.phone = true
+    if (!formData.departmentId) newErrors.departmentId = true
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
@@ -139,16 +136,56 @@ export default function DoctorsPage() {
       return
     }
 
-    console.log("[v0] New doctor data:", formData)
+    setSaving(true)
 
-    toast({
-      title: "Medic adăugat",
-      description: `Dr. ${formData.name} a fost adăugat cu succes în sistem.`,
-    })
+    try {
+      const response = await fetch("/api/doctors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          specialty: formData.specialty,
+          experience: formData.experience || "0 ani",
+          bio: formData.bio || null,
+          departmentId: formData.departmentId,
+          status: "ACTIV",
+        }),
+      })
 
-    setIsAddDoctorOpen(false)
-    setFormData({ name: "", specialty: "", email: "", phone: "", bio: "", photo: "" })
-    setErrors({})
+      if (!response.ok) throw new Error("Failed to create doctor")
+
+      await fetchDoctors()
+
+      toast({
+        title: "Medic adăugat",
+        description: `Dr. ${formData.name} a fost adăugat cu succes în sistem.`,
+      })
+
+      setIsAddDoctorOpen(false)
+      setFormData({ name: "", specialty: "", email: "", phone: "", bio: "", experience: "", departmentId: "" })
+      setErrors({})
+    } catch (error) {
+      console.error("Error creating doctor:", error)
+      toast({
+        title: "Eroare",
+        description: "Nu s-a putut adăuga medicul.",
+        variant: "destructive"
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Helper to format status for display
+  const getStatusDisplay = (status: string) => {
+    const statusMap: Record<string, string> = {
+      ACTIV: "Activ",
+      IN_CONCEDIU: "În concediu",
+      INDISPONIBIL: "Indisponibil",
+    }
+    return statusMap[status] || status
   }
 
   return (
@@ -175,7 +212,7 @@ export default function DoctorsPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Medici</p>
-                  <p className="text-2xl font-semibold">{doctors.length}</p>
+                  <p className="text-2xl font-semibold">{totalDoctors}</p>
                 </div>
               </div>
             </Card>
@@ -187,7 +224,7 @@ export default function DoctorsPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Medici Activi</p>
-                  <p className="text-2xl font-semibold">{doctors.filter((d) => d.status === "Activ").length}</p>
+                  <p className="text-2xl font-semibold">{activeDoctors}</p>
                 </div>
               </div>
             </Card>
@@ -199,7 +236,7 @@ export default function DoctorsPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Rating Mediu</p>
-                  <p className="text-2xl font-semibold">4.8</p>
+                  <p className="text-2xl font-semibold">{avgRating}</p>
                 </div>
               </div>
             </Card>
@@ -211,7 +248,7 @@ export default function DoctorsPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">În Concediu</p>
-                  <p className="text-2xl font-semibold">{doctors.filter((d) => d.status === "În concediu").length}</p>
+                  <p className="text-2xl font-semibold">{onLeaveDoctors}</p>
                 </div>
               </div>
             </Card>
@@ -232,53 +269,68 @@ export default function DoctorsPage() {
 
           {/* Doctors Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredDoctors.map((doctor) => (
-              <Card key={doctor.id} className="p-6 hover:shadow-lg transition-shadow">
-                <div className="flex items-start gap-4 mb-4">
-                  <Avatar className="w-16 h-16">
-                    <AvatarImage src={doctor.avatar || "/placeholder.svg"} />
-                    <AvatarFallback>
-                      {doctor.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-lg mb-1">{doctor.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-2">{doctor.specialty}</p>
-                    <Badge variant={doctor.status === "Activ" ? "default" : "secondary"}>{doctor.status}</Badge>
-                  </div>
-                </div>
-
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Users className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">{doctor.patients} pacienți</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">{doctor.experience} experiență</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                    <span className="font-medium">{doctor.rating}</span>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t">
-                  <p className="text-xs text-muted-foreground mb-3">{doctor.schedule}</p>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1 bg-transparent">
-                      Vezi Profil
-                    </Button>
-                    <Button size="sm" className="flex-1">
-                      Programează
-                    </Button>
-                  </div>
-                </div>
+            {loading ? (
+              <Card className="p-8 text-center col-span-full">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+                <p className="mt-2 text-muted-foreground">Se încarcă medicii...</p>
               </Card>
-            ))}
+            ) : filteredDoctors.length === 0 ? (
+              <Card className="p-8 text-center col-span-full">
+                <p className="text-muted-foreground">
+                  {searchQuery ? "Nu s-au găsit medici." : "Nu există medici. Adaugă primul medic!"}
+                </p>
+              </Card>
+            ) : (
+              filteredDoctors.map((doctor) => (
+                <Card key={doctor.id} className="p-6 hover:shadow-lg transition-shadow">
+                  <div className="flex items-start gap-4 mb-4">
+                    <Avatar className="w-16 h-16">
+                      <AvatarImage src={doctor.avatar || "/placeholder.svg"} />
+                      <AvatarFallback>
+                        {doctor.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg mb-1">{doctor.name}</h3>
+                      <p className="text-sm text-muted-foreground mb-2">{doctor.specialty}</p>
+                      <Badge variant={doctor.status === "ACTIV" ? "default" : "secondary"}>
+                        {getStatusDisplay(doctor.status)}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Users className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">{doctor._count?.patients || 0} pacienți</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Clock className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">{doctor.experience} experiență</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                      <span className="font-medium">{doctor.rating}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t">
+                    <p className="text-xs text-muted-foreground mb-3">{doctor.department?.name}</p>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="flex-1 bg-transparent">
+                        Vezi Profil
+                      </Button>
+                      <Button size="sm" className="flex-1">
+                        Programează
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -291,28 +343,6 @@ export default function DoctorsPage() {
           </DialogHeader>
 
           <div className="py-6 space-y-6">
-            {/* Photo Upload */}
-            <div>
-              <Label>Fotografie profil</Label>
-              <div className="mt-2 flex items-center gap-4">
-                <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center">
-                  {formData.photo ? (
-                    <img
-                      src={formData.photo || "/placeholder.svg"}
-                      alt="Preview"
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  ) : (
-                    <UserPlus className="w-8 h-8 text-muted-foreground" />
-                  )}
-                </div>
-                <Button variant="outline" className="gap-2 bg-transparent">
-                  <Upload className="w-4 h-4" />
-                  Încarcă fotografie
-                </Button>
-              </div>
-            </div>
-
             {/* Name */}
             <div>
               <Label htmlFor="name">
@@ -331,33 +361,65 @@ export default function DoctorsPage() {
               {errors.name && <p className="text-sm text-destructive mt-1">Numele este obligatoriu</p>}
             </div>
 
+            {/* Department */}
+            <div>
+              <Label htmlFor="department">
+                Departament <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={formData.departmentId}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, departmentId: value })
+                  setErrors({ ...errors, departmentId: false })
+                }}
+              >
+                <SelectTrigger className={`mt-2 ${errors.departmentId ? "border-destructive" : ""}`}>
+                  <SelectValue placeholder="Selectează departamentul" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.departmentId && <p className="text-sm text-destructive mt-1">Departamentul este obligatoriu</p>}
+              {departments.length === 0 && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Nu există departamente. Creează mai întâi un departament.
+                </p>
+              )}
+            </div>
+
             {/* Specialty */}
             <div>
               <Label htmlFor="specialty">
                 Specialitate <span className="text-destructive">*</span>
               </Label>
-              <Select
+              <Input
+                id="specialty"
+                placeholder="ex: Cardiologie"
                 value={formData.specialty}
-                onValueChange={(value) => {
-                  setFormData({ ...formData, specialty: value })
+                onChange={(e) => {
+                  setFormData({ ...formData, specialty: e.target.value })
                   setErrors({ ...errors, specialty: false })
                 }}
-              >
-                <SelectTrigger className={`mt-2 ${errors.specialty ? "border-destructive" : ""}`}>
-                  <SelectValue placeholder="Selectează specialitatea" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Cardiologie">Cardiologie</SelectItem>
-                  <SelectItem value="Dermatologie">Dermatologie</SelectItem>
-                  <SelectItem value="ORL">ORL</SelectItem>
-                  <SelectItem value="Oftalmologie">Oftalmologie</SelectItem>
-                  <SelectItem value="Pediatrie">Pediatrie</SelectItem>
-                  <SelectItem value="Ginecologie">Ginecologie</SelectItem>
-                  <SelectItem value="Orthopedie">Orthopedie</SelectItem>
-                  <SelectItem value="Neurologie">Neurologie</SelectItem>
-                </SelectContent>
-              </Select>
+                className={`mt-2 ${errors.specialty ? "border-destructive" : ""}`}
+              />
               {errors.specialty && <p className="text-sm text-destructive mt-1">Specialitatea este obligatorie</p>}
+            </div>
+
+            {/* Experience */}
+            <div>
+              <Label htmlFor="experience">Experiență</Label>
+              <Input
+                id="experience"
+                placeholder="ex: 10 ani"
+                value={formData.experience}
+                onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
+                className="mt-2"
+              />
             </div>
 
             {/* Email */}
@@ -413,10 +475,19 @@ export default function DoctorsPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDoctorOpen(false)}>
+            <Button variant="outline" onClick={() => setIsAddDoctorOpen(false)} disabled={saving}>
               Anulează
             </Button>
-            <Button onClick={handleAddDoctor}>Adaugă Medic</Button>
+            <Button onClick={handleAddDoctor} disabled={saving || departments.length === 0}>
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Se salvează...
+                </>
+              ) : (
+                "Adaugă Medic"
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
