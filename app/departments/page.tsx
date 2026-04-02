@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 
 // Types
@@ -56,7 +57,10 @@ const colorMap: Record<string, string> = {
 
 export default function DepartmentsPage() {
   const { toast } = useToast()
+  const router = useRouter()
   const [isAddDepartmentOpen, setIsAddDepartmentOpen] = useState(false)
+  const [isEditDepartmentOpen, setIsEditDepartmentOpen] = useState(false)
+  const [editingDepartment, setEditingDepartment] = useState<Department | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [departments, setDepartments] = useState<Department[]>([])
@@ -68,6 +72,15 @@ export default function DepartmentsPage() {
     description: "",
   })
   const [departmentErrors, setDepartmentErrors] = useState<Record<string, boolean>>({})
+
+  const [editFormData, setEditFormData] = useState({
+    name: "",
+    icon: "",
+    color: "",
+    description: "",
+    status: "ACTIV",
+  })
+  const [editErrors, setEditErrors] = useState<Record<string, boolean>>({})
 
   // Fetch departments from API
   const fetchDepartments = async () => {
@@ -150,6 +163,53 @@ export default function DepartmentsPage() {
         description: "Nu s-a putut crea departamentul.",
         variant: "destructive"
       })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const openEditModal = (dept: Department) => {
+    setEditingDepartment(dept)
+    setEditFormData({
+      name: dept.name,
+      icon: dept.icon ?? "",
+      color: dept.color ?? "",
+      description: dept.description ?? "",
+      status: dept.status,
+    })
+    setEditErrors({})
+    setIsEditDepartmentOpen(true)
+  }
+
+  const handleEditDepartment = async () => {
+    const newErrors: Record<string, boolean> = {}
+    if (!editFormData.name) newErrors.name = true
+    if (Object.keys(newErrors).length > 0) {
+      setEditErrors(newErrors)
+      toast({ title: "Eroare validare", description: "Numele departamentului este obligatoriu.", variant: "destructive" })
+      return
+    }
+    if (!editingDepartment) return
+    setSaving(true)
+    try {
+      const response = await fetch(`/api/departments/${editingDepartment.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editFormData.name,
+          description: editFormData.description || null,
+          icon: editFormData.icon || null,
+          color: editFormData.color || null,
+          status: editFormData.status,
+        }),
+      })
+      if (!response.ok) throw new Error("Failed to update department")
+      await fetchDepartments()
+      toast({ title: "Salvat", description: `Departamentul ${editFormData.name} a fost actualizat.` })
+      setIsEditDepartmentOpen(false)
+      setEditingDepartment(null)
+    } catch {
+      toast({ title: "Eroare", description: "Nu s-a putut actualiza departamentul.", variant: "destructive" })
     } finally {
       setSaving(false)
     }
@@ -287,13 +347,23 @@ export default function DepartmentsPage() {
                     </div>
 
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1 bg-transparent">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 bg-transparent"
+                        onClick={() => router.push(`/doctors?departmentId=${department.id}`)}
+                      >
                         Vezi Medici
                       </Button>
-                      <Button variant="outline" size="sm" className="flex-1 bg-transparent">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 bg-transparent"
+                        onClick={() => router.push(`/appointments?departmentId=${department.id}`)}
+                      >
                         Vezi Programări
                       </Button>
-                      <Button size="sm">Gestionează</Button>
+                      <Button size="sm" onClick={() => openEditModal(department)}>Gestionează</Button>
                     </div>
                   </Card>
                 )
@@ -302,6 +372,111 @@ export default function DepartmentsPage() {
           </div>
         </div>
       </div>
+
+      {/* Edit Department Dialog */}
+      <Dialog open={isEditDepartmentOpen} onOpenChange={setIsEditDepartmentOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Editează Departament</DialogTitle>
+            <DialogDescription>Modifică informațiile departamentului</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            <div>
+              <Label htmlFor="edit-dept-name">
+                Nume departament <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="edit-dept-name"
+                placeholder="ex: Neurologie"
+                value={editFormData.name}
+                onChange={(e) => {
+                  setEditFormData({ ...editFormData, name: e.target.value })
+                  setEditErrors({ ...editErrors, name: false })
+                }}
+                className={editErrors.name ? "border-destructive mt-2" : "mt-2"}
+              />
+              {editErrors.name && <p className="text-sm text-destructive mt-1">Numele departamentului este obligatoriu</p>}
+            </div>
+
+            <div>
+              <Label>Icon</Label>
+              <Select value={editFormData.icon} onValueChange={(v) => setEditFormData({ ...editFormData, icon: v })}>
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Selectează iconița" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Heart">❤️ Inimă (Cardiologie)</SelectItem>
+                  <SelectItem value="Eye">👁️ Ochi (Oftalmologie)</SelectItem>
+                  <SelectItem value="Ear">👂 Ureche (ORL)</SelectItem>
+                  <SelectItem value="Stethoscope">🩺 Stetoscop (General)</SelectItem>
+                  <SelectItem value="Baby">👶 Bebeluș (Pediatrie)</SelectItem>
+                  <SelectItem value="Building2">🏥 Clădire (Altele)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Culoare</Label>
+              <Select value={editFormData.color} onValueChange={(v) => setEditFormData({ ...editFormData, color: v })}>
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Selectează culoarea" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="red">🔴 Roșu</SelectItem>
+                  <SelectItem value="blue">🔵 Albastru</SelectItem>
+                  <SelectItem value="green">🟢 Verde</SelectItem>
+                  <SelectItem value="purple">🟣 Mov</SelectItem>
+                  <SelectItem value="pink">💗 Roz</SelectItem>
+                  <SelectItem value="yellow">🟡 Galben</SelectItem>
+                  <SelectItem value="orange">🟠 Portocaliu</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Status</Label>
+              <Select value={editFormData.status} onValueChange={(v) => setEditFormData({ ...editFormData, status: v })}>
+                <SelectTrigger className="mt-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ACTIV">Activ</SelectItem>
+                  <SelectItem value="INACTIV">Inactiv</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="edit-description">Descriere</Label>
+              <Textarea
+                id="edit-description"
+                placeholder="Descriere scurtă a departamentului..."
+                value={editFormData.description}
+                onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                rows={3}
+                className="resize-none mt-2"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDepartmentOpen(false)} disabled={saving}>
+              Anulează
+            </Button>
+            <Button onClick={handleEditDepartment} disabled={saving}>
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Se salvează...
+                </>
+              ) : (
+                "Salvează Modificările"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isAddDepartmentOpen} onOpenChange={setIsAddDepartmentOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">

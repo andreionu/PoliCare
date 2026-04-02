@@ -1,108 +1,79 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { AdminLayout } from "@/components/admin-layout"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Users, Calendar, FileText, Settings, UserPlus, Trash2, Clock } from "lucide-react"
+import { Users, Calendar, FileText, Settings, UserPlus, Trash2, Clock, Loader2, Activity } from "lucide-react"
+
+interface ActivityLog {
+  id: string
+  action: string
+  entity: string
+  entityId: string | null
+  description: string
+  createdAt: string
+  user: { name: string; role: string } | null
+}
+
+interface ActivityData {
+  activities: ActivityLog[]
+  todayCount: number
+  weekCount: number
+  activeUsers: number
+}
+
+function getEntityIcon(entity: string) {
+  const map: Record<string, React.ComponentType<{ className?: string }>> = {
+    appointment: Calendar,
+    patient: Users,
+    medicalRecord: FileText,
+    doctor: UserPlus,
+    department: Settings,
+    user: Users,
+    report: FileText,
+  }
+  return map[entity.toLowerCase()] ?? Activity
+}
+
+function getEntityColor(entity: string) {
+  const map: Record<string, { bg: string; icon: string }> = {
+    appointment: { bg: "bg-blue-100", icon: "text-blue-600" },
+    patient: { bg: "bg-green-100", icon: "text-green-600" },
+    medicalrecord: { bg: "bg-purple-100", icon: "text-purple-600" },
+    doctor: { bg: "bg-teal-100", icon: "text-teal-600" },
+    department: { bg: "bg-gray-100", icon: "text-gray-600" },
+    user: { bg: "bg-orange-100", icon: "text-orange-600" },
+    report: { bg: "bg-pink-100", icon: "text-pink-600" },
+  }
+  return map[entity.toLowerCase()] ?? { bg: "bg-gray-100", icon: "text-gray-600" }
+}
+
+function formatRelativeTime(dateStr: string) {
+  const date = new Date(dateStr)
+  const diffMs = Date.now() - date.getTime()
+  const diffMin = Math.floor(diffMs / 60000)
+  if (diffMin < 1) return "Acum"
+  if (diffMin < 60) return `Acum ${diffMin} ${diffMin === 1 ? "minut" : "minute"}`
+  const diffHr = Math.floor(diffMin / 60)
+  if (diffHr < 24) return `Acum ${diffHr} ${diffHr === 1 ? "oră" : "ore"}`
+  const diffDays = Math.floor(diffHr / 24)
+  return `Acum ${diffDays} ${diffDays === 1 ? "zi" : "zile"}`
+}
 
 export default function ActivityPage() {
-  const activities = [
-    {
-      id: 1,
-      user: "Dr. Ana Popescu",
-      action: "a adăugat o nouă programare",
-      target: "Maria Ionescu",
-      type: "appointment",
-      time: "Acum 5 minute",
-      icon: Calendar,
-      color: "blue",
-    },
-    {
-      id: 2,
-      user: "Admin",
-      action: "a actualizat informațiile pacientului",
-      target: "Ion Vasile",
-      type: "patient",
-      time: "Acum 15 minute",
-      icon: Users,
-      color: "green",
-    },
-    {
-      id: 3,
-      user: "Dr. Mihai Dumitrescu",
-      action: "a generat un raport medical pentru",
-      target: "Elena Radu",
-      type: "report",
-      time: "Acum 32 minute",
-      icon: FileText,
-      color: "purple",
-    },
-    {
-      id: 4,
-      user: "Admin",
-      action: "a adăugat un nou medic",
-      target: "Dr. Carmen Silva",
-      type: "doctor",
-      time: "Acum 1 oră",
-      icon: UserPlus,
-      color: "teal",
-    },
-    {
-      id: 5,
-      user: "Dr. Ana Popescu",
-      action: "a anulat programarea pentru",
-      target: "Georgiana Matei",
-      type: "cancelled",
-      time: "Acum 2 ore",
-      icon: Trash2,
-      color: "red",
-    },
-    {
-      id: 6,
-      user: "Admin",
-      action: "a modificat setările departamentului",
-      target: "Cardiologie",
-      type: "settings",
-      time: "Acum 3 ore",
-      icon: Settings,
-      color: "gray",
-    },
-    {
-      id: 7,
-      user: "Dr. Mihai Dumitrescu",
-      action: "a completat consultația pentru",
-      target: "Alexandru Pop",
-      type: "appointment",
-      time: "Acum 4 ore",
-      icon: Calendar,
-      color: "blue",
-    },
-    {
-      id: 8,
-      user: "Admin",
-      action: "a adăugat un nou pacient",
-      target: "Cristina Marinescu",
-      type: "patient",
-      time: "Acum 5 ore",
-      icon: UserPlus,
-      color: "green",
-    },
-  ]
+  const [data, setData] = useState<ActivityData | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const getColorClasses = (color: string) => {
-    const colors: Record<string, { bg: string; icon: string }> = {
-      blue: { bg: "bg-blue-100", icon: "text-blue-600" },
-      green: { bg: "bg-green-100", icon: "text-green-600" },
-      purple: { bg: "bg-purple-100", icon: "text-purple-600" },
-      teal: { bg: "bg-teal-100", icon: "text-teal-600" },
-      red: { bg: "bg-red-100", icon: "text-red-600" },
-      gray: { bg: "bg-gray-100", icon: "text-gray-600" },
-    }
-    return colors[color] || colors.gray
-  }
+  useEffect(() => {
+    fetch("/api/activity")
+      .then((r) => r.json())
+      .then(setData)
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [])
 
-  const todayCount = activities.filter((a) => a.time.includes("minute") || a.time.includes("oră")).length
-  const weekCount = 47
+  const activities = data?.activities ?? []
 
   return (
     <AdminLayout>
@@ -122,7 +93,9 @@ export default function ActivityPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Activități Astăzi</p>
-                  <p className="text-2xl font-semibold">{todayCount}</p>
+                  <p className="text-2xl font-semibold">
+                    {loading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : data?.todayCount ?? 0}
+                  </p>
                 </div>
               </div>
             </Card>
@@ -134,7 +107,9 @@ export default function ActivityPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Activități Săptămâna Aceasta</p>
-                  <p className="text-2xl font-semibold">{weekCount}</p>
+                  <p className="text-2xl font-semibold">
+                    {loading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : data?.weekCount ?? 0}
+                  </p>
                 </div>
               </div>
             </Card>
@@ -146,7 +121,9 @@ export default function ActivityPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Utilizatori Activi</p>
-                  <p className="text-2xl font-semibold">12</p>
+                  <p className="text-2xl font-semibold">
+                    {loading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : data?.activeUsers ?? 0}
+                  </p>
                 </div>
               </div>
             </Card>
@@ -157,37 +134,48 @@ export default function ActivityPage() {
             <div className="p-6 border-b">
               <h2 className="text-xl font-semibold">Feed Activitate</h2>
             </div>
-            <div className="divide-y">
-              {activities.map((activity) => {
-                const Icon = activity.icon
-                const colorClasses = getColorClasses(activity.color)
 
-                return (
-                  <div key={activity.id} className="p-6 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-start gap-4">
-                      <div
-                        className={`w-10 h-10 rounded-lg ${colorClasses.bg} flex items-center justify-center flex-shrink-0`}
-                      >
-                        <Icon className={`w-5 h-5 ${colorClasses.icon}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold">{activity.user}</span>
-                          <span className="text-muted-foreground">{activity.action}</span>
-                          <Badge variant="outline" className="ml-1">
-                            {activity.target}
-                          </Badge>
+            {loading ? (
+              <div className="p-12 text-center">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+                <p className="mt-2 text-muted-foreground">Se încarcă activitatea...</p>
+              </div>
+            ) : activities.length === 0 ? (
+              <div className="p-12 text-center">
+                <p className="text-muted-foreground">Nu există activitate înregistrată.</p>
+              </div>
+            ) : (
+              <div className="divide-y">
+                {activities.map((activity) => {
+                  const Icon = getEntityIcon(activity.entity)
+                  const colors = getEntityColor(activity.entity)
+                  return (
+                    <div key={activity.id} className="p-6 hover:bg-muted/50 transition-colors">
+                      <div className="flex items-start gap-4">
+                        <div className={`w-10 h-10 rounded-lg ${colors.bg} flex items-center justify-center flex-shrink-0`}>
+                          <Icon className={`w-5 h-5 ${colors.icon}`} />
                         </div>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {activity.time}
-                        </p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <span className="font-semibold">{activity.user?.name ?? "Sistem"}</span>
+                            <span className="text-muted-foreground">{activity.description}</span>
+                            {activity.entityId && (
+                              <Badge variant="outline" className="ml-1">
+                                {activity.entity}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {formatRelativeTime(activity.createdAt)}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+            )}
           </Card>
         </div>
       </div>

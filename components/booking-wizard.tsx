@@ -161,20 +161,33 @@ export function BookingWizard({ onClose }: BookingWizardProps) {
 
     setSubmitting(true)
     try {
-      // First, create or find the patient
-      const patientRes = await fetch("/api/patients", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: sanitizedName,
-          phone: sanitizedPhone,
-          email: sanitizedEmail || null,
-          status: "NOU",
-        }),
-      })
+      // Find existing patient by phone, or create new one
+      let patient: { id: string }
+      const searchRes = await fetch(`/api/patients?phone=${encodeURIComponent(sanitizedPhone)}`)
+      if (!searchRes.ok) throw new Error("Failed to search patients")
+      const existing: { id: string; phone: string }[] = await searchRes.json()
+      const found = existing.find((p) => p.phone === sanitizedPhone)
 
-      if (!patientRes.ok) throw new Error("Failed to create patient")
-      const patient = await patientRes.json()
+      if (found) {
+        patient = found
+      } else {
+        // Generate a unique placeholder CNP for booking (admin fills real one later)
+        const placeholderCnp = `BOOKING${Date.now()}${sanitizedPhone.replace(/\D/g, "").slice(-4)}`
+        const patientRes = await fetch("/api/patients", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: sanitizedName,
+            phone: sanitizedPhone,
+            email: sanitizedEmail || null,
+            gender: "ALTUL",
+            cnp: placeholderCnp,
+            status: "NOU",
+          }),
+        })
+        if (!patientRes.ok) throw new Error("Failed to create patient")
+        patient = await patientRes.json()
+      }
 
       // Calculate end time (30 min default)
       const [hours, minutes] = selectedTime.split(":").map(Number)

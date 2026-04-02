@@ -1,12 +1,26 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
-// GET /api/doctors - Get all doctors
-export async function GET() {
+// GET /api/doctors - Get all doctors (supports ?search=X and ?departmentId=X filters)
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const search = searchParams.get("search")
+    const departmentId = searchParams.get("departmentId")
+
+    const where: Record<string, unknown> = {}
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { specialty: { contains: search, mode: "insensitive" } },
+      ]
+    }
+    if (departmentId) where.departmentId = departmentId
+
     const doctors = await prisma.doctor.findMany({
+      where,
       include: {
-        department: true, // Include department info
+        department: { select: { id: true, name: true, color: true } },
         _count: {
           select: {
             appointments: true,
@@ -45,7 +59,7 @@ export async function POST(request: Request) {
         departmentId: body.departmentId,
       },
       include: {
-        department: true,
+        department: { select: { id: true, name: true, color: true } },
       },
     })
 

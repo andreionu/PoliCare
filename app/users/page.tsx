@@ -16,93 +16,91 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { UserPlus, Search, Shield, User, Trash2, Edit, Mail, Phone, Lock } from "lucide-react"
+import { UserPlus, Search, Shield, User, Trash2, Edit, Mail, Phone, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
+
+interface AppUser {
+  id: string
+  name: string
+  email: string
+  phone: string | null
+  role: string
+  status: string
+  createdAt: string
+}
 
 export default function UsersPage() {
   const { toast } = useToast()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [showAddUser, setShowAddUser] = useState(false)
+  const [showEditUser, setShowEditUser] = useState(false)
+  const [editingUser, setEditingUser] = useState<AppUser | null>(null)
   const [role, setRole] = useState<string | null>(null)
-  
-  useEffect(() => {
-    // Check for super-admin role
-    const storedRole = localStorage.getItem("userRole")
-    if (storedRole !== "super-admin") {
-      toast({
-        title: "Acces interzis",
-        description: "Această pagină este dedicată doar administratorilor.",
-        variant: "destructive"
-      })
-      router.push("/admin")
-      return
-    }
-    setRole(storedRole)
-  }, [router, toast])
-
-  const [users, setUsers] = useState([
-    {
-      id: 1,
-      name: "Admin Principal",
-      email: "admin@policare.ro",
-      phone: "+40 721 234 567",
-      role: "super-admin",
-      status: "active",
-      createdAt: "2024-01-15",
-    },
-    {
-      id: 2,
-      name: "Maria Ionescu",
-      email: "receptie@policare.ro",
-      phone: "+40 722 345 678",
-      role: "front-desk",
-      status: "active",
-      createdAt: "2024-02-20",
-    },
-    {
-      id: 3,
-      name: "Ion Popescu",
-      email: "receptie2@policare.ro",
-      phone: "+40 723 456 789",
-      role: "front-desk",
-      status: "active",
-      createdAt: "2024-03-10",
-    },
-  ])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [users, setUsers] = useState<AppUser[]>([])
 
   const [newUser, setNewUser] = useState({
     name: "",
     email: "",
     phone: "",
-    role: "front-desk",
+    role: "FRONT_DESK",
     password: "",
   })
-
+  const [editUser, setEditUser] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    role: "FRONT_DESK",
+    status: "ACTIVE",
+    password: "",
+  })
   const [errors, setErrors] = useState<Record<string, boolean>>({})
 
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch("/api/users")
+      if (!response.ok) throw new Error("Failed to fetch")
+      const data = await response.json()
+      setUsers(data)
+    } catch (error) {
+      console.error("Error fetching users:", error)
+      toast({
+        title: "Eroare",
+        description: "Nu s-au putut încărca utilizatorii.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    if (showAddUser) {
-      document.body.style.overflow = "hidden"
-    } else {
-      document.body.style.overflow = "unset"
+    const storedRole = localStorage.getItem("userRole")
+    if (storedRole !== "super-admin") {
+      toast({
+        title: "Acces interzis",
+        description: "Această pagină este dedicată doar administratorilor.",
+        variant: "destructive",
+      })
+      router.push("/admin")
+      return
     }
-    return () => {
-      document.body.style.overflow = "unset"
-    }
-  }, [showAddUser])
+    setRole(storedRole)
+    fetchUsers()
+  }, [router, toast])
 
   const filteredUsers = users.filter(
     (user) =>
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.phone.includes(searchQuery),
+      (user.phone && user.phone.includes(searchQuery)),
   )
 
-  const handleAddUser = () => {
+  const handleAddUser = async () => {
     const newErrors: Record<string, boolean> = {}
-
     if (!newUser.name.trim()) newErrors.name = true
     if (!newUser.email.trim()) newErrors.email = true
     if (!newUser.phone.trim()) newErrors.phone = true
@@ -118,27 +116,99 @@ export default function UsersPage() {
       return
     }
 
-    const user = {
-      id: users.length + 1,
-      ...newUser,
-      status: "active",
-      createdAt: new Date().toISOString().split("T")[0],
+    setSaving(true)
+    try {
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newUser.name,
+          email: newUser.email,
+          phone: newUser.phone,
+          role: newUser.role,
+          password: newUser.password,
+          status: "ACTIVE",
+        }),
+      })
+
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || "Failed to create user")
+      }
+
+      await fetchUsers()
+      setShowAddUser(false)
+      setNewUser({ name: "", email: "", phone: "", role: "FRONT_DESK", password: "" })
+      setErrors({})
+      toast({ title: "Utilizator adăugat", description: "Contul a fost creat cu succes." })
+    } catch (error) {
+      console.error("Error creating user:", error)
+      toast({ title: "Eroare", description: "Nu s-a putut crea utilizatorul.", variant: "destructive" })
+    } finally {
+      setSaving(false)
     }
-
-    setUsers([...users, user])
-    setShowAddUser(false)
-    setNewUser({ name: "", email: "", phone: "", role: "front-desk", password: "" })
-    setErrors({})
-
-    toast({
-      title: "Utilizator adăugat",
-      description: `${user.name} a fost adăugat cu succes în sistem.`,
-    })
   }
 
-  const handleDeleteUser = (userId: number) => {
-    const user = users.find((u) => u.id === userId)
-    if (user?.role === "super-admin") {
+  const handleOpenEdit = (user: AppUser) => {
+    setEditingUser(user)
+    setEditUser({
+      name: user.name,
+      email: user.email,
+      phone: user.phone || "",
+      role: user.role,
+      status: user.status,
+      password: "",
+    })
+    setErrors({})
+    setShowEditUser(true)
+  }
+
+  const handleEditUser = async () => {
+    if (!editingUser) return
+    const newErrors: Record<string, boolean> = {}
+    if (!editUser.name.trim()) newErrors.name = true
+    if (!editUser.email.trim()) newErrors.email = true
+    if (editUser.password && editUser.password.length < 6) newErrors.password = true
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      toast({ title: "Eroare validare", description: "Completează câmpurile obligatorii.", variant: "destructive" })
+      return
+    }
+
+    setSaving(true)
+    try {
+      const body: Record<string, string> = {
+        name: editUser.name,
+        email: editUser.email,
+        phone: editUser.phone,
+        role: editUser.role,
+        status: editUser.status,
+      }
+      if (editUser.password) body.password = editUser.password
+
+      const response = await fetch(`/api/users/${editingUser.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+
+      if (!response.ok) throw new Error("Failed to update user")
+
+      await fetchUsers()
+      setShowEditUser(false)
+      setEditingUser(null)
+      toast({ title: "Utilizator actualizat", description: "Datele au fost salvate cu succes." })
+    } catch (error) {
+      console.error("Error updating user:", error)
+      toast({ title: "Eroare", description: "Nu s-a putut actualiza utilizatorul.", variant: "destructive" })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeleteUser = async (user: AppUser) => {
+    if (user.role === "SUPER_ADMIN") {
       toast({
         title: "Acțiune nepermisă",
         description: "Nu poți șterge contul de super-admin.",
@@ -147,15 +217,19 @@ export default function UsersPage() {
       return
     }
 
-    setUsers(users.filter((u) => u.id !== userId))
-    toast({
-      title: "Utilizator șters",
-      description: "Utilizatorul a fost șters cu succes.",
-    })
+    try {
+      const response = await fetch(`/api/users/${user.id}`, { method: "DELETE" })
+      if (!response.ok) throw new Error("Failed to delete user")
+      await fetchUsers()
+      toast({ title: "Utilizator șters", description: "Utilizatorul a fost șters cu succes." })
+    } catch (error) {
+      console.error("Error deleting user:", error)
+      toast({ title: "Eroare", description: "Nu s-a putut șterge utilizatorul.", variant: "destructive" })
+    }
   }
 
-  const getRoleBadge = (role: string) => {
-    if (role === "super-admin") {
+  const getRoleBadge = (userRole: string) => {
+    if (userRole === "SUPER_ADMIN") {
       return (
         <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">
           <Shield className="w-3 h-3 mr-1" />
@@ -170,10 +244,16 @@ export default function UsersPage() {
       </Badge>
     )
   }
- 
-  if (role !== "super-admin") {
-     return null // Or a loading spinner while redirecting
+
+  const getStatusBadge = (status: string) => {
+    return status === "ACTIVE" ? (
+      <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Activ</Badge>
+    ) : (
+      <Badge variant="outline" className="text-muted-foreground">Inactiv</Badge>
+    )
   }
+
+  if (role !== "super-admin") return null
 
   return (
     <AdminLayout userRole="super-admin">
@@ -199,15 +279,15 @@ export default function UsersPage() {
             </Card>
             <Card className="p-4">
               <div className="text-sm text-muted-foreground mb-1">Super Admini</div>
-              <div className="text-2xl font-bold">{users.filter((u) => u.role === "super-admin").length}</div>
+              <div className="text-2xl font-bold">{users.filter((u) => u.role === "SUPER_ADMIN").length}</div>
             </Card>
             <Card className="p-4">
               <div className="text-sm text-muted-foreground mb-1">Personal Recepție</div>
-              <div className="text-2xl font-bold">{users.filter((u) => u.role === "front-desk").length}</div>
+              <div className="text-2xl font-bold">{users.filter((u) => u.role === "FRONT_DESK").length}</div>
             </Card>
             <Card className="p-4">
               <div className="text-sm text-muted-foreground mb-1">Activi</div>
-              <div className="text-2xl font-bold">{users.filter((u) => u.status === "active").length}</div>
+              <div className="text-2xl font-bold">{users.filter((u) => u.status === "ACTIVE").length}</div>
             </Card>
           </div>
 
@@ -226,57 +306,67 @@ export default function UsersPage() {
 
           {/* Users List */}
           <div className="grid gap-4">
-            {filteredUsers.map((user) => (
-              <Card key={user.id} className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-lg font-semibold text-primary">
-                        {user.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .toUpperCase()}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-lg">{user.name}</h3>
-                        {getRoleBadge(user.role)}
+            {loading ? (
+              <Card className="p-8 text-center">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+                <p className="mt-2 text-muted-foreground">Se încarcă utilizatorii...</p>
+              </Card>
+            ) : filteredUsers.length === 0 ? (
+              <Card className="p-8 text-center">
+                <p className="text-muted-foreground">
+                  {searchQuery ? "Nu s-au găsit utilizatori." : "Nu există utilizatori."}
+                </p>
+              </Card>
+            ) : (
+              filteredUsers.map((user) => (
+                <Card key={user.id} className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span className="text-lg font-semibold text-primary">
+                          {user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Mail className="w-3 h-3" />
-                          {user.email}
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold text-lg">{user.name}</h3>
+                          {getRoleBadge(user.role)}
+                          {getStatusBadge(user.status)}
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Phone className="w-3 h-3" />
-                          {user.phone}
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Mail className="w-3 h-3" />
+                            {user.email}
+                          </div>
+                          {user.phone && (
+                            <div className="flex items-center gap-1">
+                              <Phone className="w-3 h-3" />
+                              {user.phone}
+                            </div>
+                          )}
+                          <div>Înregistrat: {new Date(user.createdAt).toLocaleDateString("ro-RO")}</div>
                         </div>
-                        <div>Înregistrat: {user.createdAt}</div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {user.role !== "super-admin" && (
-                      <>
-                        <Button variant="ghost" size="sm">
-                          <Edit className="w-4 h-4" />
-                        </Button>
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(user)}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      {user.role !== "SUPER_ADMIN" && (
                         <Button
                           variant="ghost"
                           size="sm"
                           className="text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteUser(user.id)}
+                          onClick={() => handleDeleteUser(user)}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
-                      </>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              ))
+            )}
           </div>
         </div>
       </main>
@@ -291,75 +381,63 @@ export default function UsersPage() {
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nume complet *</Label>
+              <Label htmlFor="add-name">Nume complet *</Label>
               <Input
-                id="name"
+                id="add-name"
                 placeholder="ex: Maria Ionescu"
                 value={newUser.name}
-                onChange={(e) => {
-                  setNewUser({ ...newUser, name: e.target.value })
-                  setErrors({ ...errors, name: false })
-                }}
+                onChange={(e) => { setNewUser({ ...newUser, name: e.target.value }); setErrors({ ...errors, name: false }) }}
                 className={errors.name ? "border-destructive" : ""}
               />
               {errors.name && <p className="text-xs text-destructive">Numele este obligatoriu</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
+              <Label htmlFor="add-email">Email *</Label>
               <Input
-                id="email"
+                id="add-email"
                 type="email"
-                placeholder="maria.ionescu@policare.ro"
+                placeholder="maria.ionescu@clinica.ro"
                 value={newUser.email}
-                onChange={(e) => {
-                  setNewUser({ ...newUser, email: e.target.value })
-                  setErrors({ ...errors, email: false })
-                }}
+                onChange={(e) => { setNewUser({ ...newUser, email: e.target.value }); setErrors({ ...errors, email: false }) }}
                 className={errors.email ? "border-destructive" : ""}
               />
               {errors.email && <p className="text-xs text-destructive">Email-ul este obligatoriu</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefon *</Label>
+              <Label htmlFor="add-phone">Telefon *</Label>
               <Input
-                id="phone"
+                id="add-phone"
                 placeholder="+40 722 345 678"
                 value={newUser.phone}
-                onChange={(e) => {
-                  setNewUser({ ...newUser, phone: e.target.value })
-                  setErrors({ ...errors, phone: false })
-                }}
+                onChange={(e) => { setNewUser({ ...newUser, phone: e.target.value }); setErrors({ ...errors, phone: false }) }}
                 className={errors.phone ? "border-destructive" : ""}
               />
               {errors.phone && <p className="text-xs text-destructive">Telefonul este obligatoriu</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="role">Rol *</Label>
+              <Label>Rol *</Label>
               <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="front-desk">Recepție</SelectItem>
-                  <SelectItem value="super-admin">Super Admin</SelectItem>
+                  <SelectItem value="FRONT_DESK">Recepție</SelectItem>
+                  <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Parolă *</Label>
+              <Label htmlFor="add-password">Parolă *</Label>
               <Input
-                id="password"
+                id="add-password"
                 type="password"
                 placeholder="Minim 6 caractere"
                 value={newUser.password}
-                onChange={(e) => {
-                  setNewUser({ ...newUser, password: e.target.value })
-                  setErrors({ ...errors, password: false })
-                }}
+                onChange={(e) => { setNewUser({ ...newUser, password: e.target.value }); setErrors({ ...errors, password: false }) }}
                 className={errors.password ? "border-destructive" : ""}
               />
               {errors.password && <p className="text-xs text-destructive">Parola trebuie să aibă minim 6 caractere</p>}
@@ -367,10 +445,101 @@ export default function UsersPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddUser(false)}>
-              Anulează
+            <Button variant="outline" onClick={() => setShowAddUser(false)} disabled={saving}>Anulează</Button>
+            <Button onClick={handleAddUser} disabled={saving}>
+              {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Se salvează...</> : "Adaugă Utilizator"}
             </Button>
-            <Button onClick={handleAddUser}>Adaugă Utilizator</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Modal */}
+      <Dialog open={showEditUser} onOpenChange={setShowEditUser}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Editează Utilizator</DialogTitle>
+            <DialogDescription>Actualizează datele contului</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Nume complet *</Label>
+              <Input
+                id="edit-name"
+                value={editUser.name}
+                onChange={(e) => { setEditUser({ ...editUser, name: e.target.value }); setErrors({ ...errors, name: false }) }}
+                className={errors.name ? "border-destructive" : ""}
+              />
+              {errors.name && <p className="text-xs text-destructive">Numele este obligatoriu</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-email">Email *</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={editUser.email}
+                onChange={(e) => { setEditUser({ ...editUser, email: e.target.value }); setErrors({ ...errors, email: false }) }}
+                className={errors.email ? "border-destructive" : ""}
+              />
+              {errors.email && <p className="text-xs text-destructive">Email-ul este obligatoriu</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-phone">Telefon</Label>
+              <Input
+                id="edit-phone"
+                value={editUser.phone}
+                onChange={(e) => setEditUser({ ...editUser, phone: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Rol</Label>
+                <Select value={editUser.role} onValueChange={(value) => setEditUser({ ...editUser, role: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="FRONT_DESK">Recepție</SelectItem>
+                    <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={editUser.status} onValueChange={(value) => setEditUser({ ...editUser, status: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ACTIVE">Activ</SelectItem>
+                    <SelectItem value="INACTIVE">Inactiv</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-password">Parolă nouă (opțional)</Label>
+              <Input
+                id="edit-password"
+                type="password"
+                placeholder="Lasă gol pentru a păstra parola actuală"
+                value={editUser.password}
+                onChange={(e) => { setEditUser({ ...editUser, password: e.target.value }); setErrors({ ...errors, password: false }) }}
+                className={errors.password ? "border-destructive" : ""}
+              />
+              {errors.password && <p className="text-xs text-destructive">Parola trebuie să aibă minim 6 caractere</p>}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditUser(false)} disabled={saving}>Anulează</Button>
+            <Button onClick={handleEditUser} disabled={saving}>
+              {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Se salvează...</> : "Salvează Modificările"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

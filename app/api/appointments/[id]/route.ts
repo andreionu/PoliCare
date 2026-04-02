@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { sendAppointmentNotification } from "@/lib/notifications"
 
 // GET /api/appointments/[id] - Get single appointment
 export async function GET(
@@ -46,6 +47,43 @@ export async function PUT(
     const { id } = await params
     const body = await request.json()
 
+    // Conflict check only when time/date/doctor is changing
+    if (body.date || body.startTime || body.endTime || body.doctorId) {
+      const current = await prisma.appointment.findUnique({ where: { id }, select: { doctorId: true, date: true, startTime: true, endTime: true } })
+      if (current) {
+        const checkDoctorId = body.doctorId || current.doctorId
+        const checkDate = body.date ? new Date(body.date) : current.date
+        const checkStart = body.startTime || current.startTime
+        const checkEnd = body.endTime || current.endTime
+
+        const doctor = await prisma.doctor.findUnique({ where: { id: checkDoctorId }, select: { status: true, name: true } })
+        if (doctor?.status === "IN_CONCEDIU") {
+          return NextResponse.json({ error: "CONFLICT", message: `Dr. ${doctor.name} este în concediu` }, { status: 409 })
+        }
+        if (doctor?.status === "INDISPONIBIL") {
+          return NextResponse.json({ error: "CONFLICT", message: `Dr. ${doctor.name} este indisponibil` }, { status: 409 })
+        }
+
+        const startOfDay = new Date(checkDate); startOfDay.setHours(0, 0, 0, 0)
+        const endOfDay = new Date(checkDate); endOfDay.setHours(23, 59, 59, 999)
+        const conflict = await prisma.appointment.findFirst({
+          where: {
+            doctorId: checkDoctorId,
+            date: { gte: startOfDay, lte: endOfDay },
+            status: { notIn: ["ANULAT", "NEPREZENTARE"] },
+            id: { not: id },
+            AND: [{ startTime: { lt: checkEnd } }, { endTime: { gt: checkStart } }],
+          },
+        })
+        if (conflict) {
+          return NextResponse.json(
+            { error: "CONFLICT", message: `Medicul are deja o programare la ${conflict.startTime}–${conflict.endTime}` },
+            { status: 409 }
+          )
+        }
+      }
+    }
+
     const appointment = await prisma.appointment.update({
       where: { id },
       data: {
@@ -67,6 +105,36 @@ export async function PUT(
         department: true,
       },
     })
+
+    // Trigger notifications on status transitions (fire-and-forget)
+    const notifyStatuses = ["CONFIRMAT", "ANULAT"] as const
+    type NotifyStatus = typeof notifyStatuses[number]
+    if (
+      body.status &&
+      (notifyStatuses as readonly string[]).includes(body.status) &&
+      (body.sendEmail !== undefined || body.sendSMS !== undefined)
+    ) {
+      const event = (body.status as NotifyStatus) === "CONFIRMAT" ? "CONFIRMATION" : "CANCELLATION"
+      void sendAppointmentNotification(
+        {
+          id: appointment.id,
+          date: appointment.date,
+          startTime: appointment.startTime,
+          patient: {
+            name: appointment.patient.name,
+            email: appointment.patient.email ?? null,
+            phone: appointment.patient.phone,
+          },
+          doctor: { name: appointment.doctor.name },
+          department: appointment.department ? { name: appointment.department.name } : null,
+        },
+        event,
+        {
+          sendEmail: body.sendEmail ?? false,
+          sendSMS: body.sendSMS ?? false,
+        }
+      )
+    }
 
     return NextResponse.json(appointment)
   } catch (error) {

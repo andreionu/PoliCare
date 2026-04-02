@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
+import { useSearchParams } from "next/navigation"
 import { AdminLayout } from "@/components/admin-layout"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -33,10 +34,23 @@ import {
   AlertCircle,
   Search,
   Loader2,
+  Bell,
+  Mail,
+  Phone,
 } from "lucide-react"
 import { Label } from "@/components/ui/label"
+import { useDebounce } from "@/hooks/use-debounce"
 
 // Types
+interface Notification {
+  id: string
+  type: "EMAIL" | "SMS"
+  event: "CONFIRMATION" | "CANCELLATION" | "REMINDER" | "CUSTOM"
+  status: "SENT" | "FAILED"
+  recipient: string
+  createdAt: string
+}
+
 interface Patient {
   id: string
   name: string
@@ -69,6 +83,7 @@ interface Appointment {
   patient: Patient
   doctor: Doctor
   department: Department | null
+  notifications?: Notification[]
 }
 
 const getMonday = (date: Date) => {
@@ -80,22 +95,71 @@ const getMonday = (date: Date) => {
 // Status mapping for display
 const getStatusDisplay = (status: string) => {
   switch (status) {
-    case "CONFIRMAT":
-      return "Confirmat"
-    case "IN_ASTEPTARE":
-      return "În așteptare"
-    case "ANULAT":
-      return "Anulat"
-    case "FINALIZAT":
-      return "Finalizat"
-    default:
-      return status
+    case "CONFIRMAT": return "Confirmat"
+    case "IN_ASTEPTARE": return "În așteptare"
+    case "IN_DESFASURARE": return "În desfășurare"
+    case "ANULAT": return "Anulat"
+    case "FINALIZAT": return "Finalizat"
+    case "NEPREZENTARE": return "Neprezentare"
+    default: return status
   }
 }
 
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "CONFIRMAT": return "default"
+    case "IN_ASTEPTARE": return "secondary"
+    case "ANULAT": return "destructive"
+    case "FINALIZAT": return "default"
+    default: return "secondary"
+  }
+}
+
+const getStatusBgColor = (status: string) => {
+  switch (status) {
+    case "CONFIRMAT": return "bg-green-100 border-green-200"
+    case "IN_ASTEPTARE": return "bg-yellow-100 border-yellow-200"
+    case "IN_DESFASURARE": return "bg-purple-100 border-purple-200"
+    case "ANULAT": return "bg-red-100 border-red-200"
+    case "FINALIZAT": return "bg-blue-100 border-blue-200"
+    case "NEPREZENTARE": return "bg-gray-100 border-gray-200"
+    default: return "bg-gray-100 border-gray-200"
+  }
+}
+
+const getStatusTextColor = (status: string) => {
+  switch (status) {
+    case "CONFIRMAT": return "text-green-900"
+    case "IN_ASTEPTARE": return "text-yellow-900"
+    case "IN_DESFASURARE": return "text-purple-900"
+    case "ANULAT": return "text-red-900"
+    case "FINALIZAT": return "text-blue-900"
+    case "NEPREZENTARE": return "text-gray-700"
+    default: return "text-gray-900"
+  }
+}
+
+const DAYS_OF_WEEK = ["Luni", "Marți", "Miercuri", "Joi", "Vineri", "Sâmbătă", "Duminică"]
+const TIME_SLOTS = [
+  "08:00", "09:00", "10:00", "11:00", "12:00", "13:00",
+  "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00",
+]
+const DECLINE_REASONS: Record<string, string> = {
+  "Doctor Indisponibil":
+    "Ne cerem scuze, dar doctorul nu este disponibil la data și ora selectată. Vă rugăm să reprogramați consultația pentru o altă oră convenabilă.",
+  "Serviciu Neacoperit":
+    "Din păcate, serviciul solicitat nu este disponibil în clinica noastră. Vă recomandăm să ne contactați pentru a discuta alternative.",
+  "Date Incomplete":
+    "Pentru a procesa programarea, avem nevoie de informații suplimentare. Vă rugăm să ne contactați pentru a completa datele necesare.",
+  "Conflict Program":
+    "Există un conflict în programul clinicii la data și ora selectată. Vă rugăm să alegeți un alt interval orar.",
+  Altul: "",
+}
 
 export default function AppointmentsPage() {
   const { toast } = useToast()
+  const searchParams = useSearchParams()
+  const prefillApplied = useRef(false)
 
   // View and UI state
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list")
@@ -103,6 +167,9 @@ export default function AppointmentsPage() {
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
   const [declineModalOpen, setDeclineModalOpen] = useState(false)
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null)
+  const [editFormData, setEditFormData] = useState({ date: "", startTime: "", status: "", notes: "" })
   const [sendEmail, setSendEmail] = useState(true)
   const [sendSMS, setSendSMS] = useState(false)
   const [declineReason, setDeclineReason] = useState("")
@@ -115,6 +182,9 @@ export default function AppointmentsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("Toate")
 
+  const debouncedPatientSearchTerm = useDebounce(patientSearchTerm, 200)
+  const debouncedSearchTerm = useDebounce(searchTerm, 200)
+
   // Data state
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [patients, setPatients] = useState<Patient[]>([])
@@ -124,11 +194,15 @@ export default function AppointmentsPage() {
   // Loading states
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [sendingReminder, setSendingReminder] = useState<string | null>(null)
+  const [sendingBulkReminders, setSendingBulkReminders] = useState(false)
 
   const [appointmentFormData, setAppointmentFormData] = useState({
     patientName: "",
     patientPhone: "",
     patientEmail: "",
+    patientGender: "",
+    patientCnp: "",
     departmentId: "",
     doctorId: "",
     date: "",
@@ -136,18 +210,8 @@ export default function AppointmentsPage() {
     notes: "",
   })
   const [appointmentErrors, setAppointmentErrors] = useState<Record<string, boolean>>({})
-
-  const declineReasons = {
-    "Doctor Indisponibil":
-      "Ne cerem scuze, dar doctorul nu este disponibil la data și ora selectată. Vă rugăm să reprogramați consultația pentru o altă oră convenabilă.",
-    "Serviciu Neacoperit":
-      "Din păcate, serviciul solicitat nu este disponibil în clinica noastră. Vă recomandăm să ne contactați pentru a discuta alternative.",
-    "Date Incomplete":
-      "Pentru a procesa programarea, avem nevoie de informații suplimentare. Vă rugăm să ne contactați pentru a completa datele necesare.",
-    "Conflict Program":
-      "Există un conflict în programul clinicii la data și ora selectată. Vă rugăm să alegeți un alt interval orar.",
-    Altul: "",
-  }
+  const [availabilityWarning, setAvailabilityWarning] = useState<string | null>(null)
+  const [checkingAvailability, setCheckingAvailability] = useState(false)
 
   // Fetch all data on mount
   const fetchData = async () => {
@@ -190,8 +254,59 @@ export default function AppointmentsPage() {
     fetchData()
   }, [])
 
+  // Pre-fill form from query params (doctorId / patientId / departmentId)
   useEffect(() => {
-    if (confirmModalOpen || declineModalOpen || isNewAppointmentOpen) {
+    if (loading || prefillApplied.current) return
+    const doctorId = searchParams.get("doctorId")
+    const patientId = searchParams.get("patientId")
+    const departmentId = searchParams.get("departmentId")
+    if (!doctorId && !patientId && !departmentId) return
+    prefillApplied.current = true
+
+    const updates: Partial<typeof appointmentFormData> = {}
+    if (doctorId) updates.doctorId = doctorId
+    if (departmentId) updates.departmentId = departmentId
+
+    setAppointmentFormData((prev) => ({ ...prev, ...updates }))
+
+    if (patientId) {
+      setPatientMode("existing")
+      setSelectedPatientId(patientId)
+    }
+
+    setIsNewAppointmentOpen(true)
+  }, [loading, searchParams])
+
+  // Real-time availability check when doctor + date + time are all filled (debounced 400ms)
+  useEffect(() => {
+    const { doctorId, date, time } = appointmentFormData
+    if (!doctorId || !date || !time) {
+      setAvailabilityWarning(null)
+      return
+    }
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      const [hours, minutes] = time.split(":").map(Number)
+      const endH = hours + Math.floor((minutes + 30) / 60)
+      const endM = (minutes + 30) % 60
+      const endTime = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`
+      setCheckingAvailability(true)
+      fetch(`/api/appointments/check?doctorId=${doctorId}&date=${date}&startTime=${time}&endTime=${endTime}`, { signal: controller.signal })
+        .then((r) => r.json())
+        .then((data) => {
+          setAvailabilityWarning(data.available ? null : data.reason)
+        })
+        .catch(() => {}) // ignore abort errors
+        .finally(() => setCheckingAvailability(false))
+    }, 400)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [appointmentFormData.doctorId, appointmentFormData.date, appointmentFormData.time])
+
+  useEffect(() => {
+    if (confirmModalOpen || declineModalOpen || isNewAppointmentOpen || editModalOpen) {
       document.body.style.overflow = "hidden"
     } else {
       document.body.style.overflow = "unset"
@@ -199,11 +314,11 @@ export default function AppointmentsPage() {
     return () => {
       document.body.style.overflow = "unset"
     }
-  }, [confirmModalOpen, declineModalOpen, isNewAppointmentOpen])
+  }, [confirmModalOpen, declineModalOpen, isNewAppointmentOpen, editModalOpen])
 
   useEffect(() => {
     if (declineReason && declineReason !== "Altul") {
-      setDeclineMessage(declineReasons[declineReason as keyof typeof declineReasons])
+      setDeclineMessage(DECLINE_REASONS[declineReason] || "")
     } else if (declineReason === "Altul") {
       setDeclineMessage("")
     }
@@ -230,7 +345,7 @@ export default function AppointmentsPage() {
       const response = await fetch(`/api/appointments/${selectedAppointment.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "CONFIRMAT" }),
+        body: JSON.stringify({ status: "CONFIRMAT", sendEmail, sendSMS }),
       })
 
       if (!response.ok) throw new Error("Failed to confirm appointment")
@@ -269,6 +384,8 @@ export default function AppointmentsPage() {
         body: JSON.stringify({
           status: "ANULAT",
           notes: `Motiv: ${declineReason}. ${declineMessage}`,
+          sendEmail: sendDeclineNotification,
+          sendSMS: sendDeclineNotification,
         }),
       })
 
@@ -299,12 +416,168 @@ export default function AppointmentsPage() {
     }
   }
 
-  // Filter patients for search
-  const filteredPatients = patients.filter(
-    (patient) =>
-      patient.name.toLowerCase().includes(patientSearchTerm.toLowerCase()) ||
-      patient.phone.includes(patientSearchTerm) ||
-      (patient.email && patient.email.toLowerCase().includes(patientSearchTerm.toLowerCase())),
+  const handleEditClick = (appointment: Appointment) => {
+    setEditingAppointment(appointment)
+    const dateStr = new Date(appointment.date).toISOString().split("T")[0]
+    setEditFormData({
+      date: dateStr,
+      startTime: appointment.startTime,
+      status: appointment.status,
+      notes: appointment.notes || "",
+    })
+    setEditModalOpen(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingAppointment) return
+
+    setSaving(true)
+    try {
+      // Recalculate end time based on duration
+      const [hours, minutes] = editFormData.startTime.split(":").map(Number)
+      const endHours = hours + Math.floor((minutes + editingAppointment.duration) / 60)
+      const endMinutes = (minutes + editingAppointment.duration) % 60
+      const endTime = `${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}`
+
+      const response = await fetch(`/api/appointments/${editingAppointment.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: editFormData.date,
+          startTime: editFormData.startTime,
+          endTime,
+          status: editFormData.status,
+          notes: editFormData.notes || null,
+        }),
+      })
+
+      if (response.status === 409) {
+        const data = await response.json()
+        toast({ title: "Conflict de programare", description: data.message || "Medicul nu este disponibil.", variant: "destructive" })
+        setSaving(false)
+        return
+      }
+      if (!response.ok) throw new Error("Failed to update appointment")
+
+      await fetchData()
+      setEditModalOpen(false)
+      setEditingAppointment(null)
+      toast({ title: "Programare actualizată", description: "Modificările au fost salvate cu succes." })
+    } catch (error) {
+      console.error("Error updating appointment:", error)
+      toast({ title: "Eroare", description: "Nu s-a putut actualiza programarea.", variant: "destructive" })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleStartAppointment = async (appointment: Appointment) => {
+    setSaving(true)
+    try {
+      const response = await fetch(`/api/appointments/${appointment.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "IN_DESFASURARE" }),
+      })
+      if (!response.ok) throw new Error("Failed to start appointment")
+      await fetchData()
+      toast({ title: "Consultație începută", description: `Consultația pentru ${appointment.patient.name} este în desfășurare.` })
+    } catch (error) {
+      console.error("Error starting appointment:", error)
+      toast({ title: "Eroare", description: "Nu s-a putut începe consultația.", variant: "destructive" })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleFinishAppointment = async (appointment: Appointment) => {
+    setSaving(true)
+    try {
+      const response = await fetch(`/api/appointments/${appointment.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "FINALIZAT" }),
+      })
+      if (!response.ok) throw new Error("Failed to finish appointment")
+      await fetchData()
+      toast({
+        title: "Consultație finalizată",
+        description: `Consultația pentru ${appointment.patient.name} a fost finalizată. Adaugă fișă medicală în profilul pacientului.`,
+      })
+    } catch (error) {
+      console.error("Error finishing appointment:", error)
+      toast({ title: "Eroare", description: "Nu s-a putut finaliza consultația.", variant: "destructive" })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleNoShow = async (appointment: Appointment) => {
+    setSaving(true)
+    try {
+      const response = await fetch(`/api/appointments/${appointment.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "NEPREZENTARE" }),
+      })
+      if (!response.ok) throw new Error("Failed to mark no-show")
+      await fetchData()
+      toast({ title: "Neprezentare înregistrată", description: `${appointment.patient.name} nu s-a prezentat la programare.`, variant: "destructive" })
+    } catch (error) {
+      console.error("Error marking no-show:", error)
+      toast({ title: "Eroare", description: "Nu s-a putut actualiza statusul.", variant: "destructive" })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSendReminder = async (appointment: Appointment) => {
+    setSendingReminder(appointment.id)
+    try {
+      const res = await fetch("/api/notifications/reminders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appointmentId: appointment.id }),
+      })
+      if (!res.ok) throw new Error("Failed")
+      toast({ title: "Reminder trimis", description: `Reminder trimis pentru ${appointment.patient.name}.` })
+      await fetchData()
+    } catch {
+      toast({ title: "Eroare", description: "Nu s-a putut trimite reminder-ul.", variant: "destructive" })
+    } finally {
+      setSendingReminder(null)
+    }
+  }
+
+  const handleBulkReminders = async () => {
+    setSendingBulkReminders(true)
+    try {
+      const res = await fetch("/api/notifications/reminders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error("Failed")
+      toast({ title: "Remindere trimise", description: `${data.sent} reminder(e) au fost trimise.` })
+      await fetchData()
+    } catch {
+      toast({ title: "Eroare", description: "Nu s-au putut trimite reminderele.", variant: "destructive" })
+    } finally {
+      setSendingBulkReminders(false)
+    }
+  }
+
+  // Filter patients for search (memoized + debounced to avoid re-filtering on unrelated state changes)
+  const filteredPatients = useMemo(
+    () =>
+      patients.filter(
+        (patient) =>
+          patient.name.toLowerCase().includes(debouncedPatientSearchTerm.toLowerCase()) ||
+          patient.phone.includes(debouncedPatientSearchTerm) ||
+          (patient.email && patient.email.toLowerCase().includes(debouncedPatientSearchTerm.toLowerCase())),
+      ),
+    [patients, debouncedPatientSearchTerm],
   )
 
   const handleSelectPatient = (patient: Patient) => {
@@ -326,6 +599,8 @@ export default function AppointmentsPage() {
     const errors: Record<string, boolean> = {
       patientName: !appointmentFormData.patientName,
       patientPhone: !appointmentFormData.patientPhone,
+      patientGender: patientMode === "new" && !appointmentFormData.patientGender,
+      patientCnp: patientMode === "new" && !appointmentFormData.patientCnp,
       departmentId: !appointmentFormData.departmentId,
       doctorId: !appointmentFormData.doctorId,
       date: !appointmentFormData.date,
@@ -359,6 +634,8 @@ export default function AppointmentsPage() {
             name: appointmentFormData.patientName,
             phone: appointmentFormData.patientPhone,
             email: appointmentFormData.patientEmail || null,
+            gender: appointmentFormData.patientGender,
+            cnp: appointmentFormData.patientCnp,
             status: "NOU",
           }),
         })
@@ -390,6 +667,12 @@ export default function AppointmentsPage() {
         }),
       })
 
+      if (response.status === 409) {
+        const data = await response.json()
+        toast({ title: "Conflict de programare", description: data.message || "Medicul nu este disponibil.", variant: "destructive" })
+        setSaving(false)
+        return
+      }
       if (!response.ok) throw new Error("Failed to create appointment")
 
       await fetchData()
@@ -407,6 +690,8 @@ export default function AppointmentsPage() {
         patientName: "",
         patientPhone: "",
         patientEmail: "",
+        patientGender: "",
+        patientCnp: "",
         departmentId: "",
         doctorId: "",
         date: "",
@@ -414,6 +699,7 @@ export default function AppointmentsPage() {
         notes: "",
       })
       setAppointmentErrors({})
+      setAvailabilityWarning(null)
     } catch (error) {
       console.error("Error creating appointment:", error)
       toast({
@@ -426,100 +712,49 @@ export default function AppointmentsPage() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "CONFIRMAT":
-        return "default"
-      case "IN_ASTEPTARE":
-        return "secondary"
-      case "ANULAT":
-        return "destructive"
-      case "FINALIZAT":
-        return "default"
-      default:
-        return "secondary"
-    }
-  }
+  const filteredAppointments = useMemo(
+    () =>
+      appointments.filter((apt) => {
+        const matchesSearch =
+          apt.patient.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+          apt.doctor.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+        const matchesFilter = statusFilter === "Toate" || getStatusDisplay(apt.status) === statusFilter
+        return matchesSearch && matchesFilter
+      }),
+    [appointments, debouncedSearchTerm, statusFilter],
+  )
 
-  const getStatusBgColor = (status: string) => {
-    switch (status) {
-      case "CONFIRMAT":
-        return "bg-green-100 border-green-200"
-      case "IN_ASTEPTARE":
-        return "bg-yellow-100 border-yellow-200"
-      case "ANULAT":
-        return "bg-red-100 border-red-200"
-      case "FINALIZAT":
-        return "bg-blue-100 border-blue-200"
-      default:
-        return "bg-gray-100 border-gray-200"
-    }
-  }
-
-  const getStatusTextColor = (status: string) => {
-    switch (status) {
-      case "CONFIRMAT":
-        return "text-green-900"
-      case "IN_ASTEPTARE":
-        return "text-yellow-900"
-      case "ANULAT":
-        return "text-red-900"
-      case "FINALIZAT":
-        return "text-blue-900"
-      default:
-        return "text-gray-900"
-    }
-  }
-
-  const filteredAppointments = appointments.filter((apt) => {
-    const matchesSearch =
-      apt.patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      apt.doctor.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesFilter = statusFilter === "Toate" || getStatusDisplay(apt.status) === statusFilter
-    return matchesSearch && matchesFilter
-  })
-
-  const daysOfWeek = ["Luni", "Marți", "Miercuri", "Joi", "Vineri", "Sâmbătă", "Duminică"]
-  const timeSlots = [
-    "08:00",
-    "09:00",
-    "10:00",
-    "11:00",
-    "12:00",
-    "13:00",
-    "14:00",
-    "15:00",
-    "16:00",
-    "17:00",
-    "18:00",
-    "19:00",
-    "20:00",
-  ]
-
-  const getAppointmentsForSlot = (day: number, time: string) => {
-    return filteredAppointments.filter((apt) => {
+  // Pre-index calendar slots for O(1) lookup instead of O(n) per cell
+  const calendarIndex = useMemo(() => {
+    const index = new Map<string, Appointment[]>()
+    filteredAppointments.forEach((apt) => {
       const aptDate = new Date(apt.date)
-      const aptDayOfWeek = aptDate.getDay() === 0 ? 7 : aptDate.getDay() // Convert Sunday from 0 to 7
-      const aptHour = Number.parseInt(apt.startTime.split(":")[0])
-      const slotHour = Number.parseInt(time.split(":")[0])
-      return aptDayOfWeek === day && aptHour === slotHour
+      const aptDayOfWeek = aptDate.getDay() === 0 ? 7 : aptDate.getDay()
+      const aptHour = apt.startTime.split(":")[0]
+      const key = `${aptDayOfWeek}-${aptHour}`
+      if (!index.has(key)) index.set(key, [])
+      index.get(key)!.push(apt)
     })
-  }
+    return index
+  }, [filteredAppointments])
 
-  const getCurrentWeekDates = () => {
-    const today = new Date()
-    const currentDay = today.getDay()
-    const monday = new Date(today)
-    monday.setDate(today.getDate() - (currentDay === 0 ? 6 : currentDay - 1))
-
-    return daysOfWeek.map((_, index) => {
+  const weekDates = useMemo(() => {
+    const monday = new Date(currentWeekStart)
+    return DAYS_OF_WEEK.map((_, index) => {
       const date = new Date(monday)
       date.setDate(monday.getDate() + index)
       return date.toLocaleDateString("ro-RO", { day: "numeric", month: "short" })
     })
-  }
+  }, [currentWeekStart])
 
-  const weekDates = getCurrentWeekDates()
+  const stats = useMemo(
+    () => ({
+      confirmed: appointments.filter((a) => a.status === "CONFIRMAT").length,
+      waiting: appointments.filter((a) => a.status === "IN_ASTEPTARE").length,
+      inProgress: appointments.filter((a) => a.status === "IN_DESFASURARE").length,
+    }),
+    [appointments],
+  )
 
   return (
     <AdminLayout>
@@ -530,10 +765,16 @@ export default function AppointmentsPage() {
               <h1 className="text-3xl font-semibold text-foreground mb-2">Programări</h1>
               <p className="text-muted-foreground">Gestionează programările și calendar</p>
             </div>
-            <Button className="gap-2" onClick={() => setIsNewAppointmentOpen(true)}>
-              <Plus className="w-4 h-4" />
-              Programare Nouă
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" className="gap-2" onClick={handleBulkReminders} disabled={sendingBulkReminders}>
+                {sendingBulkReminders ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+                Trimite Remindere
+              </Button>
+              <Button className="gap-2" onClick={() => setIsNewAppointmentOpen(true)}>
+                <Plus className="w-4 h-4" />
+                Programare Nouă
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -556,9 +797,7 @@ export default function AppointmentsPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Confirmate</p>
-                  <p className="text-2xl font-semibold">
-                    {appointments.filter((a) => a.status === "CONFIRMAT").length}
-                  </p>
+                  <p className="text-2xl font-semibold">{stats.confirmed}</p>
                 </div>
               </div>
             </Card>
@@ -570,21 +809,19 @@ export default function AppointmentsPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">În Așteptare</p>
-                  <p className="text-2xl font-semibold">
-                    {appointments.filter((a) => a.status === "IN_ASTEPTARE").length}
-                  </p>
+                  <p className="text-2xl font-semibold">{stats.waiting}</p>
                 </div>
               </div>
             </Card>
 
             <Card className="p-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center">
-                  <CalendarIcon className="w-6 h-6 text-red-600" />
+                <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
+                  <CalendarIcon className="w-6 h-6 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Anulate</p>
-                  <p className="text-2xl font-semibold">{appointments.filter((a) => a.status === "ANULAT").length}</p>
+                  <p className="text-sm text-muted-foreground">În desfășurare</p>
+                  <p className="text-2xl font-semibold">{stats.inProgress}</p>
                 </div>
               </div>
             </Card>
@@ -710,6 +947,46 @@ export default function AppointmentsPage() {
                               <span className="font-medium">{appointment.department?.name || "—"}</span>
                             </div>
                           </div>
+
+                          {/* Notification status badges */}
+                          {appointment.notifications && appointment.notifications.length > 0 && (
+                            <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+                              {(() => {
+                                const latestEmail = appointment.notifications!.find(n => n.type === "EMAIL")
+                                const latestSMS = appointment.notifications!.find(n => n.type === "SMS")
+                                return (
+                                  <>
+                                    {latestEmail && (
+                                      <span
+                                        title={`Email: ${latestEmail.status === "SENT" ? "Trimis" : "Eșuat"} (${latestEmail.event})`}
+                                        className={`inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-md border ${
+                                          latestEmail.status === "SENT"
+                                            ? "bg-green-50 text-green-700 border-green-200"
+                                            : "bg-red-50 text-red-700 border-red-200"
+                                        }`}
+                                      >
+                                        <Mail className="w-3 h-3" />
+                                        Email {latestEmail.status === "SENT" ? "trimis" : "eșuat"}
+                                      </span>
+                                    )}
+                                    {latestSMS && (
+                                      <span
+                                        title={`SMS: ${latestSMS.status === "SENT" ? "Trimis" : "Eșuat"} (${latestSMS.event})`}
+                                        className={`inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-md border ${
+                                          latestSMS.status === "SENT"
+                                            ? "bg-green-50 text-green-700 border-green-200"
+                                            : "bg-red-50 text-red-700 border-red-200"
+                                        }`}
+                                      >
+                                        <Phone className="w-3 h-3" />
+                                        SMS {latestSMS.status === "SENT" ? "trimis" : "eșuat"}
+                                      </span>
+                                    )}
+                                  </>
+                                )
+                              })()}
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex gap-2 ml-4">
@@ -723,12 +1000,44 @@ export default function AppointmentsPage() {
                               </Button>
                             </>
                           )}
-                          <Button variant="outline" size="sm">
-                            Vezi Detalii
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            Reprogramează
-                          </Button>
+                          {appointment.status === "CONFIRMAT" && (
+                            <>
+                              <Button variant="default" size="sm" className="bg-purple-600 hover:bg-purple-700" onClick={() => handleStartAppointment(appointment)} disabled={saving}>
+                                Începe
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1"
+                                onClick={() => handleSendReminder(appointment)}
+                                disabled={sendingReminder === appointment.id}
+                                title="Trimite reminder pacientului"
+                              >
+                                {sendingReminder === appointment.id
+                                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                                  : <Bell className="w-3 h-3" />}
+                                Reminder
+                              </Button>
+                              <Button variant="destructive" size="sm" onClick={() => handleDeclineClick(appointment)}>
+                                Anulează
+                              </Button>
+                            </>
+                          )}
+                          {appointment.status === "IN_DESFASURARE" && (
+                            <>
+                              <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleFinishAppointment(appointment)} disabled={saving}>
+                                Finalizează
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => handleNoShow(appointment)} disabled={saving}>
+                                Neprezentare
+                              </Button>
+                            </>
+                          )}
+                          {!["FINALIZAT", "ANULAT", "NEPREZENTARE"].includes(appointment.status) && (
+                            <Button variant="outline" size="sm" onClick={() => handleEditClick(appointment)}>
+                              Reprogramează
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -741,7 +1050,7 @@ export default function AppointmentsPage() {
               <div className="min-w-[1200px]">
                 <div className="grid grid-cols-8 border-b bg-muted/30">
                   <div className="p-4 font-medium text-sm text-muted-foreground border-r">Oră</div>
-                  {daysOfWeek.map((day, index) => (
+                  {DAYS_OF_WEEK.map((day, index) => (
                     <div key={day} className="p-4 text-center border-r last:border-r-0">
                       <div className="font-semibold text-sm">{day}</div>
                       <div className="text-xs text-muted-foreground mt-1">{weekDates[index]}</div>
@@ -750,13 +1059,13 @@ export default function AppointmentsPage() {
                 </div>
 
                 <div className="divide-y">
-                  {timeSlots.map((time) => (
+                  {TIME_SLOTS.map((time) => (
                     <div key={time} className="grid grid-cols-8 min-h-[80px]">
                       <div className="p-3 text-sm font-medium text-muted-foreground border-r flex items-start">
                         {time}
                       </div>
                       {[1, 2, 3, 4, 5, 6, 7].map((day) => {
-                        const appointmentsInSlot = getAppointmentsForSlot(day, time)
+                        const appointmentsInSlot = calendarIndex.get(`${day}-${time.split(":")[0]}`) ?? []
                         return (
                           <div key={day} className="border-r last:border-r-0 p-2 hover:bg-muted/30 transition-colors">
                             {appointmentsInSlot.map((apt) => (
@@ -913,6 +1222,47 @@ export default function AppointmentsPage() {
                     />
                   </div>
                 </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="block text-sm font-medium text-foreground">
+                      Gen <span className="text-destructive">*</span>
+                    </Label>
+                    <Select
+                      value={appointmentFormData.patientGender}
+                      onValueChange={(value) => {
+                        setAppointmentFormData({ ...appointmentFormData, patientGender: value })
+                        setAppointmentErrors({ ...appointmentErrors, patientGender: false })
+                      }}
+                    >
+                      <SelectTrigger className={`mt-2 ${appointmentErrors.patientGender ? "border-destructive" : ""}`}>
+                        <SelectValue placeholder="Selectează" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MASCULIN">Masculin</SelectItem>
+                        <SelectItem value="FEMININ">Feminin</SelectItem>
+                        <SelectItem value="ALTUL">Altul</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {appointmentErrors.patientGender && <p className="text-sm text-destructive mt-1">Genul este obligatoriu</p>}
+                  </div>
+                  <div>
+                    <Label htmlFor="patientCnp" className="block text-sm font-medium text-foreground">
+                      CNP <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="patientCnp"
+                      placeholder="1234567890123"
+                      value={appointmentFormData.patientCnp}
+                      onChange={(e) => {
+                        setAppointmentFormData({ ...appointmentFormData, patientCnp: e.target.value })
+                        setAppointmentErrors({ ...appointmentErrors, patientCnp: false })
+                      }}
+                      className={`mt-2 ${appointmentErrors.patientCnp ? "border-destructive" : ""}`}
+                    />
+                    {appointmentErrors.patientCnp && <p className="text-sm text-destructive mt-1">CNP-ul este obligatoriu</p>}
+                  </div>
+                </div>
               </TabsContent>
             </Tabs>
 
@@ -1013,6 +1363,20 @@ export default function AppointmentsPage() {
                 {appointmentErrors.time && <p className="text-sm text-destructive mt-1">Ora este obligatorie</p>}
               </div>
             </div>
+
+            {/* Availability feedback */}
+            {checkingAvailability && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Se verifică disponibilitatea...</span>
+              </div>
+            )}
+            {!checkingAvailability && availabilityWarning && (
+              <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 rounded-md p-3">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>{availabilityWarning}</span>
+              </div>
+            )}
 
             <div>
               <Label htmlFor="notes" className="block text-sm font-medium text-foreground">
@@ -1224,6 +1588,92 @@ export default function AppointmentsPage() {
                 </>
               ) : (
                 "Confirmă Respingerea"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Appointment Dialog */}
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Reprogramează / Editează</DialogTitle>
+            <DialogDescription>
+              {editingAppointment?.patient.name} — {editingAppointment?.doctor.name}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-date">Data</Label>
+              <Input
+                id="edit-date"
+                type="date"
+                value={editFormData.date}
+                onChange={(e) => setEditFormData({ ...editFormData, date: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Ora</Label>
+              <Select
+                value={editFormData.startTime}
+                onValueChange={(value) => setEditFormData({ ...editFormData, startTime: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selectează ora" />
+                </SelectTrigger>
+                <SelectContent>
+                  {["08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00"].map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select
+                value={editFormData.status}
+                onValueChange={(value) => setEditFormData({ ...editFormData, status: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="IN_ASTEPTARE">În așteptare</SelectItem>
+                  <SelectItem value="CONFIRMAT">Confirmat</SelectItem>
+                  <SelectItem value="IN_DESFASURARE">În desfășurare</SelectItem>
+                  <SelectItem value="FINALIZAT">Finalizat</SelectItem>
+                  <SelectItem value="ANULAT">Anulat</SelectItem>
+                  <SelectItem value="NEPREZENTARE">Neprezentare</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-notes">Observații</Label>
+              <Textarea
+                id="edit-notes"
+                placeholder="Note suplimentare..."
+                value={editFormData.notes}
+                onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+                rows={3}
+                className="resize-none"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditModalOpen(false)} disabled={saving}>
+              Anulează
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={saving}>
+              {saving ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Se salvează...</>
+              ) : (
+                "Salvează"
               )}
             </Button>
           </DialogFooter>

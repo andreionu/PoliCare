@@ -7,7 +7,10 @@ import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Search, Plus, MoreHorizontal, Loader2 } from "lucide-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { useDebounce } from "@/hooks/use-debounce"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,8 +51,22 @@ interface Patient {
   }
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  NOU: "Nou",
+  ACTIV: "Activ",
+  PROGRAMAT: "Programat",
+  INACTIV: "Inactiv",
+}
+
+const GENDER_LABELS: Record<string, string> = {
+  MASCULIN: "Masculin",
+  FEMININ: "Feminin",
+  ALTUL: "Altul",
+}
+
 export default function PatientsPage() {
   const { toast } = useToast()
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [role, setRole] = useState<"super-admin" | "front-desk" | null>(null)
   const [loading, setLoading] = useState(true)
@@ -68,11 +85,14 @@ export default function PatientsPage() {
 
   // Real patient data from API
   const [patients, setPatients] = useState<Patient[]>([])
+  const debouncedSearch = useDebounce(searchQuery, 300)
 
   // Fetch patients from API
-  const fetchPatients = async () => {
+  const fetchPatients = async (search?: string) => {
+    setLoading(true)
     try {
-      const response = await fetch("/api/patients")
+      const url = search ? `/api/patients?search=${encodeURIComponent(search)}` : "/api/patients"
+      const response = await fetch(url)
       if (!response.ok) throw new Error("Failed to fetch")
       const data = await response.json()
       setPatients(data)
@@ -89,18 +109,14 @@ export default function PatientsPage() {
   }
 
   useEffect(() => {
-    // Read role from local storage to pass to layout
     const storedRole = localStorage.getItem("userRole") as "super-admin" | "front-desk" | null
     setRole(storedRole)
-
-    // Fetch patients from database
     fetchPatients()
   }, [])
 
-  const filteredPatients = patients.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    p.id.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  useEffect(() => {
+    fetchPatients(debouncedSearch || undefined)
+  }, [debouncedSearch])
 
   const handleAddPatient = async () => {
     // Basic validation
@@ -186,26 +202,8 @@ export default function PatientsPage() {
     }
   }
 
-  // Helper to format status for display
-  const getStatusDisplay = (status: string) => {
-    const statusMap: Record<string, string> = {
-      NOU: "Nou",
-      ACTIV: "Activ",
-      PROGRAMAT: "Programat",
-      INACTIV: "Inactiv",
-    }
-    return statusMap[status] || status
-  }
-
-  // Helper to format gender for display
-  const getGenderDisplay = (gender: string) => {
-    const genderMap: Record<string, string> = {
-      MASCULIN: "Masculin",
-      FEMININ: "Feminin",
-      ALTUL: "Altul",
-    }
-    return genderMap[gender] || gender
-  }
+  const getStatusDisplay = (status: string) => STATUS_LABELS[status] ?? status
+  const getGenderDisplay = (gender: string) => GENDER_LABELS[gender] ?? gender
 
   return (
     <AdminLayout userRole={role}>
@@ -248,14 +246,14 @@ export default function PatientsPage() {
                 <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
                 <p className="mt-2 text-muted-foreground">Se încarcă pacienții...</p>
               </Card>
-            ) : filteredPatients.length === 0 ? (
+            ) : patients.length === 0 ? (
               <Card className="p-8 text-center">
                 <p className="text-muted-foreground">
                   {searchQuery ? "Nu s-au găsit pacienți." : "Nu există pacienți. Adaugă primul pacient!"}
                 </p>
               </Card>
             ) : (
-              filteredPatients.map((patient) => (
+              patients.map((patient) => (
                 <Card key={patient.id} className="p-4 transition-all hover:shadow-md">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -263,7 +261,7 @@ export default function PatientsPage() {
                         {patient.name.charAt(0)}
                       </div>
                       <div>
-                        <h3 className="font-semibold text-lg hover:underline cursor-pointer">{patient.name}</h3>
+                        <Link href={`/patients/${patient.id}`} className="font-semibold text-lg hover:underline">{patient.name}</Link>
                         <div className="flex items-center gap-3 text-sm text-muted-foreground">
                           <span>{patient.cnp}</span>
                           <span>•</span>
@@ -298,8 +296,12 @@ export default function PatientsPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Acțiuni</DropdownMenuLabel>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem>Vezi Fișa</DropdownMenuItem>
-                          <DropdownMenuItem>Programare Nouă</DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/patients/${patient.id}`}>Vezi Fișa</Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => router.push(`/appointments?patientId=${patient.id}`)}>
+                            Programare Nouă
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive"
                             onClick={() => handleDeletePatient(patient.id)}

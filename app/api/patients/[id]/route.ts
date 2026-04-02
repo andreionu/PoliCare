@@ -57,7 +57,7 @@ export async function PUT(
       data: {
         name: body.name,
         cnp: body.cnp,
-        birthDate: body.birthDate ? new Date(body.birthDate) : null,
+        birthDate: body.birthDate !== undefined ? (body.birthDate ? new Date(body.birthDate) : null) : undefined,
         age: body.age,
         gender: body.gender,
         phone: body.phone,

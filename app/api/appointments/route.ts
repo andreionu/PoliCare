@@ -52,6 +52,10 @@ export async function GET(request: Request) {
           },
         },
         service: true,
+        notifications: {
+          orderBy: { createdAt: "desc" },
+          take: 10,
+        },
       },
       orderBy: [{ date: "asc" }, { startTime: "asc" }],
     })
@@ -70,6 +74,33 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
+
+    // --- Conflict detection ---
+    const doctor = await prisma.doctor.findUnique({ where: { id: body.doctorId }, select: { status: true, name: true } })
+    if (doctor?.status === "IN_CONCEDIU") {
+      return NextResponse.json({ error: "CONFLICT", message: `Dr. ${doctor.name} este în concediu` }, { status: 409 })
+    }
+    if (doctor?.status === "INDISPONIBIL") {
+      return NextResponse.json({ error: "CONFLICT", message: `Dr. ${doctor.name} este indisponibil` }, { status: 409 })
+    }
+
+    const startOfDay = new Date(body.date); startOfDay.setHours(0, 0, 0, 0)
+    const endOfDay = new Date(body.date); endOfDay.setHours(23, 59, 59, 999)
+    const conflict = await prisma.appointment.findFirst({
+      where: {
+        doctorId: body.doctorId,
+        date: { gte: startOfDay, lte: endOfDay },
+        status: { notIn: ["ANULAT", "NEPREZENTARE"] },
+        AND: [{ startTime: { lt: body.endTime } }, { endTime: { gt: body.startTime } }],
+      },
+    })
+    if (conflict) {
+      return NextResponse.json(
+        { error: "CONFLICT", message: `Medicul are deja o programare la ${conflict.startTime}–${conflict.endTime}` },
+        { status: 409 }
+      )
+    }
+    // --- End conflict detection ---
 
     const appointment = await prisma.appointment.create({
       data: {

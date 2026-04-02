@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { AdminLayout } from "@/components/admin-layout"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -7,9 +8,123 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
-import { Building2, Bell, Shield, Clock, Mail, Phone, MapPin } from "lucide-react"
+import { Building2, Bell, Shield, Clock, Mail, Phone, MapPin, Loader2 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+
+interface Settings {
+  clinicName: string
+  clinicPhone: string
+  clinicEmail: string
+  clinicAddress: string
+  emailNotifications: boolean
+  smsNotifications: boolean
+  workdayStart: string
+  workdayEnd: string
+  reminderEnabled: boolean
+  reminderHoursBefore: number
+}
+
+const DAYS = ["Lun", "Mar", "Mie", "Joi", "Vin", "Sâm", "Dum"]
 
 export default function SettingsPage() {
+  const { toast } = useToast()
+  const [loading, setLoading] = useState(true)
+  const [savingInfo, setSavingInfo] = useState(false)
+  const [savingSchedule, setSavingSchedule] = useState(false)
+  const [settings, setSettings] = useState<Settings>({
+    clinicName: "",
+    clinicPhone: "",
+    clinicEmail: "",
+    clinicAddress: "",
+    emailNotifications: true,
+    smsNotifications: false,
+    workdayStart: "08:00",
+    workdayEnd: "18:00",
+    reminderEnabled: true,
+    reminderHoursBefore: 24,
+  })
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        setSettings({
+          clinicName: data.clinicName ?? "",
+          clinicPhone: data.clinicPhone ?? "",
+          clinicEmail: data.clinicEmail ?? "",
+          clinicAddress: data.clinicAddress ?? "",
+          emailNotifications: data.emailNotifications ?? true,
+          smsNotifications: data.smsNotifications ?? false,
+          workdayStart: data.workdayStart ?? "08:00",
+          workdayEnd: data.workdayEnd ?? "18:00",
+          reminderEnabled: data.reminderEnabled ?? true,
+          reminderHoursBefore: data.reminderHoursBefore ?? 24,
+        })
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [])
+
+  const patch = async (fields: Partial<Settings>) => {
+    const res = await fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fields),
+    })
+    if (!res.ok) throw new Error("Failed to save")
+    return res.json()
+  }
+
+  const handleSaveInfo = async () => {
+    setSavingInfo(true)
+    try {
+      await patch({
+        clinicName: settings.clinicName,
+        clinicPhone: settings.clinicPhone,
+        clinicEmail: settings.clinicEmail,
+        clinicAddress: settings.clinicAddress,
+      })
+      toast({ title: "Salvat", description: "Informațiile clinicii au fost actualizate." })
+    } catch {
+      toast({ title: "Eroare", description: "Nu s-au putut salva modificările.", variant: "destructive" })
+    } finally {
+      setSavingInfo(false)
+    }
+  }
+
+  const handleSaveSchedule = async () => {
+    setSavingSchedule(true)
+    try {
+      await patch({ workdayStart: settings.workdayStart, workdayEnd: settings.workdayEnd })
+      toast({ title: "Salvat", description: "Programul de lucru a fost actualizat." })
+    } catch {
+      toast({ title: "Eroare", description: "Nu s-au putut salva modificările.", variant: "destructive" })
+    } finally {
+      setSavingSchedule(false)
+    }
+  }
+
+  const handleToggleNotification = async (field: "emailNotifications" | "smsNotifications", value: boolean) => {
+    const prev = settings[field]
+    setSettings((s) => ({ ...s, [field]: value }))
+    try {
+      await patch({ [field]: value })
+    } catch {
+      setSettings((s) => ({ ...s, [field]: prev }))
+      toast({ title: "Eroare", description: "Nu s-a putut salva setarea.", variant: "destructive" })
+    }
+  }
+
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </AdminLayout>
+    )
+  }
+
   return (
     <AdminLayout>
       <div className="flex-1 overflow-y-auto">
@@ -36,23 +151,53 @@ export default function SettingsPage() {
                 <div className="p-6 space-y-4">
                   <div>
                     <Label htmlFor="clinic-name">Nume Clinică</Label>
-                    <Input id="clinic-name" defaultValue="PoliCare București" className="mt-1.5" />
+                    <Input
+                      id="clinic-name"
+                      value={settings.clinicName}
+                      onChange={(e) => setSettings((s) => ({ ...s, clinicName: e.target.value }))}
+                      className="mt-1.5"
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="phone">Telefon</Label>
-                      <Input id="phone" defaultValue="+40 21 123 4567" className="mt-1.5" />
+                      <Input
+                        id="phone"
+                        value={settings.clinicPhone}
+                        onChange={(e) => setSettings((s) => ({ ...s, clinicPhone: e.target.value }))}
+                        className="mt-1.5"
+                      />
                     </div>
                     <div>
                       <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" defaultValue="contact@policare.ro" className="mt-1.5" />
+                      <Input
+                        id="email"
+                        type="email"
+                        value={settings.clinicEmail}
+                        onChange={(e) => setSettings((s) => ({ ...s, clinicEmail: e.target.value }))}
+                        className="mt-1.5"
+                      />
                     </div>
                   </div>
                   <div>
                     <Label htmlFor="address">Adresă</Label>
-                    <Input id="address" defaultValue="Str. Aviatorilor nr. 23, București" className="mt-1.5" />
+                    <Input
+                      id="address"
+                      value={settings.clinicAddress}
+                      onChange={(e) => setSettings((s) => ({ ...s, clinicAddress: e.target.value }))}
+                      className="mt-1.5"
+                    />
                   </div>
-                  <Button>Salvează Modificările</Button>
+                  <Button onClick={handleSaveInfo} disabled={savingInfo}>
+                    {savingInfo ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Se salvează...
+                      </>
+                    ) : (
+                      "Salvează Modificările"
+                    )}
+                  </Button>
                 </div>
               </Card>
 
@@ -73,28 +218,73 @@ export default function SettingsPage() {
                       <Label>Email Notificări</Label>
                       <p className="text-sm text-muted-foreground">Primește notificări prin email</p>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch
+                      checked={settings.emailNotifications}
+                      onCheckedChange={(v) => handleToggleNotification("emailNotifications", v)}
+                    />
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label>SMS Notificări</Label>
                       <p className="text-sm text-muted-foreground">Primește notificări prin SMS</p>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch
+                      checked={settings.smsNotifications}
+                      onCheckedChange={(v) => handleToggleNotification("smsNotifications", v)}
+                    />
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Notificări Programări Noi</Label>
-                      <p className="text-sm text-muted-foreground">Alert la programări noi</p>
+
+                  <div className="border-t pt-5 space-y-4">
+                    <p className="text-sm font-medium">Remindere Automate</p>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Reminder Activat</Label>
+                        <p className="text-sm text-muted-foreground">Trimite reminder automat înainte de programare</p>
+                      </div>
+                      <Switch
+                        checked={settings.reminderEnabled}
+                        onCheckedChange={async (v) => {
+                          setSettings((s) => ({ ...s, reminderEnabled: v }))
+                          try {
+                            await patch({ reminderEnabled: v })
+                          } catch {
+                            setSettings((s) => ({ ...s, reminderEnabled: !v }))
+                            toast({ title: "Eroare", description: "Nu s-a putut salva setarea.", variant: "destructive" })
+                          }
+                        }}
+                      />
                     </div>
-                    <Switch defaultChecked />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Reminder Programări</Label>
-                      <p className="text-sm text-muted-foreground">Trimite reminder-uri pacienților</p>
+
+                    <div className="flex items-end gap-4">
+                      <div>
+                        <Label htmlFor="reminderHours">Ore înainte de programare</Label>
+                        <Input
+                          id="reminderHours"
+                          type="number"
+                          min={1}
+                          max={168}
+                          value={settings.reminderHoursBefore}
+                          onChange={(e) => setSettings((s) => ({ ...s, reminderHoursBefore: Number(e.target.value) }))}
+                          className="mt-1.5 w-28"
+                          disabled={!settings.reminderEnabled}
+                        />
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!settings.reminderEnabled}
+                        onClick={async () => {
+                          try {
+                            await patch({ reminderHoursBefore: settings.reminderHoursBefore })
+                            toast({ title: "Salvat", description: "Setarea reminderului a fost actualizată." })
+                          } catch {
+                            toast({ title: "Eroare", description: "Nu s-a putut salva setarea.", variant: "destructive" })
+                          }
+                        }}
+                      >
+                        Salvează
+                      </Button>
                     </div>
-                    <Switch defaultChecked />
                   </div>
                 </div>
               </Card>
@@ -114,24 +304,45 @@ export default function SettingsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="opening">Ora Deschidere</Label>
-                      <Input id="opening" type="time" defaultValue="08:00" className="mt-1.5" />
+                      <Input
+                        id="opening"
+                        type="time"
+                        value={settings.workdayStart}
+                        onChange={(e) => setSettings((s) => ({ ...s, workdayStart: e.target.value }))}
+                        className="mt-1.5"
+                      />
                     </div>
                     <div>
                       <Label htmlFor="closing">Ora Închidere</Label>
-                      <Input id="closing" type="time" defaultValue="20:00" className="mt-1.5" />
+                      <Input
+                        id="closing"
+                        type="time"
+                        value={settings.workdayEnd}
+                        onChange={(e) => setSettings((s) => ({ ...s, workdayEnd: e.target.value }))}
+                        className="mt-1.5"
+                      />
                     </div>
                   </div>
                   <div>
                     <Label className="mb-2 block">Zile Lucru</Label>
                     <div className="flex gap-2">
-                      {["Lun", "Mar", "Mie", "Joi", "Vin", "Sâm", "Dum"].map((day, index) => (
+                      {DAYS.map((day, index) => (
                         <Badge key={day} variant={index < 5 ? "default" : "outline"} className="cursor-pointer">
                           {day}
                         </Badge>
                       ))}
                     </div>
                   </div>
-                  <Button>Salvează Program</Button>
+                  <Button onClick={handleSaveSchedule} disabled={savingSchedule}>
+                    {savingSchedule ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Se salvează...
+                      </>
+                    ) : (
+                      "Salvează Program"
+                    )}
+                  </Button>
                 </div>
               </Card>
             </div>
@@ -167,15 +378,15 @@ export default function SettingsPage() {
                 <div className="p-6 space-y-4">
                   <div className="flex items-center gap-3 text-sm">
                     <Phone className="w-4 h-4 text-muted-foreground" />
-                    <span>+40 21 123 4567</span>
+                    <span>{settings.clinicPhone || "—"}</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm">
                     <Mail className="w-4 h-4 text-muted-foreground" />
-                    <span>contact@policare.ro</span>
+                    <span>{settings.clinicEmail || "—"}</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm">
                     <MapPin className="w-4 h-4 text-muted-foreground" />
-                    <span>Str. Aviatorilor nr. 23</span>
+                    <span>{settings.clinicAddress || "—"}</span>
                   </div>
                 </div>
               </Card>

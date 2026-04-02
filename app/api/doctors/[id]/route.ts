@@ -13,10 +13,16 @@ export async function GET(
       where: { id },
       include: {
         department: true,
-        schedules: true,
+        schedules: {
+          orderBy: { dayOfWeek: "asc" },
+        },
         appointments: {
-          take: 10,
+          take: 20,
           orderBy: { date: "desc" },
+          include: {
+            patient: { select: { id: true, name: true } },
+            department: { select: { id: true, name: true } },
+          },
         },
       },
     })

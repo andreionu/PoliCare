@@ -1,48 +1,62 @@
+"use client"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Heart, Ear, Eye, Stethoscope, Baby } from 'lucide-react'
+import { Building2, Loader2 } from "lucide-react"
 
-interface Department {
+interface DepartmentStat {
+  id: string
   name: string
-  patients: number
-  capacity: number
-  percentage: number
-  icon: React.ReactNode
+  totalAppointments: number
+  doctorCount: number
 }
 
-const departments: Department[] = [
-  { name: "Cardiologie", patients: 23, capacity: 30, percentage: 77, icon: <Heart className="h-5 w-5" /> },
-  { name: "ORL", patients: 18, capacity: 25, percentage: 72, icon: <Ear className="h-5 w-5" /> },
-  { name: "Oftalmologie", patients: 15, capacity: 20, percentage: 75, icon: <Eye className="h-5 w-5" /> },
-  { name: "Dermatologie", patients: 12, capacity: 20, percentage: 60, icon: <Stethoscope className="h-5 w-5" /> },
-  { name: "Pediatrie", patients: 28, capacity: 35, percentage: 80, icon: <Baby className="h-5 w-5" /> },
-]
+interface DepartmentsOverviewProps {
+  departments: DepartmentStat[]
+  loading: boolean
+}
 
-export function DepartmentsOverview() {
+export function DepartmentsOverview({ departments, loading }: DepartmentsOverviewProps) {
+  const maxAppointments = Math.max(...departments.map((d) => d.totalAppointments), 1)
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Ocupare Departamente</CardTitle>
+        <CardTitle>Activitate Departamente</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-6">
-          {departments.map((dept) => (
-            <div key={dept.name} className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 text-primary">
-                    {dept.icon}
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : departments.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">Nu există departamente active.</p>
+        ) : (
+          <div className="space-y-6">
+            {departments.map((dept) => {
+              const percentage = Math.round((dept.totalAppointments / maxAppointments) * 100)
+              return (
+                <div key={dept.id} className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 text-primary">
+                        <Building2 className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <span className="font-medium">{dept.name}</span>
+                        <p className="text-xs text-muted-foreground">{dept.doctorCount} medici</p>
+                      </div>
+                    </div>
+                    <span className="text-muted-foreground tabular-nums">
+                      {dept.totalAppointments.toLocaleString()} prog.
+                    </span>
                   </div>
-                  <span className="font-medium">{dept.name}</span>
+                  <Progress value={percentage} className="h-2" />
                 </div>
-                <span className="text-muted-foreground tabular-nums">
-                  {dept.patients}/{dept.capacity}
-                </span>
-              </div>
-              <Progress value={dept.percentage} className="h-2" />
-            </div>
-          ))}
-        </div>
+              )
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   )

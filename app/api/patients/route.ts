@@ -1,10 +1,19 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
-// GET /api/patients - Get all patients
-export async function GET() {
+// GET /api/patients - Get all patients (supports ?phone=X and ?search=X filters)
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const phone = searchParams.get("phone")
+    const search = searchParams.get("search")
+
+    const where: Record<string, unknown> = {}
+    if (phone) where.phone = phone
+    if (search) where.name = { contains: search, mode: "insensitive" }
+
     const patients = await prisma.patient.findMany({
+      where,
       include: {
         primaryDoctor: {
           select: {
@@ -53,7 +62,7 @@ export async function POST(request: Request) {
         primaryDoctorId: body.primaryDoctorId,
       },
       include: {
-        primaryDoctor: true,
+        primaryDoctor: { select: { id: true, name: true, specialty: true } },
       },
     })
 

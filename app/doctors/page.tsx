@@ -10,7 +10,10 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, UserPlus, Stethoscope, Clock, Users, Star, Loader2 } from "lucide-react"
-import { useState, useEffect } from "react"
+import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useState, useEffect, useMemo } from "react"
+import { useDebounce } from "@/hooks/use-debounce"
 import {
   Dialog,
   DialogContent,
@@ -49,7 +52,12 @@ interface Department {
 }
 
 export default function DoctorsPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const departmentIdFilter = searchParams.get("departmentId") ?? undefined
+
   const [searchQuery, setSearchQuery] = useState("")
+  const debouncedSearch = useDebounce(searchQuery, 300)
   const [isAddDoctorOpen, setIsAddDoctorOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -68,10 +76,14 @@ export default function DoctorsPage() {
   const [errors, setErrors] = useState<Record<string, boolean>>({})
   const { toast } = useToast()
 
-  // Fetch doctors from API
-  const fetchDoctors = async () => {
+  // Fetch doctors from API (server-side search + optional departmentId filter)
+  const fetchDoctors = async (search?: string) => {
+    setLoading(true)
     try {
-      const response = await fetch("/api/doctors")
+      const params = new URLSearchParams()
+      if (search) params.set("search", search)
+      if (departmentIdFilter) params.set("departmentId", departmentIdFilter)
+      const response = await fetch(`/api/doctors${params.size ? `?${params}` : ""}`)
       if (!response.ok) throw new Error("Failed to fetch")
       const data = await response.json()
       setDoctors(data)
@@ -102,21 +114,22 @@ export default function DoctorsPage() {
   useEffect(() => {
     fetchDoctors()
     fetchDepartments()
-  }, [])
+  }, [departmentIdFilter])
 
-  const filteredDoctors = doctors.filter(
-    (doctor) =>
-      doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  useEffect(() => {
+    fetchDoctors(debouncedSearch || undefined)
+  }, [debouncedSearch])
 
-  // Stats
-  const totalDoctors = doctors.length
-  const activeDoctors = doctors.filter((d) => d.status === "ACTIV").length
-  const onLeaveDoctors = doctors.filter((d) => d.status === "IN_CONCEDIU").length
-  const avgRating = doctors.length > 0
-    ? (doctors.reduce((sum, d) => sum + d.rating, 0) / doctors.length).toFixed(1)
-    : "0"
+  // Stats — memoized to avoid recalculation on every render
+  const { totalDoctors, activeDoctors, onLeaveDoctors, avgRating } = useMemo(() => {
+    const total = doctors.length
+    const active = doctors.filter((d) => d.status === "ACTIV").length
+    const onLeave = doctors.filter((d) => d.status === "IN_CONCEDIU").length
+    const avg = total > 0
+      ? (doctors.reduce((sum, d) => sum + d.rating, 0) / total).toFixed(1)
+      : "0"
+    return { totalDoctors: total, activeDoctors: active, onLeaveDoctors: onLeave, avgRating: avg }
+  }, [doctors])
 
   const handleAddDoctor = async () => {
     const newErrors: Record<string, boolean> = {}
@@ -274,14 +287,14 @@ export default function DoctorsPage() {
                 <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
                 <p className="mt-2 text-muted-foreground">Se încarcă medicii...</p>
               </Card>
-            ) : filteredDoctors.length === 0 ? (
+            ) : doctors.length === 0 ? (
               <Card className="p-8 text-center col-span-full">
                 <p className="text-muted-foreground">
                   {searchQuery ? "Nu s-au găsit medici." : "Nu există medici. Adaugă primul medic!"}
                 </p>
               </Card>
             ) : (
-              filteredDoctors.map((doctor) => (
+              doctors.map((doctor) => (
                 <Card key={doctor.id} className="p-6 hover:shadow-lg transition-shadow">
                   <div className="flex items-start gap-4 mb-4">
                     <Avatar className="w-16 h-16">
@@ -320,10 +333,14 @@ export default function DoctorsPage() {
                   <div className="pt-4 border-t">
                     <p className="text-xs text-muted-foreground mb-3">{doctor.department?.name}</p>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1 bg-transparent">
-                        Vezi Profil
+                      <Button variant="outline" size="sm" className="flex-1 bg-transparent" asChild>
+                        <Link href={`/doctors/${doctor.id}`}>Vezi Profil</Link>
                       </Button>
-                      <Button size="sm" className="flex-1">
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => router.push(`/appointments?doctorId=${doctor.id}`)}
+                      >
                         Programează
                       </Button>
                     </div>

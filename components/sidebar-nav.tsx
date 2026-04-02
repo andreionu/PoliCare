@@ -13,6 +13,7 @@ import {
   Settings,
   Activity,
   UserCog,
+  Wrench,
 } from "lucide-react"
 
 interface SidebarNavProps {
@@ -44,6 +45,11 @@ const navItems = [
     title: "Departamente",
     href: "/departments",
     icon: Building2,
+  },
+  {
+    title: "Servicii",
+    href: "/services",
+    icon: Wrench,
   },
   {
     title: "Rapoarte",

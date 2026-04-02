@@ -14,10 +14,48 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { FileText, TrendingUp, Download, Calendar, Users, Activity } from "lucide-react"
-import { useState } from "react"
+import { FileText, TrendingUp, Download, Calendar, Users, Activity, Loader2 } from "lucide-react"
+import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
+
+interface MonthStat {
+  month: string
+  patients: number
+  appointments: number
+  completionRate: number
+  appointmentsPerPatient: string
+}
+
+interface StatsData {
+  patientsThisMonth: number
+  appointmentsThisMonth: number
+  completionRate: number
+  monthlyTrend: MonthStat[]
+}
+
+interface GeneratedReport {
+  id: number
+  title: string
+  type: string
+  period: string
+  date: string
+  format: string
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  patients: "Pacienți",
+  appointments: "Programări",
+  doctors: "Performanță Medici",
+  departments: "Departamente",
+}
+
+const PERIOD_LABELS: Record<string, string> = {
+  "current-month": "Luna curentă",
+  "last-month": "Luna trecută",
+  "last-3-months": "Ultimele 3 luni",
+  "last-6-months": "Ultimele 6 luni",
+  "this-year": "Anul curent",
+}
 
 export default function ReportsPage() {
   const [isGenerateReportOpen, setIsGenerateReportOpen] = useState(false)
@@ -25,59 +63,83 @@ export default function ReportsPage() {
     type: "",
     period: "",
     format: "",
-    includeCharts: true,
-    includeSummary: true,
   })
   const [reportErrors, setReportErrors] = useState<Record<string, boolean>>({})
+  const [statsData, setStatsData] = useState<StatsData | null>(null)
+  const [loadingStats, setLoadingStats] = useState(true)
+  const [generatingReport, setGeneratingReport] = useState(false)
+  const [generatedReports, setGeneratedReports] = useState<GeneratedReport[]>([])
   const { toast } = useToast()
 
-  const reports = [
-    {
-      id: 1,
-      title: "Raport Pacienți - Ianuarie 2024",
-      type: "Pacienți",
-      date: "18 Ian 2024",
-      status: "Generat",
-      size: "2.4 MB",
-      description: "Statistici și demografie pacienți",
-    },
-    {
-      id: 2,
-      title: "Raport Pacienți - Q4 2023",
-      type: "Pacienți",
-      date: "15 Ian 2024",
-      status: "Generat",
-      size: "1.8 MB",
-      description: "Statistici și demografie pacienți trimestru 4",
-    },
-    {
-      id: 3,
-      title: "Raport Performanță Medici",
-      type: "Performanță",
-      date: "12 Ian 2024",
-      status: "Generat",
-      size: "3.1 MB",
-      description: "Evaluare activitate și rating medici",
-    },
-    {
-      id: 4,
-      title: "Raport Departamente - Decembrie",
-      type: "Departamente",
-      date: "10 Ian 2024",
-      status: "În procesare",
-      size: "-",
-      description: "Analiză ocupare și eficiență",
-    },
-  ]
+  useEffect(() => {
+    fetch("/api/reports/stats")
+      .then((r) => r.json())
+      .then((data) => setStatsData(data))
+      .catch(() => {
+        toast({ title: "Eroare", description: "Nu s-au putut încărca statisticile.", variant: "destructive" })
+      })
+      .finally(() => setLoadingStats(false))
+  }, [])
 
-  const monthlyStats = [
-    { month: "Ian", patients: 1245, appointments: 1580, completionRate: 92 },
-    { month: "Feb", patients: 1180, appointments: 1520, completionRate: 89 },
-    { month: "Mar", patients: 1320, appointments: 1680, completionRate: 94 },
-    { month: "Apr", patients: 1290, appointments: 1640, completionRate: 91 },
-    { month: "Mai", patients: 1410, appointments: 1750, completionRate: 95 },
-    { month: "Iun", patients: 1380, appointments: 1720, completionRate: 93 },
-  ]
+  async function handleGenerateReport() {
+    const newErrors: Record<string, boolean> = {}
+    if (!reportFormData.type) newErrors.type = true
+    if (!reportFormData.period) newErrors.period = true
+    if (!reportFormData.format) newErrors.format = true
+
+    if (Object.keys(newErrors).length > 0) {
+      setReportErrors(newErrors)
+      toast({ title: "Eroare validare", description: "Te rugăm să completezi toate câmpurile obligatorii.", variant: "destructive" })
+      return
+    }
+
+    if (reportFormData.format !== "csv") {
+      toast({ title: "Format în curând disponibil", description: "Momentan este disponibil doar formatul CSV." })
+      return
+    }
+
+    setGeneratingReport(true)
+    try {
+      const url = `/api/reports?type=${reportFormData.type}&period=${reportFormData.period}&format=csv`
+      const response = await fetch(url)
+
+      if (!response.ok) {
+        const data = await response.json()
+        toast({ title: "Eroare", description: data.message || "Nu s-a putut genera raportul.", variant: "destructive" })
+        return
+      }
+
+      const blob = await response.blob()
+      const objectUrl = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      const dateStr = new Date().toISOString().split("T")[0]
+      a.href = objectUrl
+      a.download = `raport-${reportFormData.type}-${dateStr}.csv`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(objectUrl)
+
+      const newReport: GeneratedReport = {
+        id: Date.now(),
+        title: `Raport ${TYPE_LABELS[reportFormData.type]} — ${PERIOD_LABELS[reportFormData.period]}`,
+        type: TYPE_LABELS[reportFormData.type],
+        period: PERIOD_LABELS[reportFormData.period],
+        date: new Date().toLocaleDateString("ro-RO"),
+        format: "CSV",
+      }
+      setGeneratedReports((prev) => [newReport, ...prev])
+
+      toast({ title: "Raport generat", description: "Fișierul CSV a fost descărcat cu succes." })
+      setIsGenerateReportOpen(false)
+      setReportFormData({ type: "", period: "", format: "" })
+      setReportErrors({})
+    } catch {
+      toast({ title: "Eroare", description: "Nu s-a putut genera raportul.", variant: "destructive" })
+    } finally {
+      setGeneratingReport(false)
+    }
+  }
 
   return (
     <AdminLayout>
@@ -103,11 +165,16 @@ export default function ReportsPage() {
                 <div className="flex-1">
                   <p className="text-sm text-muted-foreground">Pacienți Luna Aceasta</p>
                   <div className="flex items-center gap-2">
-                    <p className="text-2xl font-semibold">1,410</p>
-                    <div className="flex items-center text-green-600 text-sm">
-                      <TrendingUp className="w-4 h-4" />
-                      <span>12%</span>
-                    </div>
+                    {loadingStats ? (
+                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                    ) : (
+                      <>
+                        <p className="text-2xl font-semibold">{statsData?.patientsThisMonth.toLocaleString() ?? "—"}</p>
+                        <div className="flex items-center text-green-600 text-sm">
+                          <TrendingUp className="w-4 h-4" />
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -121,11 +188,11 @@ export default function ReportsPage() {
                 <div className="flex-1">
                   <p className="text-sm text-muted-foreground">Programări Luna Aceasta</p>
                   <div className="flex items-center gap-2">
-                    <p className="text-2xl font-semibold">1,750</p>
-                    <div className="flex items-center text-green-600 text-sm">
-                      <TrendingUp className="w-4 h-4" />
-                      <span>5%</span>
-                    </div>
+                    {loadingStats ? (
+                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                    ) : (
+                      <p className="text-2xl font-semibold">{statsData?.appointmentsThisMonth.toLocaleString() ?? "—"}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -139,11 +206,11 @@ export default function ReportsPage() {
                 <div className="flex-1">
                   <p className="text-sm text-muted-foreground">Rata Finalizare</p>
                   <div className="flex items-center gap-2">
-                    <p className="text-2xl font-semibold">93%</p>
-                    <div className="flex items-center text-green-600 text-sm">
-                      <TrendingUp className="w-4 h-4" />
-                      <span>2%</span>
-                    </div>
+                    {loadingStats ? (
+                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                    ) : (
+                      <p className="text-2xl font-semibold">{statsData ? `${statsData.completionRate}%` : "—"}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -164,65 +231,73 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {monthlyStats.map((stat, index) => (
-                    <tr key={index} className="border-b hover:bg-muted/50">
-                      <td className="py-4 px-4 font-medium">{stat.month}</td>
-                      <td className="py-4 px-4 text-right">{stat.patients.toLocaleString()}</td>
-                      <td className="py-4 px-4 text-right">{stat.appointments.toLocaleString()}</td>
-                      <td className="py-4 px-4 text-right">{stat.completionRate}%</td>
-                      <td className="py-4 px-4 text-right">{(stat.appointments / stat.patients).toFixed(1)}</td>
+                  {loadingStats ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-muted-foreground">
+                        <Loader2 className="w-5 h-5 animate-spin inline mr-2" />
+                        Se încarcă...
+                      </td>
                     </tr>
-                  ))}
+                  ) : statsData?.monthlyTrend.length ? (
+                    statsData.monthlyTrend.map((stat, index) => (
+                      <tr key={index} className="border-b hover:bg-muted/50">
+                        <td className="py-4 px-4 font-medium">{stat.month}</td>
+                        <td className="py-4 px-4 text-right">{stat.patients.toLocaleString()}</td>
+                        <td className="py-4 px-4 text-right">{stat.appointments.toLocaleString()}</td>
+                        <td className="py-4 px-4 text-right">{stat.completionRate}%</td>
+                        <td className="py-4 px-4 text-right">{stat.appointmentsPerPatient}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-muted-foreground">Nu există date disponibile</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
           </Card>
 
-          {/* Reports List */}
           <Card>
             <div className="p-6 border-b">
               <h2 className="text-xl font-semibold">Rapoarte Generate</h2>
             </div>
-            <div className="divide-y">
-              {reports.map((report) => (
-                <div key={report.id} className="p-6 hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                        <FileText className="w-6 h-6 text-blue-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg mb-1">{report.title}</h3>
-                        <p className="text-sm text-muted-foreground mb-3">{report.description}</p>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <Badge variant="outline">{report.type}</Badge>
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            <span>{report.date}</span>
+            {generatedReports.length === 0 ? (
+              <div className="p-12 text-center text-muted-foreground">
+                <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p>Niciun raport generat în această sesiune.</p>
+                <p className="text-sm mt-1">Apasă „Generează Raport" pentru a exporta date.</p>
+              </div>
+            ) : (
+              <div className="divide-y">
+                {generatedReports.map((report) => (
+                  <div key={report.id} className="p-6 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-start gap-4 flex-1">
+                        <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                          <FileText className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg mb-1">{report.title}</h3>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <Badge variant="outline">{report.type}</Badge>
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-4 h-4" />
+                              <span>{report.date}</span>
+                            </div>
+                            <Badge variant="secondary">{report.format}</Badge>
                           </div>
-                          {report.size !== "-" && <span>{report.size}</span>}
-                          <Badge variant={report.status === "Generat" ? "default" : "secondary"}>{report.status}</Badge>
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-2 ml-4">
-                      <Button variant="outline" size="sm" disabled={report.status !== "Generat"}>
-                        Vizualizează
-                      </Button>
-                      <Button size="sm" className="gap-2" disabled={report.status !== "Generat"}>
-                        <Download className="w-4 h-4" />
-                        Descarcă
-                      </Button>
-                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </Card>
         </div>
       </div>
 
-      {/* Report Generation Modal */}
       <Dialog open={isGenerateReportOpen} onOpenChange={setIsGenerateReportOpen}>
         <DialogContent className="max-w-xl rounded-2xl">
           <DialogHeader>
@@ -232,7 +307,7 @@ export default function ReportsPage() {
 
           <div className="space-y-6">
             <div>
-              <Label htmlFor="reportType">
+              <Label>
                 Tip Raport <span className="text-destructive">*</span>
               </Label>
               <Select
@@ -250,14 +325,13 @@ export default function ReportsPage() {
                   <SelectItem value="appointments">Raport Programări</SelectItem>
                   <SelectItem value="doctors">Raport Performanță Medici</SelectItem>
                   <SelectItem value="departments">Raport Departamente</SelectItem>
-                  <SelectItem value="financial">Raport Activitate</SelectItem>
                 </SelectContent>
               </Select>
               {reportErrors.type && <p className="text-sm text-destructive mt-1">Tipul raportului este obligatoriu</p>}
             </div>
 
             <div>
-              <Label htmlFor="period">
+              <Label>
                 Perioadă <span className="text-destructive">*</span>
               </Label>
               <Select
@@ -273,18 +347,16 @@ export default function ReportsPage() {
                 <SelectContent>
                   <SelectItem value="current-month">Luna curentă</SelectItem>
                   <SelectItem value="last-month">Luna trecută</SelectItem>
-                  <SelectItem value="current-quarter">Trimestrul curent</SelectItem>
-                  <SelectItem value="last-quarter">Trimestrul trecut</SelectItem>
-                  <SelectItem value="current-year">Anul curent</SelectItem>
-                  <SelectItem value="last-year">Anul trecut</SelectItem>
-                  <SelectItem value="custom">Perioadă personalizată</SelectItem>
+                  <SelectItem value="last-3-months">Ultimele 3 luni</SelectItem>
+                  <SelectItem value="last-6-months">Ultimele 6 luni</SelectItem>
+                  <SelectItem value="this-year">Anul curent</SelectItem>
                 </SelectContent>
               </Select>
               {reportErrors.period && <p className="text-sm text-destructive mt-1">Perioada este obligatorie</p>}
             </div>
 
             <div>
-              <Label htmlFor="format">
+              <Label>
                 Format <span className="text-destructive">*</span>
               </Label>
               <Select
@@ -298,89 +370,31 @@ export default function ReportsPage() {
                   <SelectValue placeholder="Selectează formatul" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pdf">PDF</SelectItem>
-                  <SelectItem value="excel">Excel (XLSX)</SelectItem>
                   <SelectItem value="csv">CSV</SelectItem>
+                  <SelectItem value="pdf">PDF (în curând)</SelectItem>
+                  <SelectItem value="excel">Excel — XLSX (în curând)</SelectItem>
                 </SelectContent>
               </Select>
               {reportErrors.format && <p className="text-sm text-destructive mt-1">Formatul este obligatoriu</p>}
             </div>
-
-            <div className="space-y-4 pt-4 border-t">
-              <Label>Opțiuni suplimentare</Label>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="includeCharts"
-                  checked={reportFormData.includeCharts}
-                  onCheckedChange={(checked) =>
-                    setReportFormData({ ...reportFormData, includeCharts: checked as boolean })
-                  }
-                />
-                <label
-                  htmlFor="includeCharts"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Include grafice și vizualizări
-                </label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="includeSummary"
-                  checked={reportFormData.includeSummary}
-                  onCheckedChange={(checked) =>
-                    setReportFormData({ ...reportFormData, includeSummary: checked as boolean })
-                  }
-                />
-                <label
-                  htmlFor="includeSummary"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Include rezumat executiv
-                </label>
-              </div>
-            </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsGenerateReportOpen(false)}>
+            <Button variant="outline" onClick={() => setIsGenerateReportOpen(false)} disabled={generatingReport}>
               Anulează
             </Button>
-            <Button
-              onClick={() => {
-                const newErrors: Record<string, boolean> = {}
-                if (!reportFormData.type) newErrors.type = true
-                if (!reportFormData.period) newErrors.period = true
-                if (!reportFormData.format) newErrors.format = true
-
-                if (Object.keys(newErrors).length > 0) {
-                  setReportErrors(newErrors)
-                  toast({
-                    title: "Eroare validare",
-                    description: "Te rugăm să completezi toate câmpurile obligatorii.",
-                    variant: "destructive",
-                  })
-                  return
-                }
-
-                console.log("[v0] Generating report:", reportFormData)
-
-                toast({
-                  title: "Raport în generare",
-                  description: "Raportul tău este în proces de generare. Vei primi o notificare când este gata.",
-                })
-
-                setIsGenerateReportOpen(false)
-                setReportFormData({
-                  type: "",
-                  period: "",
-                  format: "",
-                  includeCharts: true,
-                  includeSummary: true,
-                })
-                setReportErrors({})
-              }}
-            >
-              Generează Raport
+            <Button onClick={handleGenerateReport} disabled={generatingReport} className="gap-2">
+              {generatingReport ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Se generează...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  Generează Raport
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
