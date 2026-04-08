@@ -80,31 +80,11 @@ export function SidebarNav({ userRole }: SidebarNavProps) {
   const pathname = usePathname()
 
   return (
-    <nav className="space-y-1 px-3">
-      {navItems.map((item) => {
-        const Icon = item.icon
-        const isActive = pathname === item.href
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-              isActive
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-            )}
-          >
-            <Icon className="h-4 w-4" />
-            {item.title}
-          </Link>
-        )
-      })}
-
-      {userRole === "super-admin" && (
-        <>
-          <div className="my-4 border-t border-border" />
-          {superAdminNavItems.map((item) => {
+    <nav className="space-y-6 px-4 py-4">
+      <div>
+        <p className="px-3 mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50">Meniu Principal</p>
+        <div className="space-y-1.5">
+          {navItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
             return (
@@ -112,18 +92,51 @@ export function SidebarNav({ userRole }: SidebarNavProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-300",
                   isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/20"
+                    : "text-muted-foreground hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/10 dark:hover:text-blue-400"
                 )}
               >
-                <Icon className="h-4 w-4" />
-                {item.title}
+                <Icon className={cn("h-5 w-5 transition-transform duration-300 group-hover:scale-110", isActive ? "text-white" : "text-muted-foreground/70 group-hover:text-blue-500")} />
+                <span className="tracking-tight">{item.title}</span>
+                {isActive && (
+                  <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                )}
               </Link>
             )
           })}
-        </>
+        </div>
+      </div>
+
+      {userRole === "super-admin" && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+          <p className="px-3 mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50">Administrare</p>
+          <div className="space-y-1.5">
+            {superAdminNavItems.map((item) => {
+              const Icon = item.icon
+              const isActive = pathname === item.href
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-300",
+                    isActive
+                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/20"
+                      : "text-muted-foreground hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/10 dark:hover:text-blue-400"
+                  )}
+                >
+                  <Icon className={cn("h-5 w-5 transition-transform duration-300 group-hover:scale-110", isActive ? "text-white" : "text-muted-foreground/70 group-hover:text-blue-500")} />
+                  <span className="tracking-tight">{item.title}</span>
+                  {isActive && (
+                    <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                  )}
+                </Link>
+              )
+            })}
+          </div>
+        </div>
       )}
     </nav>
   )

@@ -56,10 +56,10 @@ export async function PUT(
       where: { id },
       data: {
         name: body.name,
-        cnp: body.cnp,
+        cnp: body.cnp !== undefined ? (body.cnp || null) : undefined,
         birthDate: body.birthDate !== undefined ? (body.birthDate ? new Date(body.birthDate) : null) : undefined,
         age: body.age,
-        gender: body.gender,
+        gender: body.gender !== undefined ? (body.gender || null) : undefined,
         phone: body.phone,
         email: body.email,
         address: body.address,

@@ -4,7 +4,26 @@ import { AdminLayout } from "@/components/admin-layout"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Heart, Ear, Eye, Stethoscope, Baby, Plus, Users, Clock, Activity, Loader2, Building2 } from "lucide-react"
+import { 
+  HeartPulse, 
+  Ear, 
+  Eye, 
+  Stethoscope, 
+  Baby, 
+  Plus, 
+  Users, 
+  Clock, 
+  Activity, 
+  Loader2, 
+  Building2, 
+  ArrowRight,
+  Sparkles,
+  Smile,
+  Flower2,
+  ChevronRight,
+  TrendingUp,
+  LayoutGrid
+} from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -17,9 +36,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 
 // Types
 interface Department {
@@ -35,24 +55,27 @@ interface Department {
   }
 }
 
-// Icon mapping
+// Premium Icon mapping
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  Heart: Heart,
+  Heart: HeartPulse,
   Ear: Ear,
   Eye: Eye,
   Stethoscope: Stethoscope,
   Baby: Baby,
   Building2: Building2,
+  Sparkles: Sparkles,
+  Smile: Smile,
+  Flower2: Flower2,
 }
 
-const colorMap: Record<string, string> = {
-  red: "bg-red-100 text-red-600",
-  blue: "bg-blue-100 text-blue-600",
-  green: "bg-green-100 text-green-600",
-  purple: "bg-purple-100 text-purple-600",
-  pink: "bg-pink-100 text-pink-600",
-  yellow: "bg-yellow-100 text-yellow-600",
-  orange: "bg-orange-100 text-orange-600",
+const colorMap: Record<string, { bg: string; text: string; iconBg: string }> = {
+  rose: { bg: "bg-rose-50", text: "text-rose-600", iconBg: "bg-rose-100" },
+  blue: { bg: "bg-blue-50", text: "text-blue-600", iconBg: "bg-blue-100" },
+  emerald: { bg: "bg-emerald-50", text: "text-emerald-600", iconBg: "bg-emerald-100" },
+  purple: { bg: "bg-purple-50", text: "text-purple-600", iconBg: "bg-purple-100" },
+  pink: { bg: "bg-pink-50", text: "text-pink-600", iconBg: "bg-pink-100" },
+  amber: { bg: "bg-amber-50", text: "text-amber-600", iconBg: "bg-amber-100" },
+  cyan: { bg: "bg-cyan-50", text: "text-cyan-600", iconBg: "bg-cyan-100" },
 }
 
 export default function DepartmentsPage() {
@@ -67,8 +90,8 @@ export default function DepartmentsPage() {
 
   const [departmentFormData, setDepartmentFormData] = useState({
     name: "",
-    icon: "",
-    color: "",
+    icon: "Stethoscope",
+    color: "blue",
     description: "",
   })
   const [departmentErrors, setDepartmentErrors] = useState<Record<string, boolean>>({})
@@ -82,7 +105,7 @@ export default function DepartmentsPage() {
   })
   const [editErrors, setEditErrors] = useState<Record<string, boolean>>({})
 
-  // Fetch departments from API
+  // Fetch departments 
   const fetchDepartments = async () => {
     try {
       const response = await fetch("/api/departments")
@@ -105,64 +128,59 @@ export default function DepartmentsPage() {
     fetchDepartments()
   }, [])
 
-  // Stats
-  const totalDepartments = departments.length
-  const totalDoctors = departments.reduce((sum, d) => sum + (d._count?.doctors || 0), 0)
-  const totalAppointments = departments.reduce((sum, d) => sum + (d._count?.appointments || 0), 0)
-
   const handleAddDepartment = async () => {
-    const newErrors: Record<string, boolean> = {}
-    if (!departmentFormData.name) newErrors.name = true
-
-    if (Object.keys(newErrors).length > 0) {
-      setDepartmentErrors(newErrors)
-      toast({
-        title: "Eroare validare",
-        description: "Te rugăm să completezi toate câmpurile obligatorii.",
-        variant: "destructive",
-      })
+    const errors: Record<string, boolean> = {}
+    if (!departmentFormData.name) errors.name = true
+    
+    if (Object.keys(errors).length > 0) {
+      setDepartmentErrors(errors)
       return
     }
 
     setSaving(true)
-
     try {
       const response = await fetch("/api/departments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: departmentFormData.name,
-          description: departmentFormData.description || null,
-          icon: departmentFormData.icon || null,
-          color: departmentFormData.color || null,
-          status: "ACTIV",
-        }),
+        body: JSON.stringify(departmentFormData),
       })
-
-      if (!response.ok) throw new Error("Failed to create department")
-
-      await fetchDepartments()
-
-      toast({
-        title: "Departament adăugat",
-        description: `Departamentul ${departmentFormData.name} a fost creat cu succes.`,
-      })
-
+      if (!response.ok) throw new Error("Failed to add")
+      
+      toast({ title: "Succes", description: "Departamentul a fost creat." })
       setIsAddDepartmentOpen(false)
-      setDepartmentFormData({
-        name: "",
-        icon: "",
-        color: "",
-        description: "",
+      setDepartmentFormData({ name: "", icon: "Stethoscope", color: "blue", description: "" })
+      fetchDepartments()
+    } catch (e) {
+      toast({ title: "Eroare", description: "Nu s-a putut crea departamentul.", variant: "destructive" })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleEditDepartment = async () => {
+    if (!editingDepartment) return
+    const errors: Record<string, boolean> = {}
+    if (!editFormData.name) errors.name = true
+    
+    if (Object.keys(errors).length > 0) {
+      setEditErrors(errors)
+      return
+    }
+
+    setSaving(true)
+    try {
+      const response = await fetch(`/api/departments/${editingDepartment.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editFormData),
       })
-      setDepartmentErrors({})
-    } catch (error) {
-      console.error("Error creating department:", error)
-      toast({
-        title: "Eroare",
-        description: "Nu s-a putut crea departamentul.",
-        variant: "destructive"
-      })
+      if (!response.ok) throw new Error("Failed to update")
+      
+      toast({ title: "Succes", description: "Departamentul a fost actualizat." })
+      setIsEditDepartmentOpen(false)
+      fetchDepartments()
+    } catch (e) {
+      toast({ title: "Eroare", description: "Nu s-a putut actualiza departamentul.", variant: "destructive" })
     } finally {
       setSaving(false)
     }
@@ -172,198 +190,152 @@ export default function DepartmentsPage() {
     setEditingDepartment(dept)
     setEditFormData({
       name: dept.name,
-      icon: dept.icon ?? "",
-      color: dept.color ?? "",
-      description: dept.description ?? "",
+      icon: dept.icon || "Stethoscope",
+      color: dept.color || "blue",
+      description: dept.description || "",
       status: dept.status,
     })
-    setEditErrors({})
     setIsEditDepartmentOpen(true)
   }
 
-  const handleEditDepartment = async () => {
-    const newErrors: Record<string, boolean> = {}
-    if (!editFormData.name) newErrors.name = true
-    if (Object.keys(newErrors).length > 0) {
-      setEditErrors(newErrors)
-      toast({ title: "Eroare validare", description: "Numele departamentului este obligatoriu.", variant: "destructive" })
-      return
+  const getIcon = (iconName: string | null) => iconMap[iconName || "Stethoscope"] || Stethoscope
+  const getColor = (colorName: string | null) => colorMap[colorName || "blue"] || colorMap.blue
+
+  const stats = useMemo(() => {
+    return {
+      total: departments.length,
+      active: departments.filter(d => d.status === "ACTIV").length,
+      capacity: departments.reduce((acc, d) => acc + (d._count?.doctors || 0), 0)
     }
-    if (!editingDepartment) return
-    setSaving(true)
-    try {
-      const response = await fetch(`/api/departments/${editingDepartment.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: editFormData.name,
-          description: editFormData.description || null,
-          icon: editFormData.icon || null,
-          color: editFormData.color || null,
-          status: editFormData.status,
-        }),
-      })
-      if (!response.ok) throw new Error("Failed to update department")
-      await fetchDepartments()
-      toast({ title: "Salvat", description: `Departamentul ${editFormData.name} a fost actualizat.` })
-      setIsEditDepartmentOpen(false)
-      setEditingDepartment(null)
-    } catch {
-      toast({ title: "Eroare", description: "Nu s-a putut actualiza departamentul.", variant: "destructive" })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  // Get icon component
-  const getIcon = (iconName: string | null) => {
-    if (!iconName || !iconMap[iconName]) return Building2
-    return iconMap[iconName]
-  }
-
-  // Get color class
-  const getColorClass = (color: string | null) => {
-    if (!color || !colorMap[color]) return "bg-gray-100 text-gray-600"
-    return colorMap[color]
-  }
-
-  // Get status display
-  const getStatusDisplay = (status: string) => {
-    return status === "ACTIV" ? "Activ" : "Inactiv"
-  }
+  }, [departments])
 
   return (
     <AdminLayout>
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-8 max-w-[1600px] mx-auto">
-          <div className="mb-8 flex items-center justify-between">
+      <main className="flex-1 p-6 overflow-auto">
+        <div className="max-w-[1600px] mx-auto space-y-8">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-semibold text-foreground mb-2">Departamente</h1>
-              <p className="text-muted-foreground">Gestionează departamentele clinicii</p>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/5 text-primary text-xs font-semibold mb-4 border border-primary/10 uppercase tracking-wider">
+                Management Portal
+              </div>
+              <h1 className="text-4xl font-extrabold text-foreground tracking-tight mb-2">Departamente</h1>
+              <p className="text-muted-foreground text-lg italic">Organizarea structurii clinicii și a specialităților medicale.</p>
             </div>
-            <Button className="gap-2" onClick={() => setIsAddDepartmentOpen(true)}>
+            <Button 
+              className="gap-2 h-11 px-6 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all rounded-xl font-bold text-white" 
+              onClick={() => setIsAddDepartmentOpen(true)}
+            >
               <Plus className="w-4 h-4" />
-              Adaugă Departament
+              Departament Nou
             </Button>
           </div>
 
-          {/* Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-                  <Activity className="w-6 h-6 text-blue-600" />
+          {/* Header Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { label: "Total Unități", val: stats.total, icon: LayoutGrid, color: "text-primary", bg: "bg-primary/5", shadow: "shadow-primary/10" },
+              { label: "Unități Active", val: stats.active, icon: Activity, color: "text-emerald-600", bg: "bg-emerald-50", shadow: "shadow-emerald-200" },
+              { label: "Medici Alocați", val: stats.capacity, icon: Users, color: "text-indigo-600", bg: "bg-indigo-50", shadow: "shadow-indigo-200" },
+            ].map((stat, i) => (
+              <Card key={i} className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm rounded-2xl">
+                <div className={cn("absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 rounded-full blur-3xl opacity-50 group-hover:opacity-100 transition-opacity", stat.bg)} />
+                <div className="flex items-center gap-4 relative z-10">
+                  <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110", stat.bg, stat.shadow)}>
+                    <stat.icon className={cn("w-7 h-7", stat.color)} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">{stat.label}</p>
+                    <p className={cn("text-3xl font-bold tracking-tight", stat.color)}>{loading ? "..." : stat.val}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Departamente</p>
-                  <p className="text-2xl font-semibold">{totalDepartments}</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
-                  <Users className="w-6 h-6 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Medici</p>
-                  <p className="text-2xl font-semibold">{totalDoctors}</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Programări</p>
-                  <p className="text-2xl font-semibold">{totalAppointments}</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center">
-                  <Activity className="w-6 h-6 text-orange-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Departamente Active</p>
-                  <p className="text-2xl font-semibold">
-                    {departments.filter(d => d.status === "ACTIV").length}
-                  </p>
-                </div>
-              </div>
-            </Card>
+              </Card>
+            ))}
           </div>
 
           {/* Departments Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {loading ? (
-              <Card className="p-8 text-center col-span-full">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-                <p className="mt-2 text-muted-foreground">Se încarcă departamentele...</p>
-              </Card>
+              Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-64 bg-white rounded-2xl animate-pulse border border-slate-100 shadow-sm" />
+              ))
             ) : departments.length === 0 ? (
-              <Card className="p-8 text-center col-span-full">
-                <p className="text-muted-foreground">
-                  Nu există departamente. Adaugă primul departament!
-                </p>
-              </Card>
+              <div className="col-span-full flex flex-col items-center justify-center py-20 px-6 text-center bg-white dark:bg-card/50 rounded-2xl border border-border/50">
+                <div className="w-20 h-20 rounded-2xl bg-slate-50 flex items-center justify-center mb-6">
+                  <Building2 className="w-10 h-10 text-slate-200" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground mb-2">Niciun departament găsit</h3>
+                <p className="text-muted-foreground max-w-sm mx-auto mb-8">Nu am găsit niciun departament configurat în acest moment.</p>
+                <Button 
+                  onClick={() => setIsAddDepartmentOpen(true)}
+                  className="h-11 px-8 bg-primary hover:bg-primary/90 shadow-xl shadow-primary/10 rounded-xl font-bold text-white transition-all"
+                >
+                  Configurează primul departament
+                </Button>
+              </div>
             ) : (
-              departments.map((department) => {
-                const Icon = getIcon(department.icon)
+              departments.map((dept) => {
+                const Icon = getIcon(dept.icon)
+                const theme = getColor(dept.color)
                 return (
-                  <Card key={department.id} className="p-6 hover:shadow-lg transition-shadow">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-start gap-4">
-                        <div className={`w-14 h-14 rounded-xl ${getColorClass(department.color)} flex items-center justify-center`}>
-                          <Icon className="w-7 h-7" />
+                  <Card 
+                    key={dept.id} 
+                    className="group relative bg-white dark:bg-card/50 rounded-2xl border border-border/50 p-6 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 transition-all duration-300 flex flex-col"
+                  >
+                    <div className="flex-1 space-y-6">
+                      <div className="flex items-start justify-between">
+                        <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:rotate-12 group-hover:scale-110 shadow-sm", theme.bg)}>
+                          <Icon className={cn("w-7 h-7", theme.text)} />
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-xl mb-1">{department.name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {department.description || "Fără descriere"}
-                          </p>
+                        <Badge className={cn(
+                          "rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider border shadow-sm transition-all",
+                          dept.status === "ACTIV" 
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
+                            : "bg-slate-50 text-slate-400 border-slate-100"
+                        )}>
+                          {dept.status === "ACTIV" ? "Activ" : "Inactiv"}
+                        </Badge>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors uppercase tracking-tight">{dept.name}</h3>
+                        <p className="text-muted-foreground text-sm font-medium line-clamp-2 leading-relaxed">
+                          {dept.description || "Îngrijire medicală de specialitate cu standarde europene."}
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 py-4 border-t border-slate-100/60">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Medici</span>
+                          <div className="flex items-center gap-1.5">
+                             <Users className="w-4 h-4 text-primary" />
+                             <p className="text-lg font-bold text-foreground">{dept._count?.doctors || 0}</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Programări</span>
+                          <div className="flex items-center gap-1.5">
+                             <Clock className="w-4 h-4 text-indigo-400" />
+                             <p className="text-lg font-bold text-foreground">{dept._count?.appointments || 0}</p>
+                          </div>
                         </div>
                       </div>
-                      <Badge variant={department.status === "ACTIV" ? "default" : "secondary"}>
-                        {getStatusDisplay(department.status)}
-                      </Badge>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Medici</p>
-                        <p className="text-2xl font-semibold">{department._count?.doctors || 0}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Programări</p>
-                        <p className="text-2xl font-semibold">{department._count?.appointments || 0}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 bg-transparent"
-                        onClick={() => router.push(`/doctors?departmentId=${department.id}`)}
+                    <div className="mt-6 flex gap-3 pt-6 border-t border-slate-100/60">
+                      <Button 
+                        variant="outline" 
+                        className="flex-1 h-10 rounded-xl font-bold text-xs uppercase tracking-widest text-primary border-primary/10 hover:bg-slate-50"
+                        onClick={() => router.push(`/doctors?departmentId=${dept.id}`)}
                       >
-                        Vezi Medici
+                        Medici
                       </Button>
                       <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 bg-transparent"
-                        onClick={() => router.push(`/appointments?departmentId=${department.id}`)}
+                        className="flex-1 h-10 bg-white text-slate-900 border border-slate-200 shadow-sm hover:shadow-md hover:border-primary/20 rounded-xl font-bold text-xs uppercase tracking-widest transition-all"
+                        onClick={() => openEditModal(dept)}
                       >
-                        Vezi Programări
+                        GESTIONEAZĂ
                       </Button>
-                      <Button size="sm" onClick={() => openEditModal(department)}>Gestionează</Button>
                     </div>
                   </Card>
                 )
@@ -371,219 +343,172 @@ export default function DepartmentsPage() {
             )}
           </div>
         </div>
-      </div>
+      </main>
 
-      {/* Edit Department Dialog */}
+      {/* Edit Dialog */}
       <Dialog open={isEditDepartmentOpen} onOpenChange={setIsEditDepartmentOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Editează Departament</DialogTitle>
-            <DialogDescription>Modifică informațiile departamentului</DialogDescription>
-          </DialogHeader>
+        <DialogContent className="max-w-2xl rounded-2xl border-none shadow-2xl p-0 overflow-hidden">
+          <div className="p-8 space-y-8">
+            <DialogHeader>
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center mb-4">
+                <Building2 className="w-6 h-6 text-indigo-600" />
+              </div>
+              <DialogTitle className="text-2xl font-bold text-foreground tracking-tight">Editare Departament</DialogTitle>
+              <DialogDescription className="text-muted-foreground font-medium">
+                Modifică identitatea vizuală și setările operaționale ale departamentului.
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="space-y-6 py-4">
-            <div>
-              <Label htmlFor="edit-dept-name">
-                Nume departament <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="edit-dept-name"
-                placeholder="ex: Neurologie"
-                value={editFormData.name}
-                onChange={(e) => {
-                  setEditFormData({ ...editFormData, name: e.target.value })
-                  setEditErrors({ ...editErrors, name: false })
-                }}
-                className={editErrors.name ? "border-destructive mt-2" : "mt-2"}
-              />
-              {editErrors.name && <p className="text-sm text-destructive mt-1">Numele departamentului este obligatoriu</p>}
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Nume Departament</Label>
+                <Input
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  className={cn("h-12 rounded-xl bg-muted/50 border-none px-4 font-bold text-lg", editErrors.name && "ring-2 ring-rose-500")}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Iconiță</Label>
+                  <Select value={editFormData.icon} onValueChange={(v) => setEditFormData({ ...editFormData, icon: v })}>
+                    <SelectTrigger className="h-12 rounded-xl bg-muted/50 border-none px-4 font-medium">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-none shadow-2xl">
+                      {Object.keys(iconMap).map(k => (
+                        <SelectItem key={k} value={k} className="rounded-lg my-1 mx-1">{k}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Culoare Temă</Label>
+                  <Select value={editFormData.color} onValueChange={(v) => setEditFormData({ ...editFormData, color: v })}>
+                    <SelectTrigger className="h-12 rounded-xl bg-muted/50 border-none px-4 font-medium">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-none shadow-2xl">
+                      {Object.keys(colorMap).map(k => (
+                        <SelectItem key={k} value={k} className="rounded-lg my-1 mx-1 uppercase text-[10px] font-black">{k}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Status</Label>
+                <Select value={editFormData.status} onValueChange={(v) => setEditFormData({ ...editFormData, status: v })}>
+                  <SelectTrigger className="h-12 rounded-xl bg-muted/50 border-none px-4 font-medium">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-none shadow-2xl">
+                    <SelectItem value="ACTIV" className="rounded-lg my-1 mx-1 font-bold text-emerald-600">Activ</SelectItem>
+                    <SelectItem value="INACTIV" className="rounded-lg my-1 mx-1 font-bold text-slate-400">Inactiv</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Descriere</Label>
+                <Textarea 
+                   value={editFormData.description} 
+                   onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                   className="resize-none rounded-xl bg-muted/50 border-none p-4 font-medium"
+                   rows={3}
+                />
+              </div>
             </div>
 
-            <div>
-              <Label>Icon</Label>
-              <Select value={editFormData.icon} onValueChange={(v) => setEditFormData({ ...editFormData, icon: v })}>
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Selectează iconița" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Heart">❤️ Inimă (Cardiologie)</SelectItem>
-                  <SelectItem value="Eye">👁️ Ochi (Oftalmologie)</SelectItem>
-                  <SelectItem value="Ear">👂 Ureche (ORL)</SelectItem>
-                  <SelectItem value="Stethoscope">🩺 Stetoscop (General)</SelectItem>
-                  <SelectItem value="Baby">👶 Bebeluș (Pediatrie)</SelectItem>
-                  <SelectItem value="Building2">🏥 Clădire (Altele)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Culoare</Label>
-              <Select value={editFormData.color} onValueChange={(v) => setEditFormData({ ...editFormData, color: v })}>
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Selectează culoarea" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="red">🔴 Roșu</SelectItem>
-                  <SelectItem value="blue">🔵 Albastru</SelectItem>
-                  <SelectItem value="green">🟢 Verde</SelectItem>
-                  <SelectItem value="purple">🟣 Mov</SelectItem>
-                  <SelectItem value="pink">💗 Roz</SelectItem>
-                  <SelectItem value="yellow">🟡 Galben</SelectItem>
-                  <SelectItem value="orange">🟠 Portocaliu</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Status</Label>
-              <Select value={editFormData.status} onValueChange={(v) => setEditFormData({ ...editFormData, status: v })}>
-                <SelectTrigger className="mt-2">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ACTIV">Activ</SelectItem>
-                  <SelectItem value="INACTIV">Inactiv</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="edit-description">Descriere</Label>
-              <Textarea
-                id="edit-description"
-                placeholder="Descriere scurtă a departamentului..."
-                value={editFormData.description}
-                onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-                rows={3}
-                className="resize-none mt-2"
-              />
-            </div>
+            <DialogFooter className="flex flex-col sm:flex-row gap-3 pt-6 border-t mt-6">
+              <Button variant="ghost" onClick={() => setIsEditDepartmentOpen(false)} className="h-11 rounded-xl font-bold uppercase tracking-widest text-muted-foreground/80 px-6 hover:bg-slate-50 transition-colors">Anulează</Button>
+              <Button onClick={handleEditDepartment} disabled={saving} className="h-11 px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl font-bold uppercase tracking-widest text-white transition-all active:scale-95">
+                {saving ? "Salvare..." : "Actualizează"}
+              </Button>
+            </DialogFooter>
           </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDepartmentOpen(false)} disabled={saving}>
-              Anulează
-            </Button>
-            <Button onClick={handleEditDepartment} disabled={saving}>
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Se salvează...
-                </>
-              ) : (
-                "Salvează Modificările"
-              )}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Add Dialog */}
       <Dialog open={isAddDepartmentOpen} onOpenChange={setIsAddDepartmentOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Adaugă Departament Nou</DialogTitle>
-            <DialogDescription>Completează informațiile departamentului</DialogDescription>
-          </DialogHeader>
+        <DialogContent className="max-w-2xl rounded-2xl border-none shadow-2xl p-0 overflow-hidden">
+          <div className="p-8 space-y-8">
+            <DialogHeader>
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4">
+                <Plus className="w-6 h-6 text-emerald-600" />
+              </div>
+              <DialogTitle className="text-2xl font-bold text-foreground tracking-tight">Adaugă Departament</DialogTitle>
+              <DialogDescription className="text-muted-foreground font-medium">
+                Definește o nouă arie medicală și customizează-i prezența vizuală.
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="space-y-6 py-4">
-            {/* Name */}
-            <div>
-              <Label htmlFor="dept-name">
-                Nume departament <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="dept-name"
-                placeholder="ex: Neurologie"
-                value={departmentFormData.name}
-                onChange={(e) => {
-                  setDepartmentFormData({ ...departmentFormData, name: e.target.value })
-                  setDepartmentErrors({ ...departmentErrors, name: false })
-                }}
-                className={departmentErrors.name ? "border-destructive mt-2" : "mt-2"}
-              />
-              {departmentErrors.name && (
-                <p className="text-sm text-destructive mt-1">Numele departamentului este obligatoriu</p>
-              )}
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Nume Departament</Label>
+                <Input
+                  value={departmentFormData.name}
+                  onChange={(e) => setDepartmentFormData({ ...departmentFormData, name: e.target.value })}
+                  className={cn("h-12 rounded-xl bg-muted/50 border-none px-4 font-bold text-lg", departmentErrors.name && "ring-2 ring-rose-500")}
+                  placeholder="ex: Gastroenterologie"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Iconiță</Label>
+                  <Select value={departmentFormData.icon || ""} onValueChange={(v) => setDepartmentFormData({ ...departmentFormData, icon: v })}>
+                    <SelectTrigger className="h-12 rounded-xl bg-muted/50 border-none px-4 font-medium">
+                      <SelectValue placeholder="Alege icon" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-none shadow-2xl">
+                      {Object.keys(iconMap).map(k => (
+                        <SelectItem key={k} value={k} className="rounded-lg my-1 mx-1">{k}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Culoare Temă</Label>
+                  <Select value={departmentFormData.color || ""} onValueChange={(v) => setDepartmentFormData({ ...departmentFormData, color: v })}>
+                    <SelectTrigger className="h-12 rounded-xl bg-muted/50 border-none px-4 font-medium">
+                      <SelectValue placeholder="Alege culoare" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-none shadow-2xl">
+                      {Object.keys(colorMap).map(k => (
+                        <SelectItem key={k} value={k} className="rounded-lg my-1 mx-1 uppercase text-[10px] font-black">{k}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Descriere</Label>
+                <Textarea 
+                   value={departmentFormData.description} 
+                   onChange={(e) => setDepartmentFormData({ ...departmentFormData, description: e.target.value })}
+                   className="resize-none rounded-xl bg-muted/50 border-none p-4 font-medium"
+                   placeholder="Descriere scurtă..."
+                   rows={3}
+                />
+              </div>
             </div>
 
-            {/* Icon */}
-            <div>
-              <Label htmlFor="icon">Icon</Label>
-              <Select
-                value={departmentFormData.icon}
-                onValueChange={(value) => {
-                  setDepartmentFormData({ ...departmentFormData, icon: value })
-                }}
-              >
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Selectează iconița" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Heart">❤️ Inimă (Cardiologie)</SelectItem>
-                  <SelectItem value="Eye">👁️ Ochi (Oftalmologie)</SelectItem>
-                  <SelectItem value="Ear">👂 Ureche (ORL)</SelectItem>
-                  <SelectItem value="Stethoscope">🩺 Stetoscop (General)</SelectItem>
-                  <SelectItem value="Baby">👶 Bebeluș (Pediatrie)</SelectItem>
-                  <SelectItem value="Building2">🏥 Clădire (Altele)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Color */}
-            <div>
-              <Label htmlFor="color">Culoare</Label>
-              <Select
-                value={departmentFormData.color}
-                onValueChange={(value) => {
-                  setDepartmentFormData({ ...departmentFormData, color: value })
-                }}
-              >
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Selectează culoarea" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="red">🔴 Roșu</SelectItem>
-                  <SelectItem value="blue">🔵 Albastru</SelectItem>
-                  <SelectItem value="green">🟢 Verde</SelectItem>
-                  <SelectItem value="purple">🟣 Mov</SelectItem>
-                  <SelectItem value="pink">💗 Roz</SelectItem>
-                  <SelectItem value="yellow">🟡 Galben</SelectItem>
-                  <SelectItem value="orange">🟠 Portocaliu</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Description */}
-            <div>
-              <Label htmlFor="description">Descriere</Label>
-              <Textarea
-                id="description"
-                placeholder="Descriere scurtă a departamentului..."
-                value={departmentFormData.description}
-                onChange={(e) => {
-                  setDepartmentFormData({ ...departmentFormData, description: e.target.value })
-                }}
-                rows={3}
-                className="resize-none mt-2"
-              />
-            </div>
+            <DialogFooter className="flex flex-col sm:flex-row gap-3 pt-6 border-t mt-6">
+              <Button variant="ghost" onClick={() => setIsAddDepartmentOpen(false)} className="h-11 rounded-xl font-bold uppercase tracking-widest text-muted-foreground/80 px-6 hover:bg-slate-50 transition-colors">Anulează</Button>
+              <Button onClick={handleAddDepartment} disabled={saving} className="h-11 px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl font-bold uppercase tracking-widest text-white transition-all active:scale-95 group">
+                {saving ? "Creare..." : (
+                   <>
+                     CREEAZĂ DEPARTAMENT
+                   </>
+                )}
+              </Button>
+            </DialogFooter>
           </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDepartmentOpen(false)} disabled={saving}>
-              Anulează
-            </Button>
-            <Button onClick={handleAddDepartment} disabled={saving}>
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Se salvează...
-                </>
-              ) : (
-                "Adaugă Departament"
-              )}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </AdminLayout>

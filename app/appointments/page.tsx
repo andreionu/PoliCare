@@ -37,9 +37,14 @@ import {
   Bell,
   Mail,
   Phone,
+  User,
+  MoreHorizontal,
+  ArrowRight,
+  CalendarX,
 } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { useDebounce } from "@/hooks/use-debounce"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 // Types
 interface Notification {
@@ -71,6 +76,13 @@ interface Department {
   color: string | null
 }
 
+interface Service {
+  id: string
+  name: string
+  duration: number
+  departmentId: string
+}
+
 interface Appointment {
   id: string
   date: string
@@ -83,6 +95,7 @@ interface Appointment {
   patient: Patient
   doctor: Doctor
   department: Department | null
+  service?: Service | null
   notifications?: Notification[]
 }
 
@@ -117,25 +130,25 @@ const getStatusColor = (status: string) => {
 
 const getStatusBgColor = (status: string) => {
   switch (status) {
-    case "CONFIRMAT": return "bg-green-100 border-green-200"
-    case "IN_ASTEPTARE": return "bg-yellow-100 border-yellow-200"
-    case "IN_DESFASURARE": return "bg-purple-100 border-purple-200"
-    case "ANULAT": return "bg-red-100 border-red-200"
-    case "FINALIZAT": return "bg-blue-100 border-blue-200"
-    case "NEPREZENTARE": return "bg-gray-100 border-gray-200"
-    default: return "bg-gray-100 border-gray-200"
+    case "CONFIRMAT": return "bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800/30"
+    case "IN_ASTEPTARE": return "bg-amber-50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-800/30"
+    case "IN_DESFASURARE": return "bg-indigo-50 dark:bg-indigo-900/10 border-indigo-100 dark:border-indigo-800/30"
+    case "ANULAT": return "bg-rose-50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-800/30"
+    case "FINALIZAT": return "bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/30"
+    case "NEPREZENTARE": return "bg-slate-50 dark:bg-slate-900/10 border-slate-100 dark:border-slate-800/30"
+    default: return "bg-slate-50 border-slate-100"
   }
 }
 
 const getStatusTextColor = (status: string) => {
   switch (status) {
-    case "CONFIRMAT": return "text-green-900"
-    case "IN_ASTEPTARE": return "text-yellow-900"
-    case "IN_DESFASURARE": return "text-purple-900"
-    case "ANULAT": return "text-red-900"
-    case "FINALIZAT": return "text-blue-900"
-    case "NEPREZENTARE": return "text-gray-700"
-    default: return "text-gray-900"
+    case "CONFIRMAT": return "text-emerald-700 dark:text-emerald-400"
+    case "IN_ASTEPTARE": return "text-amber-700 dark:text-amber-400"
+    case "IN_DESFASURARE": return "text-indigo-700 dark:text-indigo-400"
+    case "ANULAT": return "text-rose-700 dark:text-rose-400"
+    case "FINALIZAT": return "text-blue-700 dark:text-blue-400"
+    case "NEPREZENTARE": return "text-slate-600 dark:text-slate-400"
+    default: return "text-slate-600"
   }
 }
 
@@ -169,7 +182,7 @@ export default function AppointmentsPage() {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null)
-  const [editFormData, setEditFormData] = useState({ date: "", startTime: "", status: "", notes: "" })
+  const [editFormData, setEditFormData] = useState({ date: "", startTime: "", status: "", notes: "", serviceId: "" })
   const [sendEmail, setSendEmail] = useState(true)
   const [sendSMS, setSendSMS] = useState(false)
   const [declineReason, setDeclineReason] = useState("")
@@ -190,6 +203,7 @@ export default function AppointmentsPage() {
   const [patients, setPatients] = useState<Patient[]>([])
   const [doctors, setDoctors] = useState<Doctor[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
+  const [services, setServices] = useState<Service[]>([])
 
   // Loading states
   const [loading, setLoading] = useState(true)
@@ -204,6 +218,7 @@ export default function AppointmentsPage() {
     patientGender: "",
     patientCnp: "",
     departmentId: "",
+    serviceId: "",
     doctorId: "",
     date: "",
     time: "",
@@ -216,28 +231,31 @@ export default function AppointmentsPage() {
   // Fetch all data on mount
   const fetchData = async () => {
     try {
-      const [appointmentsRes, patientsRes, doctorsRes, departmentsRes] = await Promise.all([
+      const [appointmentsRes, patientsRes, doctorsRes, departmentsRes, servicesRes] = await Promise.all([
         fetch("/api/appointments"),
         fetch("/api/patients"),
         fetch("/api/doctors"),
         fetch("/api/departments"),
+        fetch("/api/services"),
       ])
 
-      if (!appointmentsRes.ok || !patientsRes.ok || !doctorsRes.ok || !departmentsRes.ok) {
+      if (!appointmentsRes.ok || !patientsRes.ok || !doctorsRes.ok || !departmentsRes.ok || !servicesRes.ok) {
         throw new Error("Failed to fetch data")
       }
 
-      const [appointmentsData, patientsData, doctorsData, departmentsData] = await Promise.all([
+      const [appointmentsData, patientsData, doctorsData, departmentsData, servicesData] = await Promise.all([
         appointmentsRes.json(),
         patientsRes.json(),
         doctorsRes.json(),
         departmentsRes.json(),
+        servicesRes.json(),
       ])
 
       setAppointments(appointmentsData)
       setPatients(patientsData)
       setDoctors(doctorsData)
       setDepartments(departmentsData)
+      setServices(servicesData)
     } catch (error) {
       console.error("Error fetching data:", error)
       toast({
@@ -279,16 +297,18 @@ export default function AppointmentsPage() {
 
   // Real-time availability check when doctor + date + time are all filled (debounced 400ms)
   useEffect(() => {
-    const { doctorId, date, time } = appointmentFormData
+    const { doctorId, date, time, serviceId } = appointmentFormData
     if (!doctorId || !date || !time) {
       setAvailabilityWarning(null)
       return
     }
     const controller = new AbortController()
     const timer = setTimeout(() => {
+      const duration = services.find(s => s.id === serviceId)?.duration || 30
       const [hours, minutes] = time.split(":").map(Number)
-      const endH = hours + Math.floor((minutes + 30) / 60)
-      const endM = (minutes + 30) % 60
+      const totalMinutes = hours * 60 + minutes + duration
+      const endH = Math.floor(totalMinutes / 60)
+      const endM = totalMinutes % 60
       const endTime = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`
       setCheckingAvailability(true)
       fetch(`/api/appointments/check?doctorId=${doctorId}&date=${date}&startTime=${time}&endTime=${endTime}`, { signal: controller.signal })
@@ -303,7 +323,7 @@ export default function AppointmentsPage() {
       clearTimeout(timer)
       controller.abort()
     }
-  }, [appointmentFormData.doctorId, appointmentFormData.date, appointmentFormData.time])
+  }, [appointmentFormData.doctorId, appointmentFormData.date, appointmentFormData.time, appointmentFormData.serviceId, services])
 
   useEffect(() => {
     if (confirmModalOpen || declineModalOpen || isNewAppointmentOpen || editModalOpen) {
@@ -424,6 +444,7 @@ export default function AppointmentsPage() {
       startTime: appointment.startTime,
       status: appointment.status,
       notes: appointment.notes || "",
+      serviceId: appointment.service?.id || "",
     })
     setEditModalOpen(true)
   }
@@ -434,9 +455,11 @@ export default function AppointmentsPage() {
     setSaving(true)
     try {
       // Recalculate end time based on duration
+      const duration = services.find(s => s.id === editFormData.serviceId)?.duration || editingAppointment.duration || 30
       const [hours, minutes] = editFormData.startTime.split(":").map(Number)
-      const endHours = hours + Math.floor((minutes + editingAppointment.duration) / 60)
-      const endMinutes = (minutes + editingAppointment.duration) % 60
+      const totalMinutes = hours * 60 + minutes + duration
+      const endHours = Math.floor(totalMinutes / 60)
+      const endMinutes = totalMinutes % 60
       const endTime = `${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}`
 
       const response = await fetch(`/api/appointments/${editingAppointment.id}`, {
@@ -446,8 +469,10 @@ export default function AppointmentsPage() {
           date: editFormData.date,
           startTime: editFormData.startTime,
           endTime,
+          duration,
           status: editFormData.status,
           notes: editFormData.notes || null,
+          serviceId: editFormData.serviceId || null,
         }),
       })
 
@@ -603,6 +628,7 @@ export default function AppointmentsPage() {
       patientCnp: patientMode === "new" && !appointmentFormData.patientCnp,
       departmentId: !appointmentFormData.departmentId,
       doctorId: !appointmentFormData.doctorId,
+      serviceId: !appointmentFormData.serviceId,
       date: !appointmentFormData.date,
       time: !appointmentFormData.time,
     }
@@ -644,10 +670,13 @@ export default function AppointmentsPage() {
         patientId = newPatient.id
       }
 
-      // Calculate end time (30 min default)
+      // Calculate end time
+      const service = services.find(s => s.id === appointmentFormData.serviceId)
+      const duration = service?.duration || 30
       const [hours, minutes] = appointmentFormData.time.split(":").map(Number)
-      const endHours = hours + Math.floor((minutes + 30) / 60)
-      const endMinutes = (minutes + 30) % 60
+      const totalMinutes = hours * 60 + minutes + duration
+      const endHours = Math.floor(totalMinutes / 60)
+      const endMinutes = totalMinutes % 60
       const endTime = `${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}`
 
       const response = await fetch("/api/appointments", {
@@ -657,13 +686,14 @@ export default function AppointmentsPage() {
           date: appointmentFormData.date,
           startTime: appointmentFormData.time,
           endTime: endTime,
-          duration: 30,
+          duration: duration,
           status: "IN_ASTEPTARE",
-          type: "CONSULTATIE",
+          type: service?.name || "CONSULTATIE",
           notes: appointmentFormData.notes || null,
           patientId: patientId,
           doctorId: appointmentFormData.doctorId,
           departmentId: appointmentFormData.departmentId,
+          serviceId: appointmentFormData.serviceId,
         }),
       })
 
@@ -693,6 +723,7 @@ export default function AppointmentsPage() {
         patientGender: "",
         patientCnp: "",
         departmentId: "",
+        serviceId: "",
         doctorId: "",
         date: "",
         time: "",
@@ -758,93 +789,105 @@ export default function AppointmentsPage() {
 
   return (
     <AdminLayout>
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-8 max-w-[1600px] mx-auto">
-          <div className="mb-8 flex items-center justify-between">
+      <main className="flex-1 p-6 overflow-auto">
+        <div className="max-w-[1600px] mx-auto space-y-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-semibold text-foreground mb-2">Programări</h1>
-              <p className="text-muted-foreground">Gestionează programările și calendar</p>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/5 text-primary text-xs font-semibold mb-4 border border-primary/10 uppercase tracking-wider">
+                Management Portal
+              </div>
+              <h1 className="text-4xl font-extrabold text-foreground tracking-tight mb-2">Programări</h1>
+              <p className="text-muted-foreground text-lg">Eficiență și organizare în gestionarea calendarului clinicii.</p>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="gap-2" onClick={handleBulkReminders} disabled={sendingBulkReminders}>
+            <div className="flex gap-3">
+              <Button variant="outline" className="gap-2 h-11 px-5 border-primary/20 hover:bg-primary/5 hover:text-primary transition-all rounded-xl" onClick={handleBulkReminders} disabled={sendingBulkReminders}>
                 {sendingBulkReminders ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
                 Trimite Remindere
               </Button>
-              <Button className="gap-2" onClick={() => setIsNewAppointmentOpen(true)}>
+              <Button className="gap-2 h-11 px-6 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all rounded-xl" onClick={() => setIsNewAppointmentOpen(true)}>
                 <Plus className="w-4 h-4" />
                 Programare Nouă
               </Button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-                  <CalendarIcon className="w-6 h-6 text-blue-600" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm">
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors" />
+              <div className="flex items-center gap-4 relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/20">
+                  <CalendarIcon className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total</p>
-                  <p className="text-2xl font-semibold">{appointments.length}</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Total Programări</p>
+                  <p className="text-3xl font-bold tracking-tight">{appointments.length}</p>
                 </div>
               </div>
             </Card>
 
-            <Card className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-green-600" />
+            <Card className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm">
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-green-500/5 rounded-full blur-3xl group-hover:bg-green-500/10 transition-colors" />
+              <div className="flex items-center gap-4 relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/20">
+                  <CheckCircle className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Confirmate</p>
-                  <p className="text-2xl font-semibold">{stats.confirmed}</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Confirmate</p>
+                  <p className="text-3xl font-bold tracking-tight">{stats.confirmed}</p>
                 </div>
               </div>
             </Card>
 
-            <Card className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-yellow-600" />
+            <Card className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm">
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-amber-500/5 rounded-full blur-3xl group-hover:bg-amber-500/10 transition-colors" />
+              <div className="flex items-center gap-4 relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-200">
+                  <Clock className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">În Așteptare</p>
-                  <p className="text-2xl font-semibold">{stats.waiting}</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">În Așteptare</p>
+                  <p className="text-3xl font-bold tracking-tight">{stats.waiting}</p>
                 </div>
               </div>
             </Card>
 
-            <Card className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
-                  <CalendarIcon className="w-6 h-6 text-purple-600" />
+            <Card className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm">
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors" />
+              <div className="flex items-center gap-4 relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/20">
+                  <Loader2 className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">În desfășurare</p>
-                  <p className="text-2xl font-semibold">{stats.inProgress}</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">În Desfășurare</p>
+                  <p className="text-3xl font-bold tracking-tight">{stats.inProgress}</p>
                 </div>
               </div>
             </Card>
           </div>
 
-          <div className="mb-6 flex items-center justify-between gap-4">
-            <div className="flex gap-4 flex-1">
-              <div className="relative max-w-md flex-1">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <div className="flex flex-col xl:flex-row items-center justify-between gap-6 bg-white dark:bg-card/50 p-4 rounded-2xl shadow-sm border border-border/50">
+            <div className="flex flex-col sm:flex-row gap-4 flex-1 w-full xl:w-auto">
+              <div className="relative flex-1 max-w-md group">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 transition-colors group-focus-within:text-primary" />
                 <Input
-                  placeholder="Caută pacient sau medic..."
+                  placeholder="Caută pacient, medic sau procedură..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-12 h-12 bg-muted/50 border-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl transition-all"
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex p-1 bg-muted/50 rounded-xl items-center">
                 {["Toate", "Confirmat", "În așteptare", "Anulat"].map((status) => (
                   <Button
                     key={status}
-                    variant={statusFilter === status ? "default" : "outline"}
+                    variant="ghost"
                     size="sm"
                     onClick={() => setStatusFilter(status)}
+                    className={`h-10 px-4 rounded-lg transition-all ${
+                      statusFilter === status 
+                        ? "bg-white dark:bg-card shadow-sm text-primary font-semibold" 
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
                   >
                     {status}
                   </Button>
@@ -852,23 +895,32 @@ export default function AppointmentsPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3 w-full sm:w-auto self-start xl:self-center">
+              <div className="h-10 w-[1px] bg-border mx-2 hidden xl:block" />
               <Button
-                variant={viewMode === "list" ? "default" : "outline"}
+                variant="ghost"
                 size="sm"
                 onClick={() => setViewMode("list")}
-                className="gap-2"
+                className={`flex-1 sm:flex-none gap-2 h-11 px-5 rounded-xl transition-all ${
+                  viewMode === "list" 
+                    ? "bg-primary/5 text-primary font-bold border border-primary/10" 
+                    : "text-muted-foreground hover:bg-muted/50"
+                }`}
               >
-                <List className="w-4 h-4" />
+                <List className="w-5 h-5" />
                 Listă
               </Button>
               <Button
-                variant={viewMode === "calendar" ? "default" : "outline"}
+                variant="ghost"
                 size="sm"
                 onClick={() => setViewMode("calendar")}
-                className="gap-2"
+                className={`flex-1 sm:flex-none gap-2 h-11 px-5 rounded-xl transition-all ${
+                  viewMode === "calendar" 
+                    ? "bg-primary/5 text-primary font-bold border border-primary/10" 
+                    : "text-muted-foreground hover:bg-muted/50"
+                }`}
               >
-                <CalendarDays className="w-4 h-4" />
+                <CalendarDays className="w-5 h-5" />
                 Calendar
               </Button>
             </div>
@@ -908,140 +960,188 @@ export default function AppointmentsPage() {
                   <p className="mt-2 text-muted-foreground">Se încarcă programările...</p>
                 </div>
               ) : filteredAppointments.length === 0 ? (
-                <div className="p-8 text-center">
-                  <p className="text-muted-foreground">Nu există programări.</p>
+                <div className="flex flex-col items-center justify-center py-20 px-6 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="relative mb-6">
+                    <div className="w-24 h-24 rounded-full bg-primary/5 dark:bg-primary/10 flex items-center justify-center">
+                      <CalendarX className="w-10 h-10 text-primary/50" />
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 w-10 h-10 rounded-full bg-white dark:bg-card border-2 border-background flex items-center justify-center shadow-sm">
+                      <Search className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-bold text-foreground mb-2">Nicio programare găsită</h3>
+                  <p className="text-muted-foreground max-w-sm mx-auto mb-8">
+                    Nu am găsit programări care să corespundă criteriilor de filtrare selectate. Încearcă să resetezi filtrele sau să cauți alt pacient.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    className="h-11 px-6 rounded-xl border-primary/20 text-primary hover:bg-primary/5 transition-all font-semibold"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setStatusFilter("Toate");
+                    }}
+                  >
+                    Resetează toate filtrele
+                  </Button>
                 </div>
               ) : (
                 <div className="divide-y">
-                  {filteredAppointments.map((appointment) => (
-                    <div key={appointment.id} className="p-6 hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-4 mb-3">
-                            <div className="flex items-center gap-2">
-                              <XCircle className="w-4 h-4 text-muted-foreground" />
-                              <span className="font-semibold">{appointment.patient.name}</span>
+                  <div className="grid grid-cols-1 gap-4">
+                    {filteredAppointments.map((appointment) => (
+                      <div key={appointment.id} className="group relative bg-white dark:bg-card/50 rounded-2xl border border-border/50 p-5 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 transition-all duration-300">
+                        <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+                          {/* Patient info with Avatar */}
+                          <div className="flex items-center gap-4 min-w-[280px]">
+                            <Avatar className="h-14 w-14 border-2 border-background shadow-sm ring-2 ring-muted/50">
+                              <AvatarFallback className="bg-gradient-to-br from-primary/5 to-primary/10 text-primary font-bold text-lg">
+                                {appointment.patient.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-foreground text-lg tracking-tight group-hover:text-primary transition-colors">{appointment.patient.name}</span>
+                                <Badge variant={getStatusColor(appointment.status)} className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getStatusBgColor(appointment.status)} ${getStatusTextColor(appointment.status)} border-none shadow-sm`}>
+                                  {getStatusDisplay(appointment.status)}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                {appointment.type && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-muted text-[11px] font-medium uppercase tracking-tight">
+                                    {appointment.type}
+                                  </span>
+                                )}
+                                <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+                                <span className="font-medium text-xs text-muted-foreground/70">#{appointment.id.substring(0,6)}</span>
+                              </div>
                             </div>
-                            <Badge variant={getStatusColor(appointment.status)}>
-                              {getStatusDisplay(appointment.status)}
-                            </Badge>
-                            {appointment.type && <Badge variant="outline">{appointment.type}</Badge>}
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-2">
-                              <CheckCircle className="w-4 h-4" />
-                              <span>{appointment.doctor.name}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <CalendarIcon className="w-4 h-4" />
-                              <span>{new Date(appointment.date).toLocaleDateString("ro-RO")}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Clock className="w-4 h-4" />
-                              <span>
-                                {appointment.startTime} ({appointment.duration} min)
+                          {/* Middle section: Doctor & Time */}
+                          <div className="grid grid-cols-2 sm:grid-cols-3 flex-1 gap-4 lg:gap-8 py-4 lg:py-0 border-y lg:border-none border-border/50">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
+                                <User className="w-3 h-3" />
+                                Medic
                               </span>
+                              <span className="text-sm font-semibold text-foreground/90">{appointment.doctor.name}</span>
+                              <span className="text-xs text-muted-foreground">{appointment.department?.name || "General"}</span>
                             </div>
-                            <div>
-                              <span className="font-medium">{appointment.department?.name || "—"}</span>
+
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
+                                <CalendarIcon className="w-3 h-3" />
+                                Dată
+                              </span>
+                              <span className="text-sm font-semibold text-foreground/90">{new Date(appointment.date).toLocaleDateString("ro-RO", { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+                              <span className="text-xs text-muted-foreground">{new Date(appointment.date).getFullYear()}</span>
+                            </div>
+
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
+                                <Clock className="w-3 h-3" />
+                                Programare
+                              </span>
+                              <div className="flex items-baseline gap-1.5">
+                                <span className="text-sm font-bold text-foreground">{appointment.startTime}</span>
+                                <span className="text-[10px] font-medium text-muted-foreground">({appointment.duration} min)</span>
+                              </div>
+                              {/* Notification Indicators */}
+                              {appointment.notifications && appointment.notifications.length > 0 && (
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  {appointment.notifications.find(n => n.type === "EMAIL") && (
+                                    <div className={`p-1 rounded bg-muted/50 ${appointment.notifications.find(n => n.type === "EMAIL")?.status === "SENT" ? "text-green-600" : "text-red-500"}`} title="Email Status">
+                                      <Mail className="w-3 h-3" />
+                                    </div>
+                                  )}
+                                  {appointment.notifications.find(n => n.type === "SMS") && (
+                                    <div className={`p-1 rounded bg-muted/50 ${appointment.notifications.find(n => n.type === "SMS")?.status === "SENT" ? "text-green-600" : "text-red-500"}`} title="SMS Status">
+                                      <Phone className="w-3 h-3" />
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
 
-                          {/* Notification status badges */}
-                          {appointment.notifications && appointment.notifications.length > 0 && (
-                            <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
-                              {(() => {
-                                const latestEmail = appointment.notifications!.find(n => n.type === "EMAIL")
-                                const latestSMS = appointment.notifications!.find(n => n.type === "SMS")
-                                return (
-                                  <>
-                                    {latestEmail && (
-                                      <span
-                                        title={`Email: ${latestEmail.status === "SENT" ? "Trimis" : "Eșuat"} (${latestEmail.event})`}
-                                        className={`inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-md border ${
-                                          latestEmail.status === "SENT"
-                                            ? "bg-green-50 text-green-700 border-green-200"
-                                            : "bg-red-50 text-red-700 border-red-200"
-                                        }`}
-                                      >
-                                        <Mail className="w-3 h-3" />
-                                        Email {latestEmail.status === "SENT" ? "trimis" : "eșuat"}
-                                      </span>
-                                    )}
-                                    {latestSMS && (
-                                      <span
-                                        title={`SMS: ${latestSMS.status === "SENT" ? "Trimis" : "Eșuat"} (${latestSMS.event})`}
-                                        className={`inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-md border ${
-                                          latestSMS.status === "SENT"
-                                            ? "bg-green-50 text-green-700 border-green-200"
-                                            : "bg-red-50 text-red-700 border-red-200"
-                                        }`}
-                                      >
-                                        <Phone className="w-3 h-3" />
-                                        SMS {latestSMS.status === "SENT" ? "trimis" : "eșuat"}
-                                      </span>
-                                    )}
-                                  </>
-                                )
-                              })()}
-                            </div>
-                          )}
-                        </div>
+                          {/* Actions */}
+                          <div className="flex items-center gap-2 self-end lg:self-center">
+                            {appointment.status === "IN_ASTEPTARE" && (
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-10 px-4 border-emerald-100 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-xl font-bold transition-all" 
+                                  onClick={() => handleConfirmClick(appointment)}
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  Confirmă
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-10 px-4 border-red-100 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-xl font-bold transition-all" 
+                                  onClick={() => handleDeclineClick(appointment)}
+                                >
+                                  <XCircle className="w-4 h-4 mr-2" />
+                                  Respinge
+                                </Button>
+                              </div>
+                            )}
+                            
+                            {appointment.status === "CONFIRMAT" && (
+                              <div className="flex gap-2">
+                                <Button 
+                                  className="h-10 px-5 bg-indigo-600 hover:bg-indigo-700 rounded-xl font-bold shadow-md shadow-indigo-100 transition-all" 
+                                  onClick={() => handleStartAppointment(appointment)} 
+                                  disabled={saving}
+                                >
+                                  <ArrowRight className="w-4 h-4 mr-2" />
+                                  Începe
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-10 w-10 rounded-xl border-primary/10 text-primary hover:bg-primary/5 transition-all"
+                                  onClick={() => handleSendReminder(appointment)}
+                                  disabled={sendingReminder === appointment.id}
+                                  title="Trimite reminder"
+                                >
+                                  {sendingReminder === appointment.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+                                </Button>
+                              </div>
+                            )}
 
-                        <div className="flex gap-2 ml-4">
-                          {appointment.status === "IN_ASTEPTARE" && (
-                            <>
-                              <Button variant="default" size="sm" onClick={() => handleConfirmClick(appointment)}>
-                                Confirmă
-                              </Button>
-                              <Button variant="destructive" size="sm" onClick={() => handleDeclineClick(appointment)}>
-                                Respinge
-                              </Button>
-                            </>
-                          )}
-                          {appointment.status === "CONFIRMAT" && (
-                            <>
-                              <Button variant="default" size="sm" className="bg-purple-600 hover:bg-purple-700" onClick={() => handleStartAppointment(appointment)} disabled={saving}>
-                                Începe
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="gap-1"
-                                onClick={() => handleSendReminder(appointment)}
-                                disabled={sendingReminder === appointment.id}
-                                title="Trimite reminder pacientului"
+                            {appointment.status === "IN_DESFASURARE" && (
+                              <Button 
+                                className="h-10 px-6 bg-emerald-600 hover:bg-emerald-700 rounded-xl font-bold shadow-md shadow-emerald-100 transition-all" 
+                                onClick={() => handleFinishAppointment(appointment)} 
+                                disabled={saving}
                               >
-                                {sendingReminder === appointment.id
-                                  ? <Loader2 className="w-3 h-3 animate-spin" />
-                                  : <Bell className="w-3 h-3" />}
-                                Reminder
-                              </Button>
-                              <Button variant="destructive" size="sm" onClick={() => handleDeclineClick(appointment)}>
-                                Anulează
-                              </Button>
-                            </>
-                          )}
-                          {appointment.status === "IN_DESFASURARE" && (
-                            <>
-                              <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleFinishAppointment(appointment)} disabled={saving}>
+                                <CheckCircle className="w-4 h-4 mr-2" />
                                 Finalizează
                               </Button>
-                              <Button variant="outline" size="sm" onClick={() => handleNoShow(appointment)} disabled={saving}>
-                                Neprezentare
+                            )}
+
+                            {!["FINALIZAT", "ANULAT", "NEPREZENTARE"].includes(appointment.status) && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-10 w-10 rounded-xl hover:bg-muted transition-all"
+                                onClick={() => handleEditClick(appointment)}
+                                title="Reprogramează"
+                              >
+                                <CalendarIcon className="w-4 h-4 text-muted-foreground" />
                               </Button>
-                            </>
-                          )}
-                          {!["FINALIZAT", "ANULAT", "NEPREZENTARE"].includes(appointment.status) && (
-                            <Button variant="outline" size="sm" onClick={() => handleEditClick(appointment)}>
-                              Reprogramează
+                            )}
+                            
+                            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl group/more">
+                               <MoreHorizontal className="w-4 h-4 text-muted-foreground group-hover/more:text-foreground transition-colors" />
                             </Button>
-                          )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </Card>
@@ -1071,19 +1171,23 @@ export default function AppointmentsPage() {
                             {appointmentsInSlot.map((apt) => (
                               <div
                                 key={apt.id}
-                                className={`p-2 rounded-lg border mb-2 cursor-pointer hover:shadow-md transition-shadow ${getStatusBgColor(apt.status)}`}
+                                onClick={() => handleEditClick(apt)}
+                                className={`group/apt relative p-2.5 rounded-xl border-l-4 mb-2 cursor-pointer shadow-sm hover:shadow-md hover:translate-y-[-1px] transition-all duration-200 ${getStatusBgColor(apt.status)} border-background/20`}
+                                style={{ borderLeftColor: getStatusColor(apt.status) === 'default' ? 'var(--primary)' : getStatusColor(apt.status) === 'secondary' ? '#f59e0b' : '#10b981' }}
                               >
-                                <div className={`text-xs font-semibold ${getStatusTextColor(apt.status)} mb-1`}>
-                                  {apt.startTime}
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className={`text-[10px] font-bold uppercase tracking-wider ${getStatusTextColor(apt.status)}`}>
+                                    {apt.startTime}
+                                  </span>
+                                  <div className="opacity-0 group-hover/apt:opacity-100 transition-opacity">
+                                    <MoreHorizontal className={`w-3 h-3 ${getStatusTextColor(apt.status)}`} />
+                                  </div>
                                 </div>
-                                <div className={`text-xs font-medium ${getStatusTextColor(apt.status)} mb-1`}>
+                                <div className={`text-xs font-bold truncate ${getStatusTextColor(apt.status)}`}>
                                   {apt.patient.name}
                                 </div>
-                                <div className={`text-xs ${getStatusTextColor(apt.status)} opacity-80`}>
+                                <div className={`text-[10px] truncate opacity-80 font-medium ${getStatusTextColor(apt.status)} mt-0.5`}>
                                   {apt.doctor.name}
-                                </div>
-                                <div className={`text-xs ${getStatusTextColor(apt.status)} opacity-70 mt-1`}>
-                                  {apt.department?.name || "—"}
                                 </div>
                               </div>
                             ))}
@@ -1096,8 +1200,6 @@ export default function AppointmentsPage() {
               </div>
             </Card>
           )}
-        </div>
-      </div>
 
       {/* New Appointment Dialog */}
       <Dialog
@@ -1112,9 +1214,12 @@ export default function AppointmentsPage() {
         }}
       >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Programare Nouă</DialogTitle>
-            <DialogDescription>Completează detaliile programării</DialogDescription>
+          <DialogHeader className="pb-4 border-b">
+            <div className="w-12 h-12 rounded-2xl bg-primary/5 dark:bg-primary/10 flex items-center justify-center mb-4">
+              <Plus className="w-6 h-6 text-primary" />
+            </div>
+            <DialogTitle className="text-2xl font-bold tracking-tight">Programare Nouă</DialogTitle>
+            <DialogDescription className="text-muted-foreground">Completează detaliile pentru a rezerva un loc în calendar.</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6">
@@ -1294,6 +1399,35 @@ export default function AppointmentsPage() {
             </div>
 
             <div>
+              <Label htmlFor="service" className="block text-sm font-medium text-foreground">
+                Serviciu <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={appointmentFormData.serviceId}
+                onValueChange={(value) => {
+                  setAppointmentFormData({ ...appointmentFormData, serviceId: value })
+                  setAppointmentErrors({ ...appointmentErrors, serviceId: false })
+                }}
+              >
+                <SelectTrigger className={`mt-2 ${appointmentErrors.serviceId ? "border-destructive" : ""}`}>
+                  <SelectValue placeholder="Selectează serviciul" />
+                </SelectTrigger>
+                <SelectContent>
+                  {services
+                    .filter((s) => !appointmentFormData.departmentId || s.departmentId === appointmentFormData.departmentId)
+                    .map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name} ({s.duration} min)
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              {appointmentErrors.serviceId && (
+                <p className="text-sm text-destructive mt-1">Serviciul este obligatoriu</p>
+              )}
+            </div>
+
+            <div>
               <Label htmlFor="doctor" className="block text-sm font-medium text-foreground">
                 Medic <span className="text-destructive">*</span>
               </Label>
@@ -1352,12 +1486,9 @@ export default function AppointmentsPage() {
                     <SelectValue placeholder="Selectează ora" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="09:00">09:00</SelectItem>
-                    <SelectItem value="10:00">10:00</SelectItem>
-                    <SelectItem value="11:00">11:00</SelectItem>
-                    <SelectItem value="14:00">14:00</SelectItem>
-                    <SelectItem value="15:00">15:00</SelectItem>
-                    <SelectItem value="16:00">16:00</SelectItem>
+                    {["08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30"].map((t) => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 {appointmentErrors.time && <p className="text-sm text-destructive mt-1">Ora este obligatorie</p>}
@@ -1393,11 +1524,11 @@ export default function AppointmentsPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsNewAppointmentOpen(false)} disabled={saving}>
+          <DialogFooter className="pt-6 border-t mt-6">
+            <Button variant="ghost" onClick={() => setIsNewAppointmentOpen(false)} disabled={saving} className="rounded-xl h-11 px-6">
               Anulează
             </Button>
-            <Button onClick={handleAddAppointment} disabled={saving}>
+            <Button onClick={handleAddAppointment} disabled={saving} className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 rounded-xl h-11 px-8">
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1413,10 +1544,13 @@ export default function AppointmentsPage() {
 
       <Dialog open={confirmModalOpen} onOpenChange={setConfirmModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Confirmă Programarea</DialogTitle>
-            <DialogDescription>
-              Ești sigur că vrei să confirmi această programare pentru {selectedAppointment?.patient.name}?
+          <DialogHeader className="pb-4 border-b">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center mb-4">
+              <CheckCircle className="w-6 h-6 text-emerald-600" />
+            </div>
+            <DialogTitle className="text-2xl font-bold tracking-tight">Confirmă Programarea</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Verifică detaliile și trimite confirmarea către pacientul <span className="font-semibold text-foreground">{selectedAppointment?.patient.name}</span>.
             </DialogDescription>
           </DialogHeader>
 
@@ -1427,7 +1561,7 @@ export default function AppointmentsPage() {
                 <div className="flex-1">
                   <div className="text-sm font-medium">{selectedAppointment?.patient.name}</div>
                   <div className="text-xs text-muted-foreground">
-                    {selectedAppointment?.date && new Date(selectedAppointment.date).toLocaleDateString("ro-RO")} la {selectedAppointment?.startTime}
+                    {selectedAppointment?.date && new Date(selectedAppointment?.date).toLocaleDateString("ro-RO")} la {selectedAppointment?.startTime}
                   </div>
                 </div>
               </div>
@@ -1469,11 +1603,11 @@ export default function AppointmentsPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmModalOpen(false)} disabled={saving}>
+          <DialogFooter className="pt-6 border-t mt-6">
+            <Button variant="ghost" onClick={() => setConfirmModalOpen(false)} disabled={saving} className="rounded-xl h-11 px-6">
               Anulează
             </Button>
-            <Button onClick={handleFinalConfirm} disabled={saving}>
+            <Button onClick={handleFinalConfirm} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200 rounded-xl h-11 px-8">
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1489,16 +1623,13 @@ export default function AppointmentsPage() {
 
       <Dialog open={declineModalOpen} onOpenChange={setDeclineModalOpen}>
         <DialogContent className="sm:max-w-[550px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                <AlertCircle className="w-5 h-5 text-red-600" />
-              </div>
-              Respinge Programarea
-            </DialogTitle>
-            <DialogDescription>
-              Această acțiune va anula programarea și va notifica pacientul {selectedAppointment?.patient.name} cu
-              explicațiile tale.
+          <DialogHeader className="pb-4 border-b">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-900/20 flex items-center justify-center mb-4">
+              <AlertCircle className="w-6 h-6 text-rose-600" />
+            </div>
+            <DialogTitle className="text-2xl font-bold tracking-tight text-rose-600">Respinge Programarea</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Această acțiune va anula programarea și va notifica pacientul <span className="font-semibold text-foreground">{selectedAppointment?.patient.name}</span>.
             </DialogDescription>
           </DialogHeader>
 
@@ -1509,7 +1640,7 @@ export default function AppointmentsPage() {
                 <div className="flex-1">
                   <div className="text-sm font-medium">{selectedAppointment?.patient.name}</div>
                   <div className="text-xs text-muted-foreground">
-                    {selectedAppointment?.date && new Date(selectedAppointment.date).toLocaleDateString("ro-RO")} la {selectedAppointment?.startTime}
+                    {selectedAppointment?.date && new Date(selectedAppointment?.date).toLocaleDateString("ro-RO")} la {selectedAppointment?.startTime}
                   </div>
                 </div>
               </div>
@@ -1576,11 +1707,11 @@ export default function AppointmentsPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeclineModalOpen(false)} disabled={saving}>
+          <DialogFooter className="pt-6 border-t mt-6">
+            <Button variant="ghost" onClick={() => setDeclineModalOpen(false)} disabled={saving} className="rounded-xl h-11 px-6 text-muted-foreground hover:text-foreground">
               Anulează
             </Button>
-            <Button variant="destructive" onClick={handleFinalDecline} disabled={saving || !declineReason || !declineMessage}>
+            <Button variant="destructive" onClick={handleFinalDecline} disabled={saving || !declineReason || !declineMessage} className="bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-200 rounded-xl h-11 px-8 font-bold">
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1597,10 +1728,13 @@ export default function AppointmentsPage() {
       {/* Edit Appointment Dialog */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
         <DialogContent className="max-w-md rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Reprogramează / Editează</DialogTitle>
-            <DialogDescription>
-              {editingAppointment?.patient.name} — {editingAppointment?.doctor.name}
+          <DialogHeader className="pb-4 border-b">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center mb-4">
+              <CalendarIcon className="w-6 h-6 text-amber-600" />
+            </div>
+            <DialogTitle className="text-2xl font-bold tracking-tight">Reprogramează / Editează</DialogTitle>
+            <DialogDescription className="text-muted-foreground italic">
+              Actualizează detaliile programării pentru <span className="font-semibold text-foreground not-italic">{editingAppointment?.patient.name}</span>.
             </DialogDescription>
           </DialogHeader>
 
@@ -1616,6 +1750,25 @@ export default function AppointmentsPage() {
             </div>
 
             <div className="space-y-2">
+              <Label>Serviciu</Label>
+              <Select
+                value={editFormData.serviceId}
+                onValueChange={(value) => setEditFormData({ ...editFormData, serviceId: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selectează serviciul" />
+                </SelectTrigger>
+                <SelectContent>
+                  {services
+                    .filter(s => !editingAppointment?.department?.id || s.departmentId === editingAppointment.department.id)
+                    .map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.name} ({s.duration} min)</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label>Ora</Label>
               <Select
                 value={editFormData.startTime}
@@ -1625,7 +1778,7 @@ export default function AppointmentsPage() {
                   <SelectValue placeholder="Selectează ora" />
                 </SelectTrigger>
                 <SelectContent>
-                  {["08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00"].map((t) => (
+                  {["08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30"].map((t) => (
                     <SelectItem key={t} value={t}>{t}</SelectItem>
                   ))}
                 </SelectContent>
@@ -1665,20 +1818,22 @@ export default function AppointmentsPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditModalOpen(false)} disabled={saving}>
+          <DialogFooter className="pt-6 border-t mt-6">
+            <Button variant="ghost" onClick={() => setEditModalOpen(false)} disabled={saving} className="rounded-xl h-11 px-6">
               Anulează
             </Button>
-            <Button onClick={handleSaveEdit} disabled={saving}>
+            <Button onClick={handleSaveEdit} disabled={saving} className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl h-11 px-8 font-bold text-white">
               {saving ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Se salvează...</>
               ) : (
-                "Salvează"
+                "Salvează Modificările"
               )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        </div>
+      </main>
     </AdminLayout>
   )
 }

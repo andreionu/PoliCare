@@ -25,7 +25,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Plus, Search, MoreHorizontal, Loader2, Wrench, Clock, Building2, ToggleLeft } from "lucide-react"
+import { Plus, Search, MoreHorizontal, Loader2, Wrench, Clock, Building2, ToggleLeft, Coins, Activity, CheckCircle, CalendarIcon, ArrowRight } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface Service {
@@ -202,146 +202,204 @@ export default function ServicesPage() {
   return (
     <AdminLayout userRole={role as "super-admin" | "front-desk" | null}>
       <main className="flex-1 p-6 overflow-auto">
-        <div className="max-w-7xl mx-auto space-y-6">
+        <div className="max-w-[1600px] mx-auto space-y-8">
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold">Servicii</h1>
-              <p className="text-muted-foreground mt-1">Gestionează serviciile medicale oferite</p>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/5 text-primary text-xs font-semibold mb-4 border border-primary/10 uppercase tracking-wider">
+                Management Portal
+              </div>
+              <h1 className="text-4xl font-extrabold text-foreground tracking-tight mb-2">Servicii</h1>
+              <p className="text-muted-foreground text-lg italic">Configurarea portofoliului de servicii medicale și a tarifelor aferente.</p>
             </div>
-            <Button size="lg" onClick={() => setShowAdd(true)}>
-              <Plus className="w-4 h-4 mr-2" />
+            <Button className="gap-2 h-11 px-6 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all rounded-xl font-bold text-white" onClick={() => setShowAdd(true)}>
+              <Plus className="w-4 h-4" />
               Serviciu Nou
             </Button>
           </div>
 
           {/* Stats */}
-          <div className="grid md:grid-cols-4 gap-4">
-            <Card className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <Wrench className="w-5 h-5 text-blue-600" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm">
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors" />
+              <div className="flex items-center gap-4 relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/20">
+                  <Wrench className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Servicii</p>
-                  <p className="text-2xl font-bold">{services.length}</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Total Servicii</p>
+                  <p className="text-3xl font-bold tracking-tight">{services.length}</p>
                 </div>
               </div>
             </Card>
-            <Card className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                  <ToggleLeft className="w-5 h-5 text-green-600" />
+
+            <Card className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm">
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-colors" />
+              <div className="flex items-center gap-4 relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-200">
+                  <CheckCircle className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Active</p>
-                  <p className="text-2xl font-bold">{activeServices.length}</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Active</p>
+                  <p className="text-3xl font-bold tracking-tight">{activeServices.length}</p>
                 </div>
               </div>
             </Card>
-            <Card className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-purple-600" />
+
+            <Card className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm">
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-purple-500/5 rounded-full blur-3xl group-hover:bg-purple-500/10 transition-colors" />
+              <div className="flex items-center gap-4 relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-200">
+                  <Clock className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Durată medie</p>
-                  <p className="text-2xl font-bold">{avgDuration} min</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Durată medie</p>
+                  <p className="text-3xl font-bold tracking-tight">{avgDuration} min</p>
                 </div>
               </div>
             </Card>
-            <Card className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
-                  <Building2 className="w-5 h-5 text-orange-600" />
+
+            <Card className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm">
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-orange-500/5 rounded-full blur-3xl group-hover:bg-orange-500/10 transition-colors" />
+              <div className="flex items-center gap-4 relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-200">
+                  <Building2 className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Departamente</p>
-                  <p className="text-2xl font-bold">{deptsCovered}</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Departamente</p>
+                  <p className="text-3xl font-bold tracking-tight">{deptsCovered}</p>
                 </div>
               </div>
             </Card>
           </div>
 
           {/* Search */}
-          <Card className="p-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Caută după nume sau departament..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+          <div className="flex flex-col xl:flex-row items-center justify-between gap-6 bg-white dark:bg-card/50 p-4 rounded-2xl shadow-sm border">
+            <div className="flex flex-col sm:flex-row gap-4 flex-1 w-full xl:w-auto">
+              <div className="relative flex-1 max-w-md group">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 transition-colors group-focus-within:text-primary" />
+                <Input
+                  placeholder="Caută după nume sau departament..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-12 h-12 bg-muted/50 border-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-xl transition-all"
+                />
+              </div>
             </div>
-          </Card>
+            
+            <div className="flex items-center gap-3 w-full sm:w-auto self-start xl:self-center">
+              <div className="h-10 w-[1px] bg-border mx-2 hidden xl:block" />
+              <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                Afișare: <span className="text-foreground">{filteredServices.length} servicii</span>
+              </p>
+            </div>
+          </div>
 
           {/* Services list */}
-          <div className="grid gap-4">
+          <div className="grid gap-6">
             {loading ? (
-              <Card className="p-8 text-center">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-                <p className="mt-2 text-muted-foreground">Se încarcă serviciile...</p>
-              </Card>
+              <div className="p-20 text-center bg-white dark:bg-card/50 rounded-2xl border border-border/50">
+                <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary mb-4" />
+                <p className="text-muted-foreground font-medium animate-pulse">Se încarcă lista serviciilor...</p>
+              </div>
             ) : filteredServices.length === 0 ? (
-              <Card className="p-8 text-center">
-                <p className="text-muted-foreground">
-                  {searchQuery ? "Nu s-au găsit servicii." : "Nu există servicii. Adaugă primul serviciu!"}
+              <div className="flex flex-col items-center justify-center py-20 px-6 text-center bg-white dark:bg-card/50 rounded-2xl border border-border/50 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="relative mb-6">
+                  <div className="w-24 h-24 rounded-full bg-primary/5 dark:bg-primary/10 flex items-center justify-center">
+                    <Wrench className="w-10 h-10 text-primary/50" />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-10 h-10 rounded-full bg-white dark:bg-card border-2 border-background flex items-center justify-center shadow-sm">
+                    <Search className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold text-foreground mb-2">Niciun serviciu găsit</h3>
+                <p className="text-muted-foreground max-w-sm mx-auto mb-8">
+                  {searchQuery 
+                    ? `Nu am găsit niciun serviciu care să corespundă căutării "${searchQuery}".`
+                    : "Nu există servicii medicale înregistrate în sistem."}
                 </p>
-              </Card>
+                <Button 
+                  variant="outline" 
+                  className="h-11 px-6 rounded-xl border-primary/20 text-primary hover:bg-primary/5 transition-all font-semibold"
+                  onClick={() => setSearchQuery("")}
+                >
+                  Resetează căutarea
+                </Button>
+              </div>
             ) : (
               filteredServices.map((service) => (
-                <Card key={service.id} className="p-4 transition-all hover:shadow-md">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                        <Wrench className="h-5 w-5 text-blue-600" />
+                <Card key={service.id} className="group relative bg-white dark:bg-card/50 rounded-2xl border border-border/50 p-6 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 transition-all duration-300">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div className="flex items-center gap-6">
+                      <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform duration-300">
+                        <Wrench className="h-7 w-7 text-white" />
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold">{service.name}</h3>
-                          <Badge variant="outline" className="text-xs">{service.department.name}</Badge>
-                          {service.isActive ? (
-                            <Badge className="bg-green-100 text-green-700 border-none text-xs">Activ</Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-muted-foreground text-xs">Inactiv</Badge>
-                          )}
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <h3 className="text-xl font-bold text-foreground tracking-tight group-hover:text-primary transition-colors uppercase">{service.name}</h3>
+                          <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-widest border-primary/20 text-primary px-2 py-0.5 rounded-full">
+                            {service.department.name}
+                          </Badge>
+                          <Badge className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${
+                            service.isActive 
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
+                              : "bg-slate-50 text-slate-700 border-slate-100"
+                          } border shadow-sm`}>
+                            {service.isActive ? "Activ" : "Inactiv"}
+                          </Badge>
                         </div>
                         {service.description && (
-                          <p className="text-sm text-muted-foreground mt-0.5">{service.description}</p>
+                          <p className="text-sm text-muted-foreground mt-1 italic line-clamp-1">{service.description}</p>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-6">
-                      <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          <span>{service.duration} min</span>
-                        </div>
-                        <div className="font-medium text-foreground">
-                          {service.price !== null ? `${service.price.toFixed(2)} RON` : "Gratuit"}
-                        </div>
+                    <div className="flex flex-wrap items-center gap-6 lg:gap-12">
+                      <div className="flex flex-col gap-1 min-w-[100px]">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
+                          <Clock className="w-3 h-3" />
+                          Durată
+                        </span>
+                        <span className="text-lg font-bold text-foreground/90 tracking-tight">{service.duration} MIN</span>
                       </div>
 
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Acțiuni</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleOpenEdit(service)}>Editează</DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => handleDelete(service)}
-                          >
-                            Șterge
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex flex-col gap-1 min-w-[120px]">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
+                          <Coins className="w-3 h-3" />
+                          Tarif
+                        </span>
+                        <span className="text-lg font-extrabold text-primary tracking-tight">
+                          {service.price !== null ? `${service.price.toFixed(2)} RON` : "GRATUIT"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-10 px-5 border-primary/20 text-primary font-bold hover:bg-primary/5 rounded-xl transition-all" 
+                          onClick={() => handleOpenEdit(service)}
+                        >
+                          Editează
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground rounded-xl">
+                              <MoreHorizontal className="h-5 w-5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="rounded-xl p-2 w-42">
+                            <DropdownMenuLabel className="text-xs uppercase font-bold text-muted-foreground px-2 pb-2">Opțiuni</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive font-semibold rounded-lg cursor-pointer"
+                              onClick={() => handleDelete(service)}
+                            >
+                              Șterge Serviciu
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                   </div>
                 </Card>
@@ -354,9 +412,12 @@ export default function ServicesPage() {
       {/* Add Modal */}
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent className="max-w-md rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Serviciu Nou</DialogTitle>
-            <DialogDescription>Adaugă un serviciu medical nou</DialogDescription>
+          <DialogHeader className="pb-4 border-b">
+            <div className="w-12 h-12 rounded-2xl bg-primary/5 dark:bg-primary/10 flex items-center justify-center mb-4">
+              <Plus className="w-6 h-6 text-primary" />
+            </div>
+            <DialogTitle className="text-2xl font-bold tracking-tight">Serviciu Nou</DialogTitle>
+            <DialogDescription className="text-muted-foreground">Adaugă o nouă procedură medicală în portofoliul clinicii.</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -427,10 +488,19 @@ export default function ServicesPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAdd(false)} disabled={saving}>Anulează</Button>
-            <Button onClick={handleAdd} disabled={saving}>
-              {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Se salvează...</> : "Adaugă Serviciu"}
+          <DialogFooter className="pt-6 border-t mt-6">
+            <Button variant="ghost" onClick={() => setShowAdd(false)} disabled={saving} className="rounded-xl h-11 px-6">
+              Anulează
+            </Button>
+            <Button onClick={handleAdd} disabled={saving} className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl h-11 px-8 font-bold text-white">
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Se salvează...
+                </>
+              ) : (
+                "Adaugă Serviciu"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -439,9 +509,12 @@ export default function ServicesPage() {
       {/* Edit Modal */}
       <Dialog open={showEdit} onOpenChange={setShowEdit}>
         <DialogContent className="max-w-md rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Editează Serviciu</DialogTitle>
-            <DialogDescription>Actualizează datele serviciului</DialogDescription>
+          <DialogHeader className="pb-4 border-b">
+            <div className="w-12 h-12 rounded-2xl bg-primary/5 dark:bg-primary/10 flex items-center justify-center mb-4">
+              <Wrench className="w-6 h-6 text-primary" />
+            </div>
+            <DialogTitle className="text-2xl font-bold tracking-tight">Editează Serviciu</DialogTitle>
+            <DialogDescription className="text-muted-foreground">Actualizează tarifele sau detaliile procedurii medicale.</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -512,10 +585,19 @@ export default function ServicesPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEdit(false)} disabled={saving}>Anulează</Button>
-            <Button onClick={handleEdit} disabled={saving}>
-              {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Se salvează...</> : "Salvează"}
+          <DialogFooter className="pt-6 border-t mt-6">
+            <Button variant="ghost" onClick={() => setShowEdit(false)} disabled={saving} className="rounded-xl h-11 px-6">
+              Anulează
+            </Button>
+            <Button onClick={handleEdit} disabled={saving} className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl h-11 px-8 font-bold text-white">
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Se salvează...
+                </>
+              ) : (
+                "Salvează Modificările"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

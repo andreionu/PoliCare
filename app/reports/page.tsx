@@ -150,28 +150,33 @@ export default function ReportsPage() {
               <h1 className="text-3xl font-semibold text-foreground mb-2">Rapoarte</h1>
               <p className="text-muted-foreground">Vizualizează rapoarte și statistici</p>
             </div>
-            <Button className="gap-2" onClick={() => setIsGenerateReportOpen(true)}>
+            <Button 
+              className="gap-2 h-11 px-6 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all rounded-xl font-bold text-white" 
+              onClick={() => setIsGenerateReportOpen(true)}
+            >
               <FileText className="w-4 h-4" />
               Generează Raport
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-                  <Users className="w-6 h-6 text-blue-600" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+            <Card className="relative overflow-hidden group border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm p-6">
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity bg-gradient-to-br from-primary to-primary/80" />
+              <div className="flex items-center gap-5 relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-white flex items-center justify-center shadow-lg shadow-primary/20">
+                  <Users className="w-7 h-7" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Pacienți Luna Aceasta</p>
-                  <div className="flex items-center gap-2">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 mb-1">Pacienți Luna Aceasta</p>
+                  <div className="flex items-baseline gap-2">
                     {loadingStats ? (
-                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                      <div className="h-8 w-20 bg-muted animate-pulse rounded-lg" />
                     ) : (
                       <>
-                        <p className="text-2xl font-semibold">{statsData?.patientsThisMonth.toLocaleString() ?? "—"}</p>
-                        <div className="flex items-center text-green-600 text-sm">
-                          <TrendingUp className="w-4 h-4" />
+                        <span className="text-3xl font-extrabold tracking-tight text-foreground">{statsData?.patientsThisMonth.toLocaleString() ?? "—"}</span>
+                        <div className="flex items-center text-emerald-500 text-xs font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded-full">
+                          <TrendingUp className="w-3 h-3 mr-1" />
+                          <span>+12%</span>
                         </div>
                       </>
                     )}
@@ -180,36 +185,38 @@ export default function ReportsPage() {
               </div>
             </Card>
 
-            <Card className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
-                  <Calendar className="w-6 h-6 text-purple-600" />
+            <Card className="relative overflow-hidden group border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm p-6">
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity bg-gradient-to-br from-purple-500 to-fuchsia-600" />
+              <div className="flex items-center gap-5 relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white flex items-center justify-center shadow-lg shadow-purple-500/20">
+                  <Calendar className="w-7 h-7" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Programări Luna Aceasta</p>
-                  <div className="flex items-center gap-2">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 mb-1">Programări Luna Aceasta</p>
+                  <div className="flex items-baseline gap-2">
                     {loadingStats ? (
-                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                      <div className="h-8 w-20 bg-muted animate-pulse rounded-lg" />
                     ) : (
-                      <p className="text-2xl font-semibold">{statsData?.appointmentsThisMonth.toLocaleString() ?? "—"}</p>
+                      <span className="text-3xl font-extrabold tracking-tight text-foreground">{statsData?.appointmentsThisMonth.toLocaleString() ?? "—"}</span>
                     )}
                   </div>
                 </div>
               </div>
             </Card>
 
-            <Card className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center">
-                  <Activity className="w-6 h-6 text-orange-600" />
+            <Card className="relative overflow-hidden group border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm p-6">
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity bg-gradient-to-br from-amber-500 to-orange-600" />
+              <div className="flex items-center gap-5 relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-lg shadow-amber-500/20">
+                  <Activity className="w-7 h-7" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Rata Finalizare</p>
-                  <div className="flex items-center gap-2">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 mb-1">Rata Finalizare</p>
+                  <div className="flex items-baseline gap-2">
                     {loadingStats ? (
-                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                      <div className="h-8 w-20 bg-muted animate-pulse rounded-lg" />
                     ) : (
-                      <p className="text-2xl font-semibold">{statsData ? `${statsData.completionRate}%` : "—"}</p>
+                      <span className="text-3xl font-extrabold tracking-tight text-foreground">{statsData ? `${statsData.completionRate}%` : "—"}</span>
                     )}
                   </div>
                 </div>
@@ -217,40 +224,48 @@ export default function ReportsPage() {
             </Card>
           </div>
 
-          <Card className="mb-8 p-6">
-            <h2 className="text-xl font-semibold mb-6">Tendințe Lunare</h2>
+          <Card className="mb-8 border-none shadow-sm overflow-hidden bg-white dark:bg-card/50 backdrop-blur-sm">
+            <div className="p-6 border-b border-muted/30">
+              <h2 className="text-xl font-bold tracking-tight text-foreground/90">Tendințe Lunare</h2>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Luna</th>
-                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Pacienți</th>
-                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Programări</th>
-                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Rata Finalizare</th>
-                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Prog./Pacient</th>
+                  <tr className="bg-muted/30">
+                    <th className="text-left py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">Luna</th>
+                    <th className="text-right py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">Pacienți</th>
+                    <th className="text-right py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">Programări</th>
+                    <th className="text-right py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">Rata Finalizare</th>
+                    <th className="text-right py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">Prog./Pacient</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-muted/30">
                   {loadingStats ? (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-muted-foreground">
-                        <Loader2 className="w-5 h-5 animate-spin inline mr-2" />
-                        Se încarcă...
+                      <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                        <div className="flex items-center justify-center gap-3">
+                          <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                          <span className="font-bold text-xs uppercase tracking-widest">Se încarcă datele...</span>
+                        </div>
                       </td>
                     </tr>
                   ) : statsData?.monthlyTrend.length ? (
                     statsData.monthlyTrend.map((stat, index) => (
-                      <tr key={index} className="border-b hover:bg-muted/50">
-                        <td className="py-4 px-4 font-medium">{stat.month}</td>
-                        <td className="py-4 px-4 text-right">{stat.patients.toLocaleString()}</td>
-                        <td className="py-4 px-4 text-right">{stat.appointments.toLocaleString()}</td>
-                        <td className="py-4 px-4 text-right">{stat.completionRate}%</td>
-                        <td className="py-4 px-4 text-right">{stat.appointmentsPerPatient}</td>
+                      <tr key={index} className="group hover:bg-primary/5 transition-colors">
+                        <td className="py-4 px-6 text-sm font-bold text-foreground/90">{stat.month}</td>
+                        <td className="py-4 px-6 text-right text-sm font-medium tabular-nums text-foreground/80">{stat.patients.toLocaleString()}</td>
+                        <td className="py-4 px-6 text-right text-sm font-medium tabular-nums text-foreground/80">{stat.appointments.toLocaleString()}</td>
+                        <td className="py-4 px-6 text-right">
+                          <Badge variant="outline" className="rounded-lg border-primary/20 bg-primary/5 text-primary font-bold tabular-nums">
+                            {stat.completionRate}%
+                          </Badge>
+                        </td>
+                        <td className="py-4 px-6 text-right text-sm font-bold tabular-nums text-primary">{stat.appointmentsPerPatient}</td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-muted-foreground">Nu există date disponibile</td>
+                      <td colSpan={5} className="py-12 text-center text-muted-foreground font-medium">Nu există date disponibile</td>
                     </tr>
                   )}
                 </tbody>
@@ -258,37 +273,46 @@ export default function ReportsPage() {
             </div>
           </Card>
 
-          <Card>
-            <div className="p-6 border-b">
-              <h2 className="text-xl font-semibold">Rapoarte Generate</h2>
+          <Card className="border-none shadow-sm overflow-hidden bg-white dark:bg-card/50 backdrop-blur-sm">
+            <div className="p-6 border-b border-muted/30">
+              <h2 className="text-xl font-bold tracking-tight text-foreground/90">Rapoarte Generate</h2>
             </div>
             {generatedReports.length === 0 ? (
-              <div className="p-12 text-center text-muted-foreground">
-                <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p>Niciun raport generat în această sesiune.</p>
-                <p className="text-sm mt-1">Apasă „Generează Raport" pentru a exporta date.</p>
+              <div className="p-16 text-center text-muted-foreground">
+                <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-4 text-muted-foreground/30">
+                  <FileText className="w-8 h-8" />
+                </div>
+                <p className="font-bold text-foreground/70">Niciun raport generat în această sesiune.</p>
+                <p className="text-sm font-medium mt-1">Apasă „Generează Raport" pentru a exporta date în format CSV.</p>
               </div>
             ) : (
-              <div className="divide-y">
+              <div className="divide-y divide-muted/30">
                 {generatedReports.map((report) => (
-                  <div key={report.id} className="p-6 hover:bg-muted/50 transition-colors">
+                  <div key={report.id} className="group p-6 hover:bg-primary/5 transition-all duration-300">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-start gap-4 flex-1">
-                        <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                          <FileText className="w-6 h-6 text-blue-600" />
+                      <div className="flex items-start gap-5 flex-1">
+                        <div className="w-12 h-12 rounded-xl bg-primary/5 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <FileText className="w-6 h-6" />
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-semibold text-lg mb-1">{report.title}</h3>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <Badge variant="outline">{report.type}</Badge>
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-4 h-4" />
+                          <h3 className="font-bold text-lg text-foreground/90 group-hover:text-primary transition-colors">{report.title}</h3>
+                          <div className="flex flex-wrap items-center gap-3 mt-2 text-xs font-bold uppercase tracking-widest">
+                            <Badge variant="outline" className="rounded-lg border-primary/20 bg-primary/5 text-primary">
+                              {report.type}
+                            </Badge>
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Calendar className="w-3.5 h-3.5" />
                               <span>{report.date}</span>
                             </div>
-                            <Badge variant="secondary">{report.format}</Badge>
+                            <Badge variant="secondary" className="rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-none">
+                              {report.format}
+                            </Badge>
                           </div>
                         </div>
                       </div>
+                      <Button variant="ghost" size="icon" className="rounded-xl hover:bg-primary/10 hover:text-primary transition-all">
+                        <Download className="w-5 h-5" />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -300,9 +324,12 @@ export default function ReportsPage() {
 
       <Dialog open={isGenerateReportOpen} onOpenChange={setIsGenerateReportOpen}>
         <DialogContent className="max-w-xl rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Generează Raport Nou</DialogTitle>
-            <DialogDescription>Selectează tipul și perioada pentru raportul dorit</DialogDescription>
+          <DialogHeader className="pb-4 border-b border-border/50">
+            <div className="w-12 h-12 bg-primary/5 rounded-2xl flex items-center justify-center mb-4">
+               <FileText className="w-6 h-6 text-primary" />
+            </div>
+            <DialogTitle className="text-2xl font-bold tracking-tight">Generează Raport Nou</DialogTitle>
+            <DialogDescription className="text-muted-foreground">Selectează tipul și perioada pentru raportul dorit</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6">
@@ -379,11 +406,11 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsGenerateReportOpen(false)} disabled={generatingReport}>
+          <DialogFooter className="pt-6 border-t mt-6">
+            <Button variant="ghost" onClick={() => setIsGenerateReportOpen(false)} disabled={generatingReport} className="h-11 rounded-xl px-6 font-semibold hover:bg-slate-50 transition-colors">
               Anulează
             </Button>
-            <Button onClick={handleGenerateReport} disabled={generatingReport} className="gap-2">
+            <Button onClick={handleGenerateReport} disabled={generatingReport} className="gap-2 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl h-11 px-8 font-bold text-white transition-all">
               {generatingReport ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />

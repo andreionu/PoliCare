@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { sendEmail as sendEmailLib } from "@/lib/email"
 import { sendSMS as sendSMSLib } from "@/lib/sms"
 
-export type NotificationEvent = "CONFIRMATION" | "CANCELLATION" | "REMINDER" | "CUSTOM"
+export type NotificationEvent = "CONFIRMATION" | "CANCELLATION" | "REMINDER" | "CUSTOM" | "BOOKING_RECEIVED"
 
 interface AppointmentData {
   id: string
@@ -84,6 +84,13 @@ function buildEmailHtml(event: NotificationEvent, data: AppointmentData, customM
       )
     case "CUSTOM":
       return wrap("Mesaj de la Clinică", `<p style="color:#374151">${customMessage ?? ""}</p>`)
+    case "BOOKING_RECEIVED":
+      return wrap(
+        "Cerere de Programare Primită 📋",
+        `<p style="color:#374151">Am primit cererea dumneavoastră de programare. O vom analiza și vă vom confirma în cel mai scurt timp.</p>
+        ${apptDetails}
+        <p style="color:#374151">Dacă aveți întrebări, nu ezitați să ne contactați.</p>`
+      )
   }
 }
 
@@ -101,6 +108,8 @@ function buildSMSBody(event: NotificationEvent, data: AppointmentData, customMes
       return `Reminder: Programare pe ${dateStr} la ora ${data.startTime} cu Dr. ${data.doctor.name}. Va asteptam!`
     case "CUSTOM":
       return customMessage ?? "Mesaj de la clinica."
+    case "BOOKING_RECEIVED":
+      return `Cererea de programare la Dr. ${data.doctor.name} pe ${dateStr} la ora ${data.startTime} a fost primita. Va vom confirma curand.`
   }
 }
 
@@ -111,6 +120,7 @@ const EMAIL_SUBJECTS: Record<NotificationEvent, string> = {
   CANCELLATION: "Programare Anulată — Clinica",
   REMINDER: "Reminder Programare — Clinica",
   CUSTOM: "Mesaj de la Clinică",
+  BOOKING_RECEIVED: "Cerere de Programare Primită — Clinica",
 }
 
 // ─── Main orchestrator ────────────────────────────────────────────────────────

@@ -12,6 +12,7 @@ const DEFAULT_SETTINGS = {
   defaultAppointmentDuration: 30,
   workdayStart: "08:00",
   workdayEnd: "18:00",
+  workingDays: "0,1,2,3,4",
   reminderEnabled: true,
   reminderHoursBefore: 24,
 }
@@ -44,6 +45,7 @@ export async function PUT(request: Request) {
     if (body.defaultAppointmentDuration !== undefined) data.defaultAppointmentDuration = body.defaultAppointmentDuration
     if (body.workdayStart !== undefined) data.workdayStart = body.workdayStart
     if (body.workdayEnd !== undefined) data.workdayEnd = body.workdayEnd
+    if (body.workingDays !== undefined) data.workingDays = body.workingDays
     if (body.reminderEnabled !== undefined) data.reminderEnabled = body.reminderEnabled
     if (body.reminderHoursBefore !== undefined) data.reminderHoursBefore = body.reminderHoursBefore
 

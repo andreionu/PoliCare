@@ -265,34 +265,37 @@ export default function UsersPage() {
               <h1 className="text-3xl font-bold">Gestionare Utilizatori</h1>
               <p className="text-muted-foreground mt-1">Administrează accesul utilizatorilor la sistem</p>
             </div>
-            <Button onClick={() => setShowAddUser(true)} size="lg">
-              <UserPlus className="w-4 h-4 mr-2" />
+            <Button 
+              className="gap-2 h-11 px-6 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all rounded-xl font-bold text-white" 
+              onClick={() => setShowAddUser(true)}
+            >
+              <UserPlus className="w-4 h-4" />
               Utilizator Nou
             </Button>
           </div>
 
           {/* Stats */}
           <div className="grid md:grid-cols-4 gap-4">
-            <Card className="p-4">
-              <div className="text-sm text-muted-foreground mb-1">Total Utilizatori</div>
-              <div className="text-2xl font-bold">{users.length}</div>
+            <Card className="p-5 border-none shadow-sm hover:shadow-md transition-all rounded-2xl bg-white dark:bg-card/50">
+              <div className="text-sm font-semibold text-muted-foreground mb-2">Total Utilizatori</div>
+              <div className="text-3xl font-bold tracking-tight text-primary">{users.length}</div>
             </Card>
-            <Card className="p-4">
-              <div className="text-sm text-muted-foreground mb-1">Super Admini</div>
-              <div className="text-2xl font-bold">{users.filter((u) => u.role === "SUPER_ADMIN").length}</div>
+            <Card className="p-5 border-none shadow-sm hover:shadow-md transition-all rounded-2xl bg-white dark:bg-card/50">
+              <div className="text-sm font-semibold text-muted-foreground mb-2">Super Admini</div>
+              <div className="text-3xl font-bold tracking-tight text-purple-600">{users.filter((u) => u.role === "SUPER_ADMIN").length}</div>
             </Card>
-            <Card className="p-4">
-              <div className="text-sm text-muted-foreground mb-1">Personal Recepție</div>
-              <div className="text-2xl font-bold">{users.filter((u) => u.role === "FRONT_DESK").length}</div>
+            <Card className="p-5 border-none shadow-sm hover:shadow-md transition-all rounded-2xl bg-white dark:bg-card/50">
+              <div className="text-sm font-semibold text-muted-foreground mb-2">Personal Recepție</div>
+              <div className="text-3xl font-bold tracking-tight text-blue-600">{users.filter((u) => u.role === "FRONT_DESK").length}</div>
             </Card>
-            <Card className="p-4">
-              <div className="text-sm text-muted-foreground mb-1">Activi</div>
-              <div className="text-2xl font-bold">{users.filter((u) => u.status === "ACTIVE").length}</div>
+            <Card className="p-5 border-none shadow-sm hover:shadow-md transition-all rounded-2xl bg-white dark:bg-card/50">
+              <div className="text-sm font-semibold text-muted-foreground mb-2">Activi</div>
+              <div className="text-3xl font-bold tracking-tight text-emerald-600">{users.filter((u) => u.status === "ACTIVE").length}</div>
             </Card>
           </div>
 
           {/* Search */}
-          <Card className="p-4">
+          <Card className="p-4 border-none shadow-sm rounded-2xl bg-white dark:bg-card/50">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -374,9 +377,12 @@ export default function UsersPage() {
       {/* Add User Modal */}
       <Dialog open={showAddUser} onOpenChange={setShowAddUser}>
         <DialogContent className="max-w-md rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Adaugă Utilizator Nou</DialogTitle>
-            <DialogDescription>Creează un cont nou pentru personalul clinicii</DialogDescription>
+          <DialogHeader className="pb-4 border-b">
+            <div className="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center mb-4">
+               <UserPlus className="w-6 h-6 text-primary" />
+            </div>
+            <DialogTitle className="text-2xl font-bold tracking-tight">Adaugă Utilizator Nou</DialogTitle>
+            <DialogDescription className="text-muted-foreground">Creează un cont nou pentru personalul clinicii</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -444,10 +450,10 @@ export default function UsersPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddUser(false)} disabled={saving}>Anulează</Button>
-            <Button onClick={handleAddUser} disabled={saving}>
-              {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Se salvează...</> : "Adaugă Utilizator"}
+          <DialogFooter className="pt-6 border-t mt-6">
+            <Button variant="ghost" onClick={() => setShowAddUser(false)} disabled={saving} className="h-11 rounded-xl px-6 font-semibold">Anulează</Button>
+            <Button onClick={handleAddUser} disabled={saving} className="bg-primary hover:bg-primary/90 h-11 px-8 rounded-xl font-bold text-white shadow-lg shadow-primary/20 transition-all">
+              {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Salvare...</> : "Adaugă Utilizator"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -456,9 +462,12 @@ export default function UsersPage() {
       {/* Edit User Modal */}
       <Dialog open={showEditUser} onOpenChange={setShowEditUser}>
         <DialogContent className="max-w-md rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Editează Utilizator</DialogTitle>
-            <DialogDescription>Actualizează datele contului</DialogDescription>
+          <DialogHeader className="pb-4 border-b">
+            <div className="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center mb-4">
+               <Edit className="w-6 h-6 text-primary" />
+            </div>
+            <DialogTitle className="text-2xl font-bold tracking-tight">Editează Utilizator</DialogTitle>
+            <DialogDescription className="text-muted-foreground">Actualizează datele contului</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -535,10 +544,10 @@ export default function UsersPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditUser(false)} disabled={saving}>Anulează</Button>
-            <Button onClick={handleEditUser} disabled={saving}>
-              {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Se salvează...</> : "Salvează Modificările"}
+          <DialogFooter className="pt-6 border-t mt-6">
+            <Button variant="ghost" onClick={() => setShowEditUser(false)} disabled={saving} className="h-11 rounded-xl px-6 font-semibold">Anulează</Button>
+            <Button onClick={handleEditUser} disabled={saving} className="bg-primary hover:bg-primary/90 h-11 px-8 rounded-xl font-bold text-white shadow-lg shadow-primary/20 transition-all">
+              {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Salvare...</> : "Salvează Modificările"}
             </Button>
           </DialogFooter>
         </DialogContent>

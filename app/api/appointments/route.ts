@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { sendAppointmentNotification } from "@/lib/notifications"
 
 // GET /api/appointments - Get all appointments
 export async function GET(request: Request) {
@@ -122,6 +123,25 @@ export async function POST(request: Request) {
         department: true,
       },
     })
+
+    if (body.sendEmail || body.sendSMS) {
+      void sendAppointmentNotification(
+        {
+          id: appointment.id,
+          date: appointment.date,
+          startTime: appointment.startTime,
+          patient: {
+            name: appointment.patient.name,
+            email: appointment.patient.email,
+            phone: appointment.patient.phone,
+          },
+          doctor: { name: appointment.doctor.name },
+          department: appointment.department ? { name: appointment.department.name } : null,
+        },
+        "BOOKING_RECEIVED",
+        { sendEmail: body.sendEmail ?? false, sendSMS: body.sendSMS ?? false }
+      )
+    }
 
     return NextResponse.json(appointment, { status: 201 })
   } catch (error) {

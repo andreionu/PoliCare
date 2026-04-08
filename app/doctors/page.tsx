@@ -9,7 +9,25 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, UserPlus, Stethoscope, Clock, Users, Star, Loader2 } from "lucide-react"
+import { 
+  Search, 
+  UserPlus, 
+  Stethoscope, 
+  Clock, 
+  Users, 
+  Star, 
+  Loader2, 
+  Plus, 
+  UserX, 
+  MoreHorizontal, 
+  ArrowRight,
+  TrendingUp,
+  Activity,
+  Award,
+  ChevronRight,
+  Mail,
+  Phone
+} from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useEffect, useMemo } from "react"
@@ -23,6 +41,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 
 // Types
 interface Doctor {
@@ -76,7 +95,7 @@ export default function DoctorsPage() {
   const [errors, setErrors] = useState<Record<string, boolean>>({})
   const { toast } = useToast()
 
-  // Fetch doctors from API (server-side search + optional departmentId filter)
+  // Fetch doctors from API
   const fetchDoctors = async (search?: string) => {
     setLoading(true)
     try {
@@ -99,7 +118,7 @@ export default function DoctorsPage() {
     }
   }
 
-  // Fetch departments for the select dropdown
+  // Fetch departments
   const fetchDepartments = async () => {
     try {
       const response = await fetch("/api/departments")
@@ -112,24 +131,12 @@ export default function DoctorsPage() {
   }
 
   useEffect(() => {
-    fetchDoctors()
-    fetchDepartments()
-  }, [departmentIdFilter])
+    fetchDoctors(debouncedSearch)
+  }, [debouncedSearch, departmentIdFilter])
 
   useEffect(() => {
-    fetchDoctors(debouncedSearch || undefined)
-  }, [debouncedSearch])
-
-  // Stats — memoized to avoid recalculation on every render
-  const { totalDoctors, activeDoctors, onLeaveDoctors, avgRating } = useMemo(() => {
-    const total = doctors.length
-    const active = doctors.filter((d) => d.status === "ACTIV").length
-    const onLeave = doctors.filter((d) => d.status === "IN_CONCEDIU").length
-    const avg = total > 0
-      ? (doctors.reduce((sum, d) => sum + d.rating, 0) / total).toFixed(1)
-      : "0"
-    return { totalDoctors: total, activeDoctors: active, onLeaveDoctors: onLeave, avgRating: avg }
-  }, [doctors])
+    fetchDepartments()
+  }, [])
 
   const handleAddDoctor = async () => {
     const newErrors: Record<string, boolean> = {}
@@ -141,371 +148,383 @@ export default function DoctorsPage() {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
-      toast({
-        title: "Eroare validare",
-        description: "Te rugăm să completezi toate câmpurile obligatorii.",
-        variant: "destructive",
-      })
       return
     }
 
     setSaving(true)
-
     try {
       const response = await fetch("/api/doctors", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          specialty: formData.specialty,
-          experience: formData.experience || "0 ani",
-          bio: formData.bio || null,
-          departmentId: formData.departmentId,
-          status: "ACTIV",
-        }),
+        body: JSON.stringify(formData),
       })
 
-      if (!response.ok) throw new Error("Failed to create doctor")
-
-      await fetchDoctors()
+      if (!response.ok) throw new Error("Failed to add")
 
       toast({
-        title: "Medic adăugat",
-        description: `Dr. ${formData.name} a fost adăugat cu succes în sistem.`,
+        title: "Succes",
+        description: "Medicul a fost adăugat cu succes.",
       })
-
       setIsAddDoctorOpen(false)
-      setFormData({ name: "", specialty: "", email: "", phone: "", bio: "", experience: "", departmentId: "" })
-      setErrors({})
+      setFormData({
+        name: "",
+        specialty: "",
+        email: "",
+        phone: "",
+        bio: "",
+        experience: "",
+        departmentId: "",
+      })
+      fetchDoctors()
     } catch (error) {
-      console.error("Error creating doctor:", error)
       toast({
         title: "Eroare",
         description: "Nu s-a putut adăuga medicul.",
-        variant: "destructive"
+        variant: "destructive",
       })
     } finally {
       setSaving(false)
     }
   }
 
-  // Helper to format status for display
   const getStatusDisplay = (status: string) => {
-    const statusMap: Record<string, string> = {
-      ACTIV: "Activ",
-      IN_CONCEDIU: "În concediu",
-      INDISPONIBIL: "Indisponibil",
+    switch (status) {
+      case "ACTIV": return "Activ"
+      case "INACTIV": return "În repaus"
+      case "CONCEDIU": return "Concediu"
+      default: return status
     }
-    return statusMap[status] || status
   }
+
+  // Calculations for stats
+  const stats = useMemo(() => {
+    return {
+      total: doctors.length,
+      active: doctors.filter(d => d.status === "ACTIV").length,
+      avgRating: doctors.length > 0 ? (doctors.reduce((acc, d) => acc + d.rating, 0) / doctors.length).toFixed(1) : "0.0"
+    }
+  }, [doctors])
 
   return (
     <AdminLayout>
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-8 max-w-[1600px] mx-auto">
-          <div className="mb-8 flex items-center justify-between">
+      <main className="flex-1 p-6 overflow-auto">
+        <div className="max-w-[1600px] mx-auto space-y-8">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-semibold text-foreground mb-2">Medici</h1>
-              <p className="text-muted-foreground">Gestionează medicii și specialitățile</p>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/5 text-primary text-xs font-semibold mb-4 border border-primary/10 uppercase tracking-wider">
+                Management Portal
+              </div>
+              <h1 className="text-4xl font-extrabold text-foreground tracking-tight mb-2">Medici</h1>
+              <p className="text-muted-foreground text-lg italic">Gestiunea echipei de specialiști și a programului de consultații.</p>
             </div>
-            <Button className="gap-2" onClick={() => setIsAddDoctorOpen(true)}>
-              <UserPlus className="w-4 h-4" />
-              Adaugă Medic
+            <Button 
+              className="gap-2 h-11 px-6 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all rounded-xl font-bold text-white" 
+              onClick={() => setIsAddDoctorOpen(true)}
+            >
+              <Plus className="w-4 h-4" />
+              Medic Nou
             </Button>
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-                  <Stethoscope className="w-6 h-6 text-blue-600" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { label: "Total Medici", val: stats.total, icon: Stethoscope, color: "text-primary", bg: "bg-primary/5", shadow: "shadow-primary/10" },
+              { label: "Sesiuni Active", val: stats.active, icon: Activity, color: "text-emerald-600", bg: "bg-emerald-50", shadow: "shadow-emerald-200" },
+              { label: "Rating Mediu", val: stats.avgRating, icon: Award, color: "text-amber-600", bg: "bg-amber-50", shadow: "shadow-amber-200" },
+            ].map((stat, i) => (
+              <Card key={i} className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm rounded-2xl">
+                <div className={cn("absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 rounded-full blur-3xl opacity-50 group-hover:opacity-100 transition-opacity", stat.bg)} />
+                <div className="flex items-center gap-4 relative z-10">
+                  <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110", stat.bg, stat.shadow)}>
+                    <stat.icon className={cn("w-7 h-7", stat.color)} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">{stat.label}</p>
+                    <p className={cn("text-3xl font-bold tracking-tight", stat.color)}>{loading ? "..." : stat.val}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Medici</p>
-                  <p className="text-2xl font-semibold">{totalDoctors}</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
-                  <Users className="w-6 h-6 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Medici Activi</p>
-                  <p className="text-2xl font-semibold">{activeDoctors}</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
-                  <Star className="w-6 h-6 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Rating Mediu</p>
-                  <p className="text-2xl font-semibold">{avgRating}</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-orange-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">În Concediu</p>
-                  <p className="text-2xl font-semibold">{onLeaveDoctors}</p>
-                </div>
-              </div>
-            </Card>
+              </Card>
+            ))}
           </div>
 
-          {/* Search Bar */}
-          <div className="mb-6">
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Caută medic sau specialitate..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+          {/* Filters and Search */}
+          <div className="flex flex-col xl:flex-row items-center justify-between gap-6 bg-white dark:bg-card/50 p-4 rounded-2xl shadow-sm border border-border/50">
+            <div className="flex flex-col sm:flex-row gap-4 flex-1 w-full xl:w-auto">
+              <div className="relative flex-1 max-w-md group">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 transition-colors group-focus-within:text-primary" />
+                <Input
+                  placeholder="Caută după nume sau specialitate..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-12 h-12 bg-muted/50 border-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-xl transition-all font-medium"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 w-full sm:w-auto self-start xl:self-center">
+              <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                Afișare: <span className="text-foreground">{loading ? "..." : doctors.length} specialiști</span>
+              </p>
             </div>
           </div>
 
           {/* Doctors Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {loading ? (
-              <Card className="p-8 text-center col-span-full">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-                <p className="mt-2 text-muted-foreground">Se încarcă medicii...</p>
-              </Card>
+              Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="h-64 bg-white rounded-2xl animate-pulse border border-slate-100 shadow-sm" />
+              ))
             ) : doctors.length === 0 ? (
-              <Card className="p-8 text-center col-span-full">
-                <p className="text-muted-foreground">
-                  {searchQuery ? "Nu s-au găsit medici." : "Nu există medici. Adaugă primul medic!"}
+              <div className="col-span-full flex flex-col items-center justify-center py-20 px-6 text-center bg-white dark:bg-card/50 rounded-2xl border border-border/50">
+                <div className="w-20 h-20 rounded-2xl bg-slate-50 flex items-center justify-center mb-6">
+                  <UserX className="w-10 h-10 text-slate-200" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground mb-2">Niciun medic găsit</h3>
+                <p className="text-muted-foreground max-w-sm mx-auto mb-8">
+                  {searchQuery 
+                    ? `Nu am găsit niciun medic care să corespundă căutării "${searchQuery}".` 
+                    : "Nu există medici înregistrați în acest moment."}
                 </p>
-              </Card>
+                <Button 
+                  variant="outline" 
+                  className="h-11 px-6 rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 font-bold"
+                  onClick={() => setSearchQuery("")}
+                >
+                  Resetează căutarea
+                </Button>
+              </div>
             ) : (
               doctors.map((doctor) => (
-                <Card key={doctor.id} className="p-6 hover:shadow-lg transition-shadow">
-                  <div className="flex items-start gap-4 mb-4">
-                    <Avatar className="w-16 h-16">
-                      <AvatarImage src={doctor.avatar || "/placeholder.svg"} />
-                      <AvatarFallback>
-                        {doctor.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-lg mb-1">{doctor.name}</h3>
-                      <p className="text-sm text-muted-foreground mb-2">{doctor.specialty}</p>
-                      <Badge variant={doctor.status === "ACTIV" ? "default" : "secondary"}>
-                        {getStatusDisplay(doctor.status)}
-                      </Badge>
+                <Card 
+                  key={doctor.id} 
+                  className="group relative bg-white dark:bg-card/50 rounded-2xl border border-border/50 p-6 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 transition-all duration-300 flex flex-col"
+                >
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-tr from-primary to-primary/80 rounded-2xl blur-sm opacity-20 group-hover:opacity-40 transition-opacity" />
+                      <Avatar className="h-16 w-16 rounded-2xl border-2 border-white shadow-sm relative z-10">
+                        <AvatarImage src={doctor.avatar || "/placeholder.svg"} className="object-cover" />
+                        <AvatarFallback className="bg-slate-100 text-primary font-bold text-lg uppercase">
+                          {doctor.name.split(" ").map((n) => n[0]).join("")}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                    <Badge className={cn(
+                      "rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider border shadow-sm",
+                      doctor.status === "ACTIV" 
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
+                        : "bg-amber-50 text-amber-700 border-amber-100"
+                    )}>
+                      {getStatusDisplay(doctor.status)}
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-4 flex-1">
+                    <div>
+                      <h3 className="font-bold text-lg text-foreground tracking-tight group-hover:text-primary transition-colors leading-none uppercase mb-2">{doctor.name}</h3>
+                      <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-lg">
+                        <Stethoscope className="w-3 h-3 text-primary" />
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{doctor.specialty}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 py-4 border-y border-slate-100/60">
+                      <div className="space-y-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Pacienți</p>
+                        <p className="text-lg font-bold text-foreground">{doctor._count?.patients || 0}</p>
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Experiență</p>
+                        <p className="text-lg font-bold text-foreground">{doctor.experience}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 rounded-xl border border-amber-100">
+                        <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                        <span className="text-[11px] font-bold text-amber-700">{doctor.rating}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-500 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                           <Award className="w-4 h-4" />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="space-y-3 mb-4">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Users className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">{doctor._count?.patients || 0} pacienți</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">{doctor.experience} experiență</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                      <span className="font-medium">{doctor.rating}</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t">
-                    <p className="text-xs text-muted-foreground mb-3">{doctor.department?.name}</p>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1 bg-transparent" asChild>
-                        <Link href={`/doctors/${doctor.id}`}>Vezi Profil</Link>
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => router.push(`/appointments?doctorId=${doctor.id}`)}
-                      >
-                        Programează
-                      </Button>
-                    </div>
+                  <div className="mt-6 flex gap-3 pt-6 border-t border-slate-100/60">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1 h-10 rounded-xl font-bold text-xs uppercase tracking-widest text-[#206070] border-[#206070]/10 hover:bg-slate-50"
+                      asChild
+                    >
+                      <Link href={`/doctors/${doctor.id}`}>Profil</Link>
+                    </Button>
+                    <Button
+                      className="flex-1 h-10 bg-white text-slate-900 border border-slate-200 shadow-sm hover:shadow-md hover:border-primary/20 rounded-xl font-bold text-xs uppercase tracking-widest transition-all"
+                      onClick={() => router.push(`/appointments?doctorId=${doctor.id}`)}
+                    >
+                      Calendar
+                    </Button>
                   </div>
                 </Card>
               ))
             )}
           </div>
         </div>
-      </div>
+      </main>
 
       <Dialog open={isAddDoctorOpen} onOpenChange={setIsAddDoctorOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Adaugă Medic Nou</DialogTitle>
-            <DialogDescription>Completează informațiile medicului</DialogDescription>
-          </DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border-none shadow-2xl p-0">
+          <div className="p-8 space-y-8">
+            <DialogHeader>
+              <div className="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center mb-4">
+                <UserPlus className="w-6 h-6 text-primary" />
+              </div>
+              <DialogTitle className="text-2xl font-bold text-foreground tracking-tight">Adaugă Medic Nou</DialogTitle>
+              <DialogDescription className="text-muted-foreground font-medium">
+                Înregistrează un nou specialist medical în baza de date **PoliCare**.
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="py-6 space-y-6">
-            {/* Name */}
-            <div>
-              <Label htmlFor="name">
-                Nume complet <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="name"
-                placeholder="Dr. Ion Popescu"
-                value={formData.name}
-                onChange={(e) => {
-                  setFormData({ ...formData, name: e.target.value })
-                  setErrors({ ...errors, name: false })
-                }}
-                className={`mt-2 ${errors.name ? "border-destructive" : ""}`}
-              />
-              {errors.name && <p className="text-sm text-destructive mt-1">Numele este obligatoriu</p>}
+            <div className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Nume Complet</Label>
+                  <Input
+                    placeholder="Dr. Andrei Ionescu"
+                    value={formData.name}
+                    onChange={(e) => {
+                      setFormData({ ...formData, name: e.target.value })
+                      setErrors({ ...errors, name: false })
+                    }}
+                    className={cn("h-12 rounded-xl bg-muted/50 border-none px-4 font-medium", errors.name && "ring-2 ring-rose-500")}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Departament</Label>
+                  <Select
+                    value={formData.departmentId}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, departmentId: value })
+                      setErrors({ ...errors, departmentId: false })
+                    }}
+                  >
+                    <SelectTrigger className={cn("h-12 rounded-xl bg-muted/50 border-none px-4 font-medium", errors.departmentId && "ring-2 ring-rose-500")}>
+                      <SelectValue placeholder="Selectează departamentul" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-none shadow-xl">
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id} className="rounded-lg my-1 mx-1">
+                          {dept.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Specialitate</Label>
+                  <Input
+                    placeholder="Cardiologie"
+                    value={formData.specialty}
+                    onChange={(e) => {
+                      setFormData({ ...formData, specialty: e.target.value })
+                      setErrors({ ...errors, specialty: false })
+                    }}
+                    className={cn("h-12 rounded-xl bg-muted/50 border-none px-4 font-medium", errors.specialty && "ring-2 ring-rose-500")}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Experiență (ani)</Label>
+                  <Input
+                    placeholder="ex: 12"
+                    value={formData.experience}
+                    onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
+                    className="h-12 rounded-xl bg-muted/50 border-none px-4 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Email Profesional</Label>
+                  <div className="relative group">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                    <Input
+                      type="email"
+                      placeholder="andrei.i@policare.ro"
+                      value={formData.email}
+                      onChange={(e) => {
+                        setFormData({ ...formData, email: e.target.value })
+                        setErrors({ ...errors, email: false })
+                      }}
+                      className={cn("h-12 rounded-xl bg-muted/50 border-none pl-12 pr-4 font-medium", errors.email && "ring-2 ring-rose-500")}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Telefon</Label>
+                  <div className="relative group">
+                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                    <Input
+                      type="tel"
+                      placeholder="07XX XXX XXX"
+                      value={formData.phone}
+                      onChange={(e) => {
+                        setFormData({ ...formData, phone: e.target.value })
+                        setErrors({ ...errors, phone: false })
+                      }}
+                      className={cn("h-12 rounded-xl bg-muted/50 border-none pl-12 pr-4 font-medium", errors.phone && "ring-2 ring-rose-500")}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Biografie & Detalii</Label>
+                <Textarea
+                  placeholder="Descrie parcursul profesional și expertiza..."
+                  value={formData.bio}
+                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                  rows={4}
+                  className="resize-none rounded-xl bg-muted/50 border-none p-4 font-medium"
+                />
+              </div>
             </div>
 
-            {/* Department */}
-            <div>
-              <Label htmlFor="department">
-                Departament <span className="text-destructive">*</span>
-              </Label>
-              <Select
-                value={formData.departmentId}
-                onValueChange={(value) => {
-                  setFormData({ ...formData, departmentId: value })
-                  setErrors({ ...errors, departmentId: false })
-                }}
+            <DialogFooter className="flex flex-col sm:flex-row gap-3 pt-6 border-t mt-6">
+              <Button 
+                variant="ghost" 
+                onClick={() => setIsAddDoctorOpen(false)} 
+                disabled={saving} 
+                className="h-11 rounded-xl font-bold uppercase tracking-widest text-muted-foreground/60 hover:bg-slate-50 px-6"
               >
-                <SelectTrigger className={`mt-2 ${errors.departmentId ? "border-destructive" : ""}`}>
-                  <SelectValue placeholder="Selectează departamentul" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((dept) => (
-                    <SelectItem key={dept.id} value={dept.id}>
-                      {dept.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.departmentId && <p className="text-sm text-destructive mt-1">Departamentul este obligatoriu</p>}
-              {departments.length === 0 && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  Nu există departamente. Creează mai întâi un departament.
-                </p>
-              )}
-            </div>
-
-            {/* Specialty */}
-            <div>
-              <Label htmlFor="specialty">
-                Specialitate <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="specialty"
-                placeholder="ex: Cardiologie"
-                value={formData.specialty}
-                onChange={(e) => {
-                  setFormData({ ...formData, specialty: e.target.value })
-                  setErrors({ ...errors, specialty: false })
-                }}
-                className={`mt-2 ${errors.specialty ? "border-destructive" : ""}`}
-              />
-              {errors.specialty && <p className="text-sm text-destructive mt-1">Specialitatea este obligatorie</p>}
-            </div>
-
-            {/* Experience */}
-            <div>
-              <Label htmlFor="experience">Experiență</Label>
-              <Input
-                id="experience"
-                placeholder="ex: 10 ani"
-                value={formData.experience}
-                onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
-                className="mt-2"
-              />
-            </div>
-
-            {/* Email */}
-            <div>
-              <Label htmlFor="email">
-                Email <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="doctor@policare.ro"
-                value={formData.email}
-                onChange={(e) => {
-                  setFormData({ ...formData, email: e.target.value })
-                  setErrors({ ...errors, email: false })
-                }}
-                className={`mt-2 ${errors.email ? "border-destructive" : ""}`}
-              />
-              {errors.email && <p className="text-sm text-destructive mt-1">Email-ul este obligatoriu</p>}
-            </div>
-
-            {/* Phone */}
-            <div>
-              <Label htmlFor="phone">
-                Telefon <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="+40 721 234 567"
-                value={formData.phone}
-                onChange={(e) => {
-                  setFormData({ ...formData, phone: e.target.value })
-                  setErrors({ ...errors, phone: false })
-                }}
-                className={`mt-2 ${errors.phone ? "border-destructive" : ""}`}
-              />
-              {errors.phone && <p className="text-sm text-destructive mt-1">Telefonul este obligatoriu</p>}
-            </div>
-
-            {/* Bio */}
-            <div>
-              <Label htmlFor="bio">Biografie</Label>
-              <Textarea
-                id="bio"
-                placeholder="Experiență profesională, calificări, domenii de expertiză..."
-                value={formData.bio}
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                rows={4}
-                className="resize-none mt-2"
-              />
-            </div>
+                Anulează
+              </Button>
+              <Button 
+                onClick={handleAddDoctor} 
+                disabled={saving || departments.length === 0} 
+                className="h-11 px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl font-bold text-sm tracking-wide transition-all translate-y-0 active:scale-95 text-white"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    SALVARE...
+                  </>
+                ) : (
+                  <>
+                    SALVEAZĂ PROFILUL
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
           </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDoctorOpen(false)} disabled={saving}>
-              Anulează
-            </Button>
-            <Button onClick={handleAddDoctor} disabled={saving || departments.length === 0}>
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Se salvează...
-                </>
-              ) : (
-                "Adaugă Medic"
-              )}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </AdminLayout>

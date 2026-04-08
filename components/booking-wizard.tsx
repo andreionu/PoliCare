@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { X, Heart, Users, Baby, Eye, Ear, ChevronRight, Check, Loader2 } from "lucide-react"
+import { X, Heart, Users, Baby, Eye, Ear, ChevronRight, Check, Loader2, Clock, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 
 interface BookingWizardProps {
   onClose: () => void
+  initialDepartmentId?: string | null
 }
 
 interface Department {
@@ -25,9 +26,21 @@ interface Doctor {
   name: string
   specialty: string | null
   departmentId: string | null
+  status: string
 }
 
-// Icon mapping for departments
+interface Service {
+  id: string
+  name: string
+  duration: number
+  departmentId: string
+}
+
+interface ExistingAppointment {
+  startTime: string
+  endTime: string
+}
+
 const departmentIcons: Record<string, any> = {
   Cardiologie: Heart,
   Pediatrie: Baby,
@@ -38,234 +51,165 @@ const departmentIcons: Record<string, any> = {
 }
 
 const timeSlots = [
-  "09:00",
-  "09:30",
-  "10:00",
-  "10:30",
-  "11:00",
-  "11:30",
-  "14:00",
-  "14:30",
-  "15:00",
-  "15:30",
-  "16:00",
-  "16:30",
-  "17:00",
+  "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+  "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30",
+  "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30",
 ]
 
-export function BookingWizard({ onClose }: BookingWizardProps) {
+const stepLabels = ["Departament", "Serviciu", "Medic", "Data & Ora", "Date"]
+
+export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardProps) {
   const { toast } = useToast()
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(initialDepartmentId ? 2 : 1)
   const [departments, setDepartments] = useState<Department[]>([])
   const [doctors, setDoctors] = useState<Doctor[]>([])
+  const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
-  const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null)
-  const [selectedService, setSelectedService] = useState<string>("")
-  const [otherServiceDescription, setOtherServiceDescription] = useState<string>("")
+  const [selectedDepartment, setSelectedDepartment] = useState<string | null>(initialDepartmentId ?? null)
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null)
+  const [otherServiceDescription, setOtherServiceDescription] = useState("")
   const [selectedDoctor, setSelectedDoctor] = useState<string | null>(null)
-  const [selectedDate, setSelectedDate] = useState<string>("")
-  const [selectedTime, setSelectedTime] = useState<string>("")
-  const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
-    email: "",
-  })
+  const [selectedDate, setSelectedDate] = useState("")
+  const [selectedTime, setSelectedTime] = useState("")
+  const [formData, setFormData] = useState({ name: "", phone: "", email: "" })
   const [isSubmitted, setIsSubmitted] = useState(false)
 
-  // Fetch departments and doctors on mount
+  const [occupiedSlots, setOccupiedSlots] = useState<ExistingAppointment[]>([])
+  const [checkingAvailability, setCheckingAvailability] = useState(false)
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [deptRes, doctorsRes] = await Promise.all([
-          fetch("/api/departments"),
-          fetch("/api/doctors"),
-        ])
-
-        const [deptData, doctorsData] = await Promise.all([
-          deptRes.json(),
-          doctorsRes.json(),
-        ])
-
-        setDepartments(deptData)
-        setDoctors(doctorsData)
-      } catch (error) {
-        console.error("Error fetching data:", error)
-        toast({
-          title: "Eroare",
-          description: "Nu s-au putut încărca datele. Vă rugăm reîncercați.",
-          variant: "destructive",
-        })
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
+    Promise.all([
+      fetch("/api/departments").then(r => r.json()),
+      fetch("/api/doctors").then(r => r.json()),
+      fetch("/api/services").then(r => r.json()),
+    ])
+      .then(([depts, docs, svcs]) => {
+        setDepartments(depts)
+        setDoctors(docs)
+        setServices(svcs)
+      })
+      .catch(() => toast({ title: "Eroare", description: "Nu s-au putut încărca datele.", variant: "destructive" }))
+      .finally(() => setLoading(false))
   }, [])
 
-  const handleNext = () => {
-    if (step < 5) setStep(step + 1)
+  useEffect(() => {
+    if (!selectedDoctor || !selectedDate) { setOccupiedSlots([]); return }
+    setCheckingAvailability(true)
+    fetch(`/api/appointments?doctorId=${selectedDoctor}&date=${selectedDate}`)
+      .then(r => r.json())
+      .then(data => setOccupiedSlots(data.map((a: any) => ({ startTime: a.startTime, endTime: a.endTime }))))
+      .catch(() => {})
+      .finally(() => setCheckingAvailability(false))
+  }, [selectedDoctor, selectedDate])
+
+  const sanitize = (s: string) => s.trim().replace(/[<>]/g, "")
+  const validateEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
+  const validatePhone = (p: string) => /^[0-9+\s()-]{10,20}$/.test(p)
+
+  const getServiceDuration = () => {
+    if (!selectedServiceId) return 30
+    return services.find(s => s.id === selectedServiceId)?.duration ?? 30
   }
 
-  const handleBack = () => {
-    if (step > 1) setStep(step - 1)
+  const isSlotOccupied = (time: string) => {
+    const duration = getServiceDuration()
+    const [h, m] = time.split(":").map(Number)
+    const slotStart = h * 60 + m
+    const slotEnd = slotStart + duration
+    return occupiedSlots.some(occ => {
+      const [oh1, om1] = occ.startTime.split(":").map(Number)
+      const [oh2, om2] = occ.endTime.split(":").map(Number)
+      return slotStart < oh2 * 60 + om2 && slotEnd > oh1 * 60 + om1
+    })
   }
 
-  const sanitizeInput = (input: string): string => {
-    return input.trim().replace(/[<>]/g, "")
-  }
-
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    return emailRegex.test(email)
-  }
-
-  const validatePhone = (phone: string): boolean => {
-    const phoneRegex = /^[0-9+\s()-]{10,20}$/
-    return phoneRegex.test(phone)
+  const canProceed = () => {
+    if (step === 1) return !!selectedDepartment
+    if (step === 2) return !!selectedServiceId && (selectedServiceId !== "other" || otherServiceDescription.trim() !== "")
+    if (step === 3) return !!selectedDoctor
+    if (step === 4) return !!selectedDate && !!selectedTime && !isSlotOccupied(selectedTime)
+    if (step === 5) return !!(formData.name && formData.phone && formData.email)
+    return false
   }
 
   const handleSubmit = async () => {
-    const sanitizedName = sanitizeInput(formData.name)
-    const sanitizedEmail = sanitizeInput(formData.email.toLowerCase())
-    const sanitizedPhone = sanitizeInput(formData.phone)
+    const name = sanitize(formData.name)
+    const email = sanitize(formData.email.toLowerCase())
+    const phone = sanitize(formData.phone)
 
-    if (!sanitizedName || sanitizedName.length < 2) {
-      toast({
-        title: "Eroare",
-        description: "Vă rugăm introduceți un nume valid (minim 2 caractere)",
-        variant: "destructive",
-      })
-      return
+    if (name.length < 2) {
+      toast({ title: "Eroare", description: "Introduceți un nume valid.", variant: "destructive" }); return
     }
-
-    if (!validateEmail(sanitizedEmail)) {
-      toast({
-        title: "Eroare",
-        description: "Vă rugăm introduceți o adresă de email validă",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (!validatePhone(sanitizedPhone)) {
-      toast({
-        title: "Eroare",
-        description: "Vă rugăm introduceți un număr de telefon valid",
-        variant: "destructive",
-      })
-      return
+    if (!validateEmail(email)) {
+      toast({ title: "Eroare", description: "Introduceți un email valid.", variant: "destructive" }); return
     }
 
     setSubmitting(true)
     try {
-      // Find existing patient by phone, or create new one
-      let patient: { id: string }
-      const searchRes = await fetch(`/api/patients?phone=${encodeURIComponent(sanitizedPhone)}`)
-      if (!searchRes.ok) throw new Error("Failed to search patients")
-      const existing: { id: string; phone: string }[] = await searchRes.json()
-      const found = existing.find((p) => p.phone === sanitizedPhone)
-
+      let patientId: string
+      const existing = await fetch(`/api/patients?phone=${encodeURIComponent(phone)}`).then(r => r.json())
+      const found = existing.find((p: any) => p.phone === phone)
       if (found) {
-        patient = found
+        patientId = found.id
       } else {
-        // Generate a unique placeholder CNP for booking (admin fills real one later)
-        const placeholderCnp = `BOOKING${Date.now()}${sanitizedPhone.replace(/\D/g, "").slice(-4)}`
-        const patientRes = await fetch("/api/patients", {
+        const created = await fetch("/api/patients", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: sanitizedName,
-            phone: sanitizedPhone,
-            email: sanitizedEmail || null,
-            gender: "ALTUL",
-            cnp: placeholderCnp,
-            status: "NOU",
-          }),
-        })
-        if (!patientRes.ok) throw new Error("Failed to create patient")
-        patient = await patientRes.json()
+          body: JSON.stringify({ name, phone, email, status: "NOU" }),
+        }).then(r => r.json())
+        patientId = created.id
       }
 
-      // Calculate end time (30 min default)
+      const duration = getServiceDuration()
       const [hours, minutes] = selectedTime.split(":").map(Number)
-      const endHours = hours + Math.floor((minutes + 30) / 60)
-      const endMinutes = (minutes + 30) % 60
-      const endTime = `${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}`
+      const total = hours * 60 + minutes + duration
+      const endTime = `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`
 
-      // Create the appointment
-      const appointmentRes = await fetch("/api/appointments", {
+      const res = await fetch("/api/appointments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          date: selectedDate,
-          startTime: selectedTime,
-          endTime: endTime,
-          duration: 30,
+          date: selectedDate, startTime: selectedTime, endTime, duration,
           status: "IN_ASTEPTARE",
-          type: selectedService === "Altul / Nu este listat" ? "CONSULTATIE" : selectedService.toUpperCase(),
-          notes: selectedService === "Altul / Nu este listat" ? sanitizeInput(otherServiceDescription) : null,
-          patientId: patient.id,
-          doctorId: selectedDoctor,
-          departmentId: selectedDepartment,
+          type: selectedServiceId ? services.find(s => s.id === selectedServiceId)?.name : "CONSULTATIE",
+          notes: selectedServiceId === "other" ? sanitize(otherServiceDescription) : null,
+          patientId, doctorId: selectedDoctor, departmentId: selectedDepartment,
+          serviceId: selectedServiceId === "other" ? null : selectedServiceId,
+          sendEmail: true, sendSMS: true,
         }),
       })
 
-      if (!appointmentRes.ok) throw new Error("Failed to create appointment")
+      if (res.status === 409) {
+        const data = await res.json()
+        toast({ title: "Conflict", description: data.message || "Intervalul a fost ocupat.", variant: "destructive" })
+        setStep(4); setSubmitting(false); return
+      }
+      if (!res.ok) throw new Error()
 
       setIsSubmitted(true)
-      setTimeout(() => {
-        onClose()
-      }, 3000)
-    } catch (error) {
-      console.error("Error creating appointment:", error)
-      toast({
-        title: "Eroare",
-        description: "Nu s-a putut crea programarea. Vă rugăm reîncercați.",
-        variant: "destructive",
-      })
+      setTimeout(() => onClose(), 3000)
+    } catch {
+      toast({ title: "Eroare", description: "Nu s-a putut finaliza programarea. Reîncearcă.", variant: "destructive" })
     } finally {
       setSubmitting(false)
     }
   }
 
-  // Get filtered doctors based on selected department
-  const filteredDoctors = selectedDepartment
-    ? doctors.filter((doc) => doc.departmentId === selectedDepartment)
-    : []
-
-  const canProceed = () => {
-    switch (step) {
-      case 1:
-        return selectedDepartment !== null
-      case 2:
-        if (selectedService === "Altul / Nu este listat") {
-          return otherServiceDescription.trim() !== ""
-        }
-        return selectedService !== ""
-      case 3:
-        return selectedDoctor !== null
-      case 4:
-        return selectedDate !== "" && selectedTime !== ""
-      case 5:
-        return formData.name && formData.phone && formData.email
-      default:
-        return false
-    }
-  }
+  const filteredDoctors = selectedDepartment ? doctors.filter(d => d.departmentId === selectedDepartment) : []
+  const filteredServices = selectedDepartment ? services.filter(s => s.departmentId === selectedDepartment) : []
 
   if (isSubmitted) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-        <div className="bg-white rounded-3xl p-12 max-w-md w-full text-center space-y-6 animate-in fade-in zoom-in duration-300">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-            <Check className="w-10 h-10 text-green-600" />
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="bg-white rounded-2xl p-10 max-w-sm w-full text-center space-y-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+          <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto">
+            <Check className="w-8 h-8 text-emerald-600" />
           </div>
           <div>
-            <h3 className="text-2xl font-bold mb-2">Programare Confirmată!</h3>
-            <p className="text-muted-foreground">Vei primi un email de confirmare în curând. Te așteptăm!</p>
+            <h3 className="text-xl font-black italic text-slate-900 mb-2">Programare Realizată!</h3>
+            <p className="text-sm text-slate-500">Vei primi un email de confirmare în curând.</p>
           </div>
         </div>
       </div>
@@ -273,365 +217,277 @@ export function BookingWizard({ onClose }: BookingWizardProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-300">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg h-[600px] flex flex-col animate-in fade-in zoom-in duration-200">
+
         {/* Header */}
-        <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-white">
+        <div className="px-5 pt-5 pb-4 border-b border-slate-100">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold">Programează-te</h2>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="w-5 h-5" />
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#206070]">Rezervare Online</p>
+              <h2 className="text-lg font-black italic text-slate-900 leading-tight">Programare PoliCare</h2>
+            </div>
+            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-xl h-8 w-8">
+              <X className="w-4 h-4" />
             </Button>
           </div>
 
-          <div className="flex items-center justify-between max-w-3xl mx-auto">
-            {[
-              { num: 1, label: "Departament" },
-              { num: 2, label: "Serviciu" },
-              { num: 3, label: "Medic" },
-              { num: 4, label: "Dată & Oră" },
-              { num: 5, label: "Detalii" },
-            ].map((s, i) => (
-              <div key={s.num} className="flex items-center flex-1">
-                <div className="flex flex-col items-center">
-                  <div
-                    className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all duration-300",
-                      step >= s.num ? "bg-primary text-white" : "bg-gray-200 text-gray-400",
-                    )}
-                  >
-                    {step > s.num ? <Check className="w-5 h-5" /> : s.num}
-                  </div>
-                  <span className="text-xs mt-2 font-medium hidden sm:block text-center whitespace-nowrap">
-                    {s.label}
-                  </span>
+          {/* Step bar */}
+          <div className="flex items-center gap-1">
+            {[1, 2, 3, 4, 5].map((s, i) => (
+              <div key={s} className="flex items-center flex-1 last:flex-none">
+                <div className={cn(
+                  "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black transition-colors duration-150 shrink-0",
+                  step >= s ? "bg-[#206070] text-white" : "bg-slate-100 text-slate-400"
+                )}>
+                  {step > s ? <Check className="w-3.5 h-3.5" /> : s}
                 </div>
                 {i < 4 && (
-                  <div
-                    className={cn(
-                      "h-1 flex-1 mx-2 transition-all duration-300",
-                      step > s.num ? "bg-primary" : "bg-gray-200",
-                    )}
-                  />
+                  <div className={cn("h-0.5 flex-1 mx-1 rounded-full transition-colors duration-150", step > s ? "bg-[#206070]" : "bg-slate-100")} />
                 )}
               </div>
             ))}
           </div>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">{stepLabels[step - 1]}</p>
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-240px)]">
-          {/* Step 1: Select Department */}
+        <div className="flex-1 overflow-y-auto p-5">
+
+          {/* Step 1 — Department */}
           {step === 1 && (
-            <div className="space-y-4">
-              <div className="text-center mb-6">
-                <h3 className="text-xl font-bold mb-2">Alege Departamentul</h3>
-                <p className="text-muted-foreground">Selectează specialitatea medicală de care ai nevoie</p>
-              </div>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {loading ? (
-                  Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="p-6 rounded-2xl border-2 animate-pulse">
-                      <div className="w-12 h-12 bg-gray-200 rounded-xl mb-4 mx-auto" />
-                      <div className="h-5 bg-gray-200 rounded w-3/4 mx-auto" />
-                    </div>
-                  ))
-                ) : (
-                  departments.map((dept) => {
-                    const IconComponent = departmentIcons[dept.name] || departmentIcons.default
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-slate-500">Alege departamentul dorit:</p>
+              {loading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-14 rounded-xl bg-slate-100 animate-pulse" />
+                ))
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {departments.map((dept) => {
+                    const Icon = departmentIcons[dept.name] || departmentIcons.default
                     return (
                       <button
                         key={dept.id}
-                        onClick={() => setSelectedDepartment(dept.id)}
+                        onClick={() => { setSelectedDepartment(dept.id); setSelectedServiceId(null); setSelectedDoctor(null) }}
                         className={cn(
-                          "p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105 hover:shadow-lg",
+                          "p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-colors duration-150",
                           selectedDepartment === dept.id
-                            ? "border-primary bg-blue-50"
-                            : "border-gray-200 hover:border-primary/50",
+                            ? "border-[#206070] bg-[#206070]/5 text-[#206070]"
+                            : "border-slate-100 bg-white hover:border-slate-200 text-slate-600"
                         )}
                       >
-                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4 mx-auto">
-                          <IconComponent
-                            className={cn("w-6 h-6", selectedDepartment === dept.id ? "text-primary" : "text-gray-600")}
-                          />
-                        </div>
-                        <h4 className="font-semibold text-center">{dept.name}</h4>
+                        <Icon className="w-6 h-6" />
+                        <span className="text-xs font-black uppercase tracking-tight">{dept.name}</span>
                       </button>
                     )
-                  })
-                )}
-              </div>
+                  })}
+                </div>
+              )}
             </div>
           )}
 
-          {step === 2 && selectedDepartment && (
-            <div className="space-y-4">
-              <div className="text-center mb-6">
-                <h3 className="text-xl font-bold mb-2">Alege Serviciul</h3>
-                <p className="text-muted-foreground">Ce tip de consultație sau tratament necesiți?</p>
-              </div>
-              <div className="max-w-2xl mx-auto space-y-3">
-                {["Consultație Generală", "Control", "Tratament", "Investigație"].map((service) => (
-                  <button
-                    key={service}
-                    onClick={() => {
-                      setSelectedService(service)
-                      setOtherServiceDescription("")
-                    }}
-                    className={cn(
-                      "w-full p-4 rounded-xl border-2 transition-all duration-200 hover:shadow-md text-left",
-                      selectedService === service
-                        ? "border-primary bg-blue-50"
-                        : "border-gray-200 hover:border-primary/50",
-                    )}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{service}</span>
-                      {selectedService === service && <Check className="w-5 h-5 text-primary" />}
-                    </div>
-                  </button>
-                ))}
-
+          {/* Step 2 — Service */}
+          {step === 2 && (
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-slate-500 mb-3">Alege serviciul necesar:</p>
+              {filteredServices.map((service) => (
                 <button
-                  onClick={() => setSelectedService("Altul / Nu este listat")}
+                  key={service.id}
+                  onClick={() => { setSelectedServiceId(service.id); setOtherServiceDescription("") }}
                   className={cn(
-                    "w-full p-4 rounded-xl border-2 transition-all duration-200 hover:shadow-md text-left",
-                    selectedService === "Altul / Nu este listat"
-                      ? "border-primary bg-blue-50"
-                      : "border-gray-200 hover:border-primary/50",
+                    "w-full px-4 py-3 rounded-xl border-2 flex items-center justify-between transition-colors duration-150",
+                    selectedServiceId === service.id
+                      ? "border-[#206070] bg-[#206070]/5"
+                      : "border-slate-100 bg-white hover:border-slate-200"
                   )}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-muted-foreground">Altul / Nu este listat</span>
-                    {selectedService === "Altul / Nu este listat" && <Check className="w-5 h-5 text-primary" />}
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-slate-800">{service.name}</p>
+                    <p className="text-xs text-slate-400">{service.duration} min</p>
                   </div>
+                  {selectedServiceId === service.id && <Check className="w-4 h-4 text-[#206070] shrink-0" />}
                 </button>
+              ))}
+              <button
+                onClick={() => setSelectedServiceId("other")}
+                className={cn(
+                  "w-full px-4 py-3 rounded-xl border-2 text-left transition-colors duration-150",
+                  selectedServiceId === "other"
+                    ? "border-[#206070] bg-[#206070]/5"
+                    : "border-slate-100 bg-white hover:border-slate-200"
+                )}
+              >
+                <p className="text-sm font-bold text-slate-500">Alt serviciu / Specific</p>
+              </button>
+              {selectedServiceId === "other" && (
+                <Textarea
+                  placeholder="Descrieți motivul consultației..."
+                  value={otherServiceDescription}
+                  onChange={(e) => setOtherServiceDescription(e.target.value)}
+                  className="rounded-xl bg-slate-50 border-slate-200 text-sm mt-2"
+                  rows={3}
+                />
+              )}
+            </div>
+          )}
 
-                <div
+          {/* Step 3 — Doctor */}
+          {step === 3 && (
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-slate-500 mb-3">
+                Echipa din {departments.find(d => d.id === selectedDepartment)?.name}:
+              </p>
+              {filteredDoctors.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-6">Niciun medic disponibil în acest departament.</p>
+              ) : filteredDoctors.map((doc) => (
+                <button
+                  key={doc.id}
+                  onClick={() => setSelectedDoctor(doc.id)}
                   className={cn(
-                    "overflow-hidden transition-all duration-300 ease-in-out",
-                    selectedService === "Altul / Nu este listat" ? "max-h-48 opacity-100" : "max-h-0 opacity-0",
+                    "w-full px-4 py-3 rounded-xl border-2 flex items-center gap-3 transition-colors duration-150",
+                    selectedDoctor === doc.id
+                      ? "border-[#206070] bg-[#206070]/5"
+                      : "border-slate-100 bg-white hover:border-slate-200"
                   )}
                 >
-                  <div className="pt-3">
-                    <Label htmlFor="otherDescription" className="mb-2 block text-sm font-medium">
-                      Descrie nevoia sau simptomele tale *
-                    </Label>
-                    <Textarea
-                      id="otherDescription"
-                      placeholder="Ex: Am nevoie de o consultație pentru dureri de cap frecvente..."
-                      value={otherServiceDescription}
-                      onChange={(e) => setOtherServiceDescription(e.target.value)}
-                      className={cn(
-                        "min-h-[100px] resize-none transition-colors duration-200",
-                        selectedService === "Altul / Nu este listat" && otherServiceDescription.trim() === ""
-                          ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                          : "",
-                      )}
-                      required={selectedService === "Altul / Nu este listat"}
-                    />
-                    {selectedService === "Altul / Nu este listat" && otherServiceDescription.trim() === "" && (
-                      <p className="text-sm text-red-500 mt-1">Acest câmp este obligatoriu</p>
-                    )}
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#206070] to-[#40A0D0] flex items-center justify-center text-white text-sm font-black shrink-0">
+                    {doc.name.charAt(0)}
                   </div>
-                </div>
-              </div>
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-slate-800">{doc.name}</p>
+                    <p className="text-xs text-slate-400">{doc.specialty}</p>
+                  </div>
+                  {selectedDoctor === doc.id && <Check className="w-4 h-4 text-[#206070] ml-auto shrink-0" />}
+                </button>
+              ))}
             </div>
           )}
 
-          {step === 3 && selectedDepartment && (
-            <div className="space-y-4">
-              <div className="text-center mb-6">
-                <h3 className="text-xl font-bold mb-2">Alege Medicul</h3>
-                <p className="text-muted-foreground">Selectează specialistul preferat</p>
-              </div>
-              <div className="space-y-4 max-w-2xl mx-auto">
-                {filteredDoctors.length === 0 ? (
-                  <div className="text-center p-8 text-muted-foreground">
-                    <p>Nu există medici disponibili pentru acest departament momentan.</p>
-                  </div>
-                ) : (
-                  filteredDoctors.map((doctor) => (
-                    <button
-                      key={doctor.id}
-                      onClick={() => setSelectedDoctor(doctor.id)}
-                      className={cn(
-                        "w-full p-6 rounded-2xl border-2 transition-all duration-200 hover:shadow-lg flex items-center gap-4 text-left",
-                        selectedDoctor === doctor.id
-                          ? "border-primary bg-blue-50"
-                          : "border-gray-200 hover:border-primary/50",
-                      )}
-                    >
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-2xl font-semibold text-primary">
-                        {doctor.name.charAt(0)}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-lg">{doctor.name}</h4>
-                        <p className="text-sm text-muted-foreground">{doctor.specialty || "Specialist"}</p>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
-                    </button>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-
+          {/* Step 4 — Date & Time */}
           {step === 4 && (
-            <div className="space-y-6">
-              <div className="text-center mb-6">
-                <h3 className="text-xl font-bold mb-2">Alege Data și Ora</h3>
-                <p className="text-muted-foreground">Selectează momentul potrivit pentru consultație</p>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-xs font-bold text-slate-500 mb-1.5 block">Data programării</Label>
+                <Input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => { setSelectedDate(e.target.value); setSelectedTime("") }}
+                  min={new Date().toISOString().split("T")[0]}
+                  className="h-10 rounded-xl bg-slate-50 border-slate-200 text-sm"
+                />
               </div>
 
-              <div className="max-w-2xl mx-auto space-y-6">
-                <div className="relative">
-                  <Label className="mb-3 block font-semibold">Selectează Data</Label>
-                  <div className="relative z-10">
-                    <Input
-                      type="date"
-                      value={selectedDate}
-                      onChange={(e) => setSelectedDate(e.target.value)}
-                      min={new Date().toISOString().split("T")[0]}
-                      className="h-12 w-full"
-                      style={{
-                        colorScheme: "light",
-                      }}
-                    />
+              {selectedDate && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-slate-500">Interval orar</Label>
+                    <span className="text-xs text-slate-400 flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> {getServiceDuration()} min
+                    </span>
+                  </div>
+                  {checkingAvailability ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="w-6 h-6 text-[#206070] animate-spin" />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {timeSlots.map((time) => {
+                        const occupied = isSlotOccupied(time)
+                        return (
+                          <button
+                            key={time}
+                            disabled={occupied}
+                            onClick={() => setSelectedTime(time)}
+                            className={cn(
+                              "h-9 rounded-lg text-xs font-bold transition-colors duration-150",
+                              occupied
+                                ? "bg-slate-50 text-slate-200 cursor-not-allowed"
+                                : selectedTime === time
+                                  ? "bg-[#206070] text-white"
+                                  : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+                            )}
+                          >
+                            {time}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                  <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50">
+                    <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                    <p className="text-xs text-amber-700">Intervalele gri sunt deja ocupate.</p>
                   </div>
                 </div>
-
-                {selectedDate && (
-                  <div>
-                    <Label className="mb-3 block font-semibold">Selectează Ora</Label>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                      {timeSlots.map((time) => (
-                        <button
-                          key={time}
-                          onClick={() => setSelectedTime(time)}
-                          className={cn(
-                            "p-3 rounded-xl border-2 font-medium transition-all duration-200 hover:scale-105",
-                            selectedTime === time
-                              ? "border-primary bg-primary text-white"
-                              : "border-gray-200 hover:border-primary/50",
-                          )}
-                        >
-                          {time}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           )}
 
+          {/* Step 5 — Contact */}
           {step === 5 && (
-            <div className="space-y-6">
-              <div className="text-center mb-6">
-                <h3 className="text-xl font-bold mb-2">Detaliile Tale</h3>
-                <p className="text-muted-foreground">Completează informațiile de contact</p>
+            <div className="space-y-4">
+              <div className="p-3 rounded-xl bg-slate-50 text-xs text-slate-500 space-y-1 mb-2">
+                <p><span className="font-bold text-slate-700">Data:</span> {selectedDate} la {selectedTime}</p>
+                <p><span className="font-bold text-slate-700">Medic:</span> {doctors.find(d => d.id === selectedDoctor)?.name}</p>
+                <p><span className="font-bold text-slate-700">Durată:</span> {getServiceDuration()} min</p>
               </div>
-
-              <div className="max-w-md mx-auto space-y-4">
-                <div>
-                  <Label htmlFor="name" className="mb-2 block">
-                    Nume Complet
-                  </Label>
-                  <Input
-                    id="name"
-                    placeholder="Ex: Ion Popescu"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: sanitizeInput(e.target.value) })}
-                    className="h-12"
-                    maxLength={100}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="phone" className="mb-2 block">
-                    Telefon
-                  </Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="Ex: 0712345678"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: sanitizeInput(e.target.value) })}
-                    className="h-12"
-                    maxLength={20}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email" className="mb-2 block">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Ex: ion.popescu@email.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: sanitizeInput(e.target.value) })}
-                    className="h-12"
-                    maxLength={254}
-                    required
-                  />
-                </div>
-
-                {/* Summary */}
-                <div className="mt-6 p-4 bg-blue-50 rounded-xl space-y-2">
-                  <h4 className="font-semibold mb-3">Rezumat Programare</h4>
-                  <div className="text-sm space-y-1">
-                    <p>
-                      <span className="text-muted-foreground">Departament:</span>{" "}
-                      <span className="font-medium">{departments.find((d) => d.id === selectedDepartment)?.name}</span>
-                    </p>
-                    <p>
-                      <span className="text-muted-foreground">Serviciu:</span>{" "}
-                      <span className="font-medium">
-                        {selectedService === "Altul / Nu este listat" ? otherServiceDescription : selectedService}
-                      </span>
-                    </p>
-                    <p>
-                      <span className="text-muted-foreground">Data:</span>{" "}
-                      <span className="font-medium">{selectedDate}</span>
-                    </p>
-                    <p>
-                      <span className="text-muted-foreground">Ora:</span>{" "}
-                      <span className="font-medium">{selectedTime}</span>
-                    </p>
-                  </div>
-                </div>
+              <div>
+                <Label className="text-xs font-bold text-slate-500 mb-1.5 block">Nume complet *</Label>
+                <Input
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: sanitize(e.target.value) })}
+                  className="h-10 rounded-xl bg-slate-50 border-slate-200 text-sm"
+                  placeholder="Ion Popescu"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-bold text-slate-500 mb-1.5 block">Telefon *</Label>
+                <Input
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: sanitize(e.target.value) })}
+                  className="h-10 rounded-xl bg-slate-50 border-slate-200 text-sm"
+                  placeholder="0712 345 678"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-bold text-slate-500 mb-1.5 block">Email *</Label>
+                <Input
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: sanitize(e.target.value) })}
+                  className="h-10 rounded-xl bg-slate-50 border-slate-200 text-sm"
+                  placeholder="nume@email.com"
+                />
               </div>
             </div>
           )}
         </div>
 
-        {/* Footer Actions */}
-        <div className="p-6 border-t bg-gray-50 flex items-center justify-between">
-          <Button variant="ghost" onClick={handleBack} disabled={step === 1} className="px-6">
+        {/* Footer */}
+        <div className="px-5 py-4 border-t border-slate-100 flex items-center justify-between">
+          <Button
+            variant="ghost"
+            onClick={() => setStep(s => s - 1)}
+            disabled={step === 1}
+            className="h-9 px-4 rounded-xl text-sm font-bold text-slate-400"
+          >
             Înapoi
           </Button>
 
           {step < 5 ? (
-            <Button onClick={handleNext} disabled={!canProceed()} className="px-8">
-              Continuă
-              <ChevronRight className="ml-2 w-4 h-4" />
+            <Button
+              onClick={() => setStep(s => s + 1)}
+              disabled={!canProceed()}
+              className="h-9 px-5 bg-[#206070] hover:bg-[#1a4d5a] rounded-xl text-sm font-bold"
+            >
+              Continuă <ChevronRight className="ml-1 w-4 h-4" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={!canProceed() || submitting} className="px-8 bg-green-600 hover:bg-green-700">
-              {submitting ? (
-                <>
-                  <Loader2 className="mr-2 w-4 h-4 animate-spin" />
-                  Se creează...
-                </>
-              ) : (
-                <>
-                  <Check className="mr-2 w-4 h-4" />
-                  Confirmă Programarea
-                </>
-              )}
+            <Button
+              onClick={handleSubmit}
+              disabled={submitting || !canProceed()}
+              className="h-9 px-5 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-sm font-bold"
+            >
+              {submitting ? <><Loader2 className="mr-2 w-4 h-4 animate-spin" />Se trimite...</> : <><Check className="mr-1.5 w-4 h-4" />Confirmă</>}
             </Button>
           )}
         </div>

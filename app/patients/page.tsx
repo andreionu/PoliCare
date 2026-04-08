@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Search, Plus, MoreHorizontal, Loader2 } from "lucide-react"
+import { Search, Plus, MoreHorizontal, Loader2, UserX, Users, Activity, FileText, CheckCircle, CalendarIcon, Phone, Mail, User, ArrowRight, UserPlus } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { useDebounce } from "@/hooks/use-debounce"
 import {
@@ -33,9 +33,9 @@ import { Label } from "@/components/ui/label"
 interface Patient {
   id: string
   name: string
-  cnp: string
+  cnp: string | null
   age: number | null
-  gender: string
+  gender: string | null
   phone: string
   email: string | null
   status: string
@@ -67,7 +67,8 @@ const GENDER_LABELS: Record<string, string> = {
 export default function PatientsPage() {
   const { toast } = useToast()
   const router = useRouter()
-  const [searchQuery, setSearchQuery] = useState("")
+  const searchParams = useSearchParams()
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("search") ?? "")
   const [role, setRole] = useState<"super-admin" | "front-desk" | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -87,26 +88,11 @@ export default function PatientsPage() {
   const [patients, setPatients] = useState<Patient[]>([])
   const debouncedSearch = useDebounce(searchQuery, 300)
 
-  // Fetch patients from API
-  const fetchPatients = async (search?: string) => {
-    setLoading(true)
-    try {
-      const url = search ? `/api/patients?search=${encodeURIComponent(search)}` : "/api/patients"
-      const response = await fetch(url)
-      if (!response.ok) throw new Error("Failed to fetch")
-      const data = await response.json()
-      setPatients(data)
-    } catch (error) {
-      console.error("Error fetching patients:", error)
-      toast({
-        title: "Eroare",
-        description: "Nu s-au putut încărca pacienții.",
-        variant: "destructive"
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Stats calculation
+  const totalPatients = patients.length
+  const activePatients = patients.filter((p) => p.status === "ACTIV").length
+  const scheduledPatients = patients.filter((p) => p.status === "PROGRAMAT").length
+  const totalMedicalRecords = patients.reduce((sum, p) => sum + (p._count?.medicalRecords || 0), 0)
 
   useEffect(() => {
     const storedRole = localStorage.getItem("userRole") as "super-admin" | "front-desk" | null
@@ -120,10 +106,10 @@ export default function PatientsPage() {
 
   const handleAddPatient = async () => {
     // Basic validation
-    if (!newPatient.name || !newPatient.cnp || !newPatient.phone || !newPatient.gender) {
+    if (!newPatient.name || !newPatient.phone) {
       toast({
         title: "Eroare",
-        description: "Vă rugăm să completați toate câmpurile obligatorii (Nume, CNP, Gen, Telefon).",
+        description: "Vă rugăm să completați câmpurile obligatorii (Nume, Telefon).",
         variant: "destructive"
       })
       return
@@ -177,6 +163,27 @@ export default function PatientsPage() {
     }
   }
 
+  // Fetch patients from API
+  const fetchPatients = async (search?: string) => {
+    setLoading(true)
+    try {
+      const url = search ? `/api/patients?search=${encodeURIComponent(search)}` : "/api/patients"
+      const response = await fetch(url)
+      if (!response.ok) throw new Error("Failed to fetch")
+      const data = await response.json()
+      setPatients(data)
+    } catch (error) {
+      console.error("Error fetching patients:", error)
+      toast({
+        title: "Eroare",
+        description: "Nu s-au putut încărca pacienții.",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Delete patient
   const handleDeletePatient = async (id: string) => {
     try {
@@ -208,108 +215,227 @@ export default function PatientsPage() {
   return (
     <AdminLayout userRole={role}>
       <main className="flex-1 p-6 overflow-auto">
-        <div className="max-w-7xl mx-auto space-y-6">
+        <div className="max-w-[1600px] mx-auto space-y-8">
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold">Pacienți</h1>
-              <p className="text-muted-foreground mt-1">Gestionează baza de date a pacienților</p>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/5 text-primary text-xs font-semibold mb-4 border border-primary/10 uppercase tracking-wider">
+                Management Portal
+              </div>
+              <h1 className="text-4xl font-extrabold text-foreground tracking-tight mb-2">Pacienți</h1>
+              <p className="text-muted-foreground text-lg italic">Monitorizarea fișelor și istoricului medical al pacienților.</p>
             </div>
-            <Button size="lg" onClick={() => setShowAddPatient(true)}>
-              <Plus className="w-4 h-4 mr-2" />
+            <Button className="gap-2 h-11 px-6 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all rounded-xl" onClick={() => setShowAddPatient(true)}>
+              <Plus className="w-4 h-4" />
               Pacient Nou
             </Button>
           </div>
 
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm">
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors" />
+              <div className="flex items-center gap-4 relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/20">
+                  <Users className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Total Pacienți</p>
+                  <p className="text-3xl font-bold tracking-tight">{totalPatients}</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm">
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-colors" />
+              <div className="flex items-center gap-4 relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-200">
+                  <CheckCircle className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Pacienți Activi</p>
+                  <p className="text-3xl font-bold tracking-tight">{activePatients}</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm">
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-purple-500/5 rounded-full blur-3xl group-hover:bg-purple-500/10 transition-colors" />
+              <div className="flex items-center gap-4 relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-200">
+                  <FileText className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Dosare Medicale</p>
+                  <p className="text-3xl font-bold tracking-tight">{totalMedicalRecords}</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm">
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-orange-500/5 rounded-full blur-3xl group-hover:bg-orange-500/10 transition-colors" />
+              <div className="flex items-center gap-4 relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-200">
+                  <Activity className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Programați</p>
+                  <p className="text-3xl font-bold tracking-tight">{scheduledPatients}</p>
+                </div>
+              </div>
+            </Card>
+          </div>
+
           {/* Filters and Search */}
-          <Card className="p-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="flex flex-col xl:flex-row items-center justify-between gap-6 bg-white dark:bg-card/50 p-4 rounded-2xl shadow-sm border">
+            <div className="flex flex-col sm:flex-row gap-4 flex-1 w-full xl:w-auto">
+              <div className="relative flex-1 max-w-md group">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 transition-colors group-focus-within:text-blue-500" />
                 <Input
                   placeholder="Caută după nume, CNP sau ID..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-12 h-12 bg-muted/50 border-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl transition-all"
                 />
               </div>
-              <div className="flex gap-2">
-                 {/* Filters could go here */}
-              </div>
             </div>
-          </Card>
+            
+            <div className="flex items-center gap-3 w-full sm:w-auto self-start xl:self-center">
+              <div className="h-10 w-[1px] bg-border mx-2 hidden xl:block" />
+              <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                Afișare: <span className="text-foreground">{totalPatients} pacienți</span>
+              </p>
+            </div>
+          </div>
 
           {/* Patients List */}
-          <div className="grid gap-4">
+          <div className="grid gap-6">
             {loading ? (
-              <Card className="p-8 text-center">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-                <p className="mt-2 text-muted-foreground">Se încarcă pacienții...</p>
-              </Card>
+              <div className="p-20 text-center bg-white dark:bg-card/50 rounded-2xl border border-border/50">
+                <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary mb-4" />
+                <p className="text-muted-foreground font-medium animate-pulse">Se încarcă baza de date a pacienților...</p>
+              </div>
             ) : patients.length === 0 ? (
-              <Card className="p-8 text-center">
-                <p className="text-muted-foreground">
-                  {searchQuery ? "Nu s-au găsit pacienți." : "Nu există pacienți. Adaugă primul pacient!"}
+              <div className="flex flex-col items-center justify-center py-20 px-6 text-center bg-white dark:bg-card/50 rounded-2xl border border-border/50 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="relative mb-6">
+                  <div className="w-24 h-24 rounded-full bg-primary/5 dark:bg-primary/10 flex items-center justify-center">
+                    <UserX className="w-10 h-10 text-primary/50" />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-10 h-10 rounded-full bg-white dark:bg-card border-2 border-background flex items-center justify-center shadow-sm">
+                    <Search className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold text-foreground mb-2">Niciun pacient găsit</h3>
+                <p className="text-muted-foreground max-w-sm mx-auto mb-8">
+                  {searchQuery 
+                    ? `Nu am găsit niciun pacient care să corespundă căutării "${searchQuery}".`
+                    : "Nu există pacienți înregistrați în acest moment."}
                 </p>
-              </Card>
+                <Button 
+                  variant="outline" 
+                  className="h-11 px-6 rounded-xl border-primary/20 text-primary hover:bg-primary/5 transition-all font-semibold"
+                  onClick={() => setSearchQuery("")}
+                >
+                  Resetează căutarea
+                </Button>
+              </div>
             ) : (
               patients.map((patient) => (
-                <Card key={patient.id} className="p-4 transition-all hover:shadow-md">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg">
+                <Card key={patient.id} className="group relative bg-white dark:bg-card/50 rounded-2xl border border-border/50 p-6 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 transition-all duration-300">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div className="flex items-center gap-6">
+                      <div className="relative h-16 w-16 border-2 border-background shadow-sm ring-2 ring-muted/50 group-hover:ring-primary/20 transition-all rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10 text-primary font-bold text-xl">
                         {patient.name.charAt(0)}
                       </div>
-                      <div>
-                        <Link href={`/patients/${patient.id}`} className="font-semibold text-lg hover:underline">{patient.name}</Link>
-                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                          <span>{patient.cnp}</span>
-                          <span>•</span>
-                          <span>{patient.age ? `${patient.age} ani` : "Vârstă nedefinită"}</span>
-                          <span>•</span>
-                          <span>{getGenderDisplay(patient.gender)}</span>
+                      <div className="space-y-1">
+                        <Link href={`/patients/${patient.id}`} className="text-xl font-bold text-foreground tracking-tight hover:text-primary transition-colors uppercase leading-none block">{patient.name}</Link>
+                        <div className="flex flex-wrap items-center gap-y-1 gap-x-4">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
+                            <User className="w-3 h-3" />
+                            {patient.cnp || "CNP Indisponibil"}
+                          </span>
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
+                            <CalendarIcon className="w-3 h-3" />
+                            {patient.age ? `${patient.age} ani` : "Vârstă —"}
+                          </span>
+                          {patient.gender && (
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5 border-l border-border/50 pl-4 ml-0">
+                               {getGenderDisplay(patient.gender)}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-6">
-                      <div className="hidden md:block text-right">
-                        <p className="text-sm font-medium">Doctor asignat</p>
-                        <p className="text-sm text-muted-foreground">
-                          {patient.primaryDoctor?.name || "Nealocat"}
-                        </p>
+                    <div className="flex flex-wrap items-center gap-6 lg:gap-12">
+                      <div className="flex flex-col gap-1 min-w-[140px]">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
+                          <Plus className="w-3 h-3" />
+                          Doctor Asignat
+                        </span>
+                        <span className="text-sm font-bold text-foreground/90 truncate uppercase tracking-tight">
+                           {patient.primaryDoctor?.name || "Nealocat"}
+                        </span>
                       </div>
 
-                      <Badge
-                        variant={patient.status === "ACTIV" ? "secondary" : "outline"}
-                        className={patient.status === "PROGRAMAT" ? "bg-green-100 text-green-700 hover:bg-green-100 border-none" : ""}
-                      >
-                        {getStatusDisplay(patient.status)}
-                      </Badge>
+                      <div className="flex flex-col gap-1 min-w-[100px]">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
+                          <Activity className="w-3 h-3" />
+                          Status
+                        </span>
+                        <Badge
+                          variant={patient.status === "ACTIV" ? "default" : "secondary"}
+                          className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider w-fit ${
+                            patient.status === "ACTIV" 
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
+                              : patient.status === "PROGRAMAT"
+                                ? "bg-blue-50 text-blue-700 border-blue-100"
+                                : "bg-slate-50 text-slate-700 border-slate-100"
+                          } border shadow-sm`}
+                        >
+                          {getStatusDisplay(patient.status)}
+                        </Badge>
+                      </div>
 
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Acțiuni</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem asChild>
-                            <Link href={`/patients/${patient.id}`}>Vezi Fișa</Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => router.push(`/appointments?patientId=${patient.id}`)}>
-                            Programare Nouă
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => handleDeletePatient(patient.id)}
-                          >
-                            Șterge
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-10 px-5 border-primary/10 text-primary font-bold hover:bg-primary/5 rounded-xl transition-all" 
+                          asChild
+                        >
+                          <Link href={`/patients/${patient.id}`}>Fișă</Link>
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground rounded-xl">
+                              <MoreHorizontal className="h-5 h-5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="rounded-xl p-2 w-48">
+                            <DropdownMenuLabel className="text-xs uppercase font-bold text-muted-foreground px-2 pb-2">Acțiuni Pacient</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                              <Link href={`/patients/${patient.id}`} className="flex items-center">
+                                <FileText className="mr-2 h-4 w-4" /> Vezi Fișa Medicală
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="rounded-lg cursor-pointer"
+                              onClick={() => router.push(`/appointments?patientId=${patient.id}`)}
+                            >
+                              <Plus className="mr-2 h-4 w-4" /> Programare Nouă
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive font-semibold rounded-lg cursor-pointer"
+                              onClick={() => handleDeletePatient(patient.id)}
+                            >
+                              <UserX className="mr-2 h-4 w-4" /> Șterge Pacient
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                   </div>
                 </Card>
@@ -322,9 +448,12 @@ export default function PatientsPage() {
       {/* Add Patient Modal */}
       <Dialog open={showAddPatient} onOpenChange={setShowAddPatient}>
         <DialogContent className="max-w-md rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Adaugă Pacient Nou</DialogTitle>
-            <DialogDescription>Introduceți datele personale ale noului pacient</DialogDescription>
+          <DialogHeader className="pb-4 border-b">
+            <div className="w-12 h-12 rounded-2xl bg-primary/5 dark:bg-primary/10 flex items-center justify-center mb-4">
+              <UserPlus className="w-6 h-6 text-primary" />
+            </div>
+            <DialogTitle className="text-2xl font-bold tracking-tight">Adaugă Pacient Nou</DialogTitle>
+            <DialogDescription className="text-muted-foreground">Înregistrează un nou pacient în baza de date a clinicii.</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -339,7 +468,7 @@ export default function PatientsPage() {
             </div>
             
              <div className="space-y-2">
-              <Label htmlFor="cnp">CNP *</Label>
+              <Label htmlFor="cnp">CNP <span className="text-muted-foreground font-normal text-xs">(opțional, se completează la prezentare)</span></Label>
               <Input
                 id="cnp"
                 placeholder="ex: 1900101..."
@@ -360,7 +489,7 @@ export default function PatientsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="gender">Gen *</Label>
+                <Label htmlFor="gender">Gen</Label>
                 <select
                   id="gender"
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -397,11 +526,11 @@ export default function PatientsPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddPatient(false)} disabled={saving}>
+          <DialogFooter className="pt-6 border-t mt-6">
+            <Button variant="ghost" onClick={() => setShowAddPatient(false)} disabled={saving} className="rounded-xl h-11 px-6">
               Anulează
             </Button>
-            <Button onClick={handleAddPatient} disabled={saving}>
+            <Button onClick={handleAddPatient} disabled={saving} className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl h-11 px-8 font-bold text-white">
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

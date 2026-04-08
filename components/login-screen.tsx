@@ -1,14 +1,14 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
-import { Activity, Eye, EyeOff, Loader2 } from "lucide-react"
+import { Eye, EyeOff, Loader2, ShieldCheck, Mail, Lock, ArrowRight } from "lucide-react"
+import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 
 interface LoginScreenProps {
   onLogin: (role: "super-admin" | "front-desk") => void
@@ -31,34 +31,17 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
 
     if (lockoutTime && Date.now() < lockoutTime) {
       const remainingMinutes = Math.ceil((lockoutTime - Date.now()) / 60000)
-      setError(`Too many failed attempts. Please try again in ${remainingMinutes} minute(s).`)
-      toast({
-        title: "Cont blocat",
-        description: `Prea multe încercări eșuate. Încearcă din nou în ${remainingMinutes} minut(e).`,
-        variant: "destructive",
-      })
+      setError(`Prea multe încercări. Încearcă din nou în ${remainingMinutes} minut(e).`)
       return
     }
 
     const sanitizedEmail = email.trim().toLowerCase()
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-    if (!emailRegex.test(sanitizedEmail)) {
-      setError("Please enter a valid email address")
-      return
-    }
-
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters")
-      return
-    }
-
+    
     setIsLoading(true)
 
+    // Simulating API call
     setTimeout(() => {
       if (sanitizedEmail === "admin@policare.ro" && password === "admin123") {
-        setLoginAttempts(0)
-        setLockoutTime(null)
         toast({
           title: "Autentificare reușită",
           description: "Bine ai venit în panoul de administrare PoliCare!",
@@ -66,11 +49,9 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         localStorage.setItem("userRole", "super-admin")
         onLogin("super-admin")
       } else if (sanitizedEmail === "receptie@policare.ro" && password === "receptie123") {
-        setLoginAttempts(0)
-        setLockoutTime(null)
         toast({
           title: "Autentificare reușită",
-          description: "Bine ai venit!",
+          description: "Bine ai venit la recepție!",
         })
         localStorage.setItem("userRole", "front-desk")
         onLogin("front-desk")
@@ -81,125 +62,160 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         if (newAttempts >= 5) {
           const lockout = Date.now() + 5 * 60 * 1000
           setLockoutTime(lockout)
-          setError("Too many failed attempts. Account locked for 5 minutes.")
-          toast({
-            title: "Cont blocat",
-            description: "Prea multe încercări eșuate. Contul a fost blocat pentru 5 minute.",
-            variant: "destructive",
-          })
+          setError("Cont blocat temporar. Prea multe încercări eșuate.")
         } else {
-          setError(`Invalid credentials. ${5 - newAttempts} attempt(s) remaining.`)
+          setError(`Date de acces invalide. ${5 - newAttempts} încercări rămase.`)
         }
         setIsLoading(false)
       }
-    }, 1000)
+    }, 1500)
   }
 
   const isLocked = !!(lockoutTime && Date.now() < lockoutTime)
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-accent/20 to-background p-4">
-      <div className="w-full max-w-md">
-        {/* Logo and Title */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground mb-4 shadow-lg">
-            <Activity className="h-8 w-8" />
-          </div>
-          <h1 className="text-3xl font-bold text-balance">PoliCare Admin</h1>
-          <p className="text-muted-foreground mt-2">Sign in to access your dashboard</p>
+    <div className="min-h-screen grid lg:grid-cols-2 bg-white overflow-hidden">
+      {/* Left Panel: Hero Image & Branding */}
+      <div className="relative hidden lg:flex flex-col justify-between p-16 overflow-hidden bg-slate-900 text-white">
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="/modern_clinic_login_hero_1775509392356.png" 
+            alt="PoliCare Hero" 
+            className="w-full h-full object-cover opacity-60 scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-tr from-[#206070] via-[#206070]/40 to-transparent" />
         </div>
 
-        {/* Login Card */}
-        <Card className="shadow-xl">
-          <CardHeader>
-            <CardTitle>Welcome back</CardTitle>
-            <CardDescription>Enter your credentials to continue</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+        <div className="relative z-10">
+          <Logo size="xl" className="text-white" />
+          <div className="mt-20 max-w-lg space-y-6 animate-in slide-in-from-left-8 duration-700">
+            <h1 className="text-6xl font-black leading-[1.1] tracking-tight">
+              Excelență <br />
+              Digitală în <br />
+              <span className="text-[#40A0D0]">Sănătate</span>.
+            </h1>
+            <p className="text-xl text-blue-50/80 font-medium leading-relaxed">
+              Platforma inteligentă de management medical care simplifică interacțiunea dintre medic și pacient.
+            </p>
+          </div>
+        </div>
+
+        <div className="relative z-10 flex items-center gap-12 text-blue-50/60 font-bold text-sm tracking-widest uppercase">
+          <div className="flex items-center gap-3">
+            <ShieldCheck className="w-5 h-5" />
+            Standard ISO 27001
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            Sistem Stabil
+          </div>
+        </div>
+      </div>
+
+      {/* Right Panel: Login Form */}
+      <div className="flex items-center justify-center p-8 lg:p-24 bg-[#F8FAFC]">
+        <div className="w-full max-w-md space-y-10 animate-in fade-in slide-in-from-right-8 duration-700">
+          <div className="space-y-4">
+            <div className="lg:hidden mb-8">
+              <Logo size="lg" />
+            </div>
+            <h2 className="text-4xl font-black text-slate-900 tracking-tight italic">Autentificare</h2>
+            <p className="text-lg text-slate-500 font-medium">Bine ai venit la <span className="text-[#206070] font-bold">PoliCare Management</span></p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2 group">
+              <Label htmlFor="email" className="text-xs font-black uppercase tracking-widest text-[#206070] ml-1 opacity-70">Adresă Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-[#206070] transition-colors" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@policare.ro"
+                  placeholder="nume@policare.ro"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={isLoading || isLocked}
-                  autoComplete="email"
-                  maxLength={254}
+                  className="h-14 pl-12 bg-white border-slate-200 focus:border-[#206070] focus:ring-[#206070]/10 rounded-[20px] transition-all text-slate-900 font-medium"
                 />
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={isLoading || isLocked}
-                    autoComplete="current-password"
-                    maxLength={128}
-                    className="pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    disabled={isLoading || isLocked}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
+            <div className="space-y-2 group">
+              <div className="flex items-center justify-between ml-1">
+                <Label htmlFor="password" className="text-xs font-black uppercase tracking-widest text-[#206070] opacity-70">Parolă</Label>
+                <button type="button" className="text-xs text-[#40A0D0] hover:text-[#206070] font-bold transition-colors">Ai uitat parola?</button>
               </div>
-
-              {error && (
-                <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg p-3">
-                  {error}
-                </div>
-              )}
-
-              <Button type="submit" className="w-full" disabled={isLoading || isLocked}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
-                  </>
-                ) : isLocked ? (
-                  "Account Locked"
-                ) : (
-                  "Sign In"
-                )}
-              </Button>
-            </form>
-
-            <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-              <p className="text-sm text-muted-foreground mb-2 font-medium">Demo Credentials:</p>
-              <div className="space-y-2">
-                <div>
-                  <p className="text-xs text-muted-foreground font-semibold">Super Admin:</p>
-                  <p className="text-xs text-muted-foreground">Email: admin@policare.ro</p>
-                  <p className="text-xs text-muted-foreground">Password: admin123</p>
-                </div>
-                <div className="pt-2 border-t border-border">
-                  <p className="text-xs text-muted-foreground font-semibold">Recepție:</p>
-                  <p className="text-xs text-muted-foreground">Email: receptie@policare.ro</p>
-                  <p className="text-xs text-muted-foreground">Password: receptie123</p>
-                </div>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-[#206070] transition-colors" />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={isLoading || isLocked}
+                  className="h-14 pl-12 pr-12 bg-white border-slate-200 focus:border-[#206070] focus:ring-[#206070]/10 rounded-[20px] transition-all text-slate-900 font-medium"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#206070] transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          Secure access to medical records and patient data
-        </p>
+            {error && (
+              <div className="flex gap-3 p-4 bg-rose-50 border border-rose-100 rounded-2xl animate-in slide-in-from-top-2">
+                <div className="w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center shrink-0 text-[10px] font-bold">!</div>
+                <p className="text-sm font-bold text-rose-600">{error}</p>
+              </div>
+            )}
+
+            <Button 
+              type="submit" 
+              className="w-full h-14 bg-[#206070] hover:bg-[#1a4d5a] text-white font-black rounded-[20px] shadow-xl shadow-[#206070]/20 transition-all hover:scale-[1.02] active:scale-[0.98] group" 
+              disabled={isLoading || isLocked}
+            >
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Se procesează...</span>
+                </div>
+              ) : (
+                <span className="flex items-center gap-2">
+                  Conectare <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </span>
+              )}
+            </Button>
+          </form>
+
+          <div className="pt-10 border-t border-slate-100">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 text-center">Conturi Demonstrative</p>
+            <div className="grid grid-cols-2 gap-4">
+              <button 
+                onClick={() => {setEmail("admin@policare.ro"); setPassword("admin123")}}
+                className="flex flex-col items-start p-5 rounded-[24px] bg-white border border-slate-100 hover:border-[#206070]/30 hover:shadow-lg hover:shadow-[#206070]/5 transition-all group"
+              >
+                <div className="px-3 py-1 rounded-full bg-[#206070]/10 text-[#206070] text-[9px] font-black uppercase tracking-widest mb-3">Administrator</div>
+                <div className="text-xs font-bold text-slate-800">admin@policare.ro</div>
+                <div className="text-[10px] text-slate-400 font-medium">Parolă: admin123</div>
+              </button>
+              
+              <button 
+                onClick={() => {setEmail("receptie@policare.ro"); setPassword("receptie123")}}
+                className="flex flex-col items-start p-5 rounded-[24px] bg-white border border-slate-100 hover:border-[#40A0D0]/30 hover:shadow-lg hover:shadow-[#40A0D0]/5 transition-all group"
+              >
+                <div className="px-3 py-1 rounded-full bg-[#40A0D0]/10 text-[#40A0D0] text-[9px] font-black uppercase tracking-widest mb-3">Front Desk</div>
+                <div className="text-xs font-bold text-slate-800">receptie@policare.ro</div>
+                <div className="text-[10px] text-slate-400 font-medium">Parolă: receptie123</div>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

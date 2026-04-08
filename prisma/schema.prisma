@@ -111,10 +111,10 @@ model DoctorSchedule {
 model Patient {
   id        String        @id @default(cuid())
   name      String
-  cnp       String        @unique
+  cnp       String?       @unique
   birthDate DateTime?
   age       Int?
-  gender    Gender
+  gender    Gender?
   phone     String
   email     String?
   address   String?
@@ -253,6 +253,7 @@ enum NotificationEvent {
   CANCELLATION
   REMINDER
   CUSTOM
+  BOOKING_RECEIVED
 }
 
 enum NotificationStatus {
@@ -318,6 +319,7 @@ model Settings {
   defaultAppointmentDuration Int     @default(30)
   workdayStart               String  @default("08:00")
   workdayEnd                 String  @default("18:00")
+  workingDays                String  @default("0,1,2,3,4")
   reminderEnabled            Boolean @default(true)
   reminderHoursBefore        Int     @default(24)
 
