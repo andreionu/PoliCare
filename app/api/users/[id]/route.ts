@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { Role, UserStatus } from "@prisma/client"
 import bcrypt from "bcryptjs"
-
 // GET /api/users/[id]
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -38,16 +38,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       name?: string
       email?: string
       phone?: string
-      role?: string
-      status?: string
+      role?: Role
+      status?: UserStatus
       password?: string
     } = {}
 
     if (body.name !== undefined) updateData.name = body.name
     if (body.email !== undefined) updateData.email = body.email
     if (body.phone !== undefined) updateData.phone = body.phone
-    if (body.role !== undefined) updateData.role = body.role
-    if (body.status !== undefined) updateData.status = body.status
+    if (body.role !== undefined) updateData.role = body.role as Role
+    if (body.status !== undefined) updateData.status = body.status as UserStatus
     if (body.password) updateData.password = await bcrypt.hash(body.password, 10)
 
     const user = await prisma.user.update({

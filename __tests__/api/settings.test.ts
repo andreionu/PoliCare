@@ -24,7 +24,7 @@ const mockPrisma = {
 
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }))
 
-const { GET, PUT } = await import("@/app/api/settings/route")
+import { GET, PUT } from "@/app/api/settings/route"
 
 function makeRequest(method: string, body?: unknown): Request {
   return new Request("http://localhost/api/settings", {

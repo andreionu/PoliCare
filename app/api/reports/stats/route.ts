@@ -20,25 +20,28 @@ export async function GET() {
     const completionRate = totalThisMonth > 0 ? Math.round((finishedThisMonth / totalThisMonth) * 100) : 0
 
     // Build 6-month trend (current month + 5 previous)
-    const monthlyTrend = await Promise.all(
-      Array.from({ length: 6 }, (_, i) => {
-        const monthOffset = 5 - i // 5 months ago to current
-        const monthDate = new Date(now.getFullYear(), now.getMonth() - monthOffset, 1)
-        const nextMonthDate = new Date(now.getFullYear(), now.getMonth() - monthOffset + 1, 1)
-        return Promise.all([
-          prisma.patient.count({ where: { createdAt: { gte: monthDate, lt: nextMonthDate } } }),
-          prisma.appointment.count({ where: { date: { gte: monthDate, lt: nextMonthDate } } }),
-          prisma.appointment.count({ where: { date: { gte: monthDate, lt: nextMonthDate }, status: "FINALIZAT" } }),
-          prisma.appointment.count({ where: { date: { gte: monthDate, lt: nextMonthDate }, status: { notIn: ["ANULAT", "NEPREZENTARE"] } } }),
-        ]).then(([patients, appointments, finished, total]) => ({
-          month: MONTH_NAMES_RO[monthDate.getMonth()],
-          patients,
-          appointments,
-          completionRate: total > 0 ? Math.round((finished / total) * 100) : 0,
-          appointmentsPerPatient: patients > 0 ? (appointments / patients).toFixed(1) : "0",
-        }))
+    const monthlyTrend = []
+    
+    for (let i = 0; i < 6; i++) {
+      const monthOffset = 5 - i // 5 months ago to current
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - monthOffset, 1)
+      const nextMonthDate = new Date(now.getFullYear(), now.getMonth() - monthOffset + 1, 1)
+      
+      const [patients, appointments, finished, total] = await Promise.all([
+        prisma.patient.count({ where: { createdAt: { gte: monthDate, lt: nextMonthDate } } }),
+        prisma.appointment.count({ where: { date: { gte: monthDate, lt: nextMonthDate } } }),
+        prisma.appointment.count({ where: { date: { gte: monthDate, lt: nextMonthDate }, status: "FINALIZAT" } }),
+        prisma.appointment.count({ where: { date: { gte: monthDate, lt: nextMonthDate }, status: { notIn: ["ANULAT", "NEPREZENTARE"] } } }),
+      ])
+      
+      monthlyTrend.push({
+        month: MONTH_NAMES_RO[monthDate.getMonth()],
+        patients,
+        appointments,
+        completionRate: total > 0 ? Math.round((finished / total) * 100) : 0,
+        appointmentsPerPatient: patients > 0 ? (appointments / patients).toFixed(1) : "0",
       })
-    )
+    }
 
     return NextResponse.json({
       patientsThisMonth,

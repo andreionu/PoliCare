@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { AdminLayout } from "@/components/admin-layout"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -256,7 +256,7 @@ export default function UsersPage() {
   if (role !== "super-admin") return null
 
   return (
-    <AdminLayout userRole="super-admin">
+    <>
       <main className="flex-1 p-6 overflow-auto">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}
@@ -359,7 +359,7 @@ export default function UsersPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-destructive hover:text-destructive"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 rounded-lg"
                           onClick={() => handleDeleteUser(user)}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -378,17 +378,16 @@ export default function UsersPage() {
       <Dialog open={showAddUser} onOpenChange={setShowAddUser}>
         <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader className="pb-4 border-b">
-            <div className="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center mb-4">
-               <UserPlus className="w-6 h-6 text-primary" />
-            </div>
+
             <DialogTitle className="text-2xl font-bold tracking-tight">Adaugă Utilizator Nou</DialogTitle>
             <DialogDescription className="text-muted-foreground">Creează un cont nou pentru personalul clinicii</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <form onSubmit={(e) => { e.preventDefault(); handleAddUser(); }} className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="add-name">Nume complet *</Label>
               <Input
+                required
                 id="add-name"
                 placeholder="ex: Maria Ionescu"
                 value={newUser.name}
@@ -401,6 +400,7 @@ export default function UsersPage() {
             <div className="space-y-2">
               <Label htmlFor="add-email">Email *</Label>
               <Input
+                required
                 id="add-email"
                 type="email"
                 placeholder="maria.ionescu@clinica.ro"
@@ -414,6 +414,7 @@ export default function UsersPage() {
             <div className="space-y-2">
               <Label htmlFor="add-phone">Telefon *</Label>
               <Input
+                required
                 id="add-phone"
                 placeholder="+40 722 345 678"
                 value={newUser.phone}
@@ -425,7 +426,7 @@ export default function UsersPage() {
 
             <div className="space-y-2">
               <Label>Rol *</Label>
-              <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
+              <Select required value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -439,6 +440,7 @@ export default function UsersPage() {
             <div className="space-y-2">
               <Label htmlFor="add-password">Parolă *</Label>
               <Input
+                required
                 id="add-password"
                 type="password"
                 placeholder="Minim 6 caractere"
@@ -448,14 +450,14 @@ export default function UsersPage() {
               />
               {errors.password && <p className="text-xs text-destructive">Parola trebuie să aibă minim 6 caractere</p>}
             </div>
-          </div>
 
           <DialogFooter className="pt-6 border-t mt-6">
-            <Button variant="ghost" onClick={() => setShowAddUser(false)} disabled={saving} className="h-11 rounded-xl px-6 font-semibold">Anulează</Button>
-            <Button onClick={handleAddUser} disabled={saving} className="bg-primary hover:bg-primary/90 h-11 px-8 rounded-xl font-bold text-white shadow-lg shadow-primary/20 transition-all">
+            <Button type="button" variant="ghost" onClick={() => setShowAddUser(false)} disabled={saving} className="h-11 rounded-xl px-6 font-semibold text-muted-foreground hover:bg-accent">Anulează</Button>
+            <Button type="submit" disabled={saving} className="bg-primary hover:bg-primary/90 h-11 px-8 rounded-xl font-bold text-white shadow-lg shadow-primary/20 transition-all">
               {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Salvare...</> : "Adaugă Utilizator"}
             </Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -463,17 +465,16 @@ export default function UsersPage() {
       <Dialog open={showEditUser} onOpenChange={setShowEditUser}>
         <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader className="pb-4 border-b">
-            <div className="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center mb-4">
-               <Edit className="w-6 h-6 text-primary" />
-            </div>
+
             <DialogTitle className="text-2xl font-bold tracking-tight">Editează Utilizator</DialogTitle>
             <DialogDescription className="text-muted-foreground">Actualizează datele contului</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <form onSubmit={(e) => { e.preventDefault(); handleEditUser(); }} className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="edit-name">Nume complet *</Label>
               <Input
+                required
                 id="edit-name"
                 value={editUser.name}
                 onChange={(e) => { setEditUser({ ...editUser, name: e.target.value }); setErrors({ ...errors, name: false }) }}
@@ -485,6 +486,7 @@ export default function UsersPage() {
             <div className="space-y-2">
               <Label htmlFor="edit-email">Email *</Label>
               <Input
+                required
                 id="edit-email"
                 type="email"
                 value={editUser.email}
@@ -497,6 +499,7 @@ export default function UsersPage() {
             <div className="space-y-2">
               <Label htmlFor="edit-phone">Telefon</Label>
               <Input
+                required
                 id="edit-phone"
                 value={editUser.phone}
                 onChange={(e) => setEditUser({ ...editUser, phone: e.target.value })}
@@ -506,7 +509,7 @@ export default function UsersPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Rol</Label>
-                <Select value={editUser.role} onValueChange={(value) => setEditUser({ ...editUser, role: value })}>
+                <Select required value={editUser.role} onValueChange={(value) => setEditUser({ ...editUser, role: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -518,7 +521,7 @@ export default function UsersPage() {
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
-                <Select value={editUser.status} onValueChange={(value) => setEditUser({ ...editUser, status: value })}>
+                <Select required value={editUser.status} onValueChange={(value) => setEditUser({ ...editUser, status: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -542,16 +545,16 @@ export default function UsersPage() {
               />
               {errors.password && <p className="text-xs text-destructive">Parola trebuie să aibă minim 6 caractere</p>}
             </div>
-          </div>
 
           <DialogFooter className="pt-6 border-t mt-6">
-            <Button variant="ghost" onClick={() => setShowEditUser(false)} disabled={saving} className="h-11 rounded-xl px-6 font-semibold">Anulează</Button>
-            <Button onClick={handleEditUser} disabled={saving} className="bg-primary hover:bg-primary/90 h-11 px-8 rounded-xl font-bold text-white shadow-lg shadow-primary/20 transition-all">
+            <Button type="button" variant="ghost" onClick={() => setShowEditUser(false)} disabled={saving} className="h-11 rounded-xl px-6 font-semibold text-muted-foreground hover:bg-accent">Anulează</Button>
+            <Button type="submit" disabled={saving} className="bg-primary hover:bg-primary/90 h-11 px-8 rounded-xl font-bold text-white shadow-lg shadow-primary/20 transition-all">
               {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Salvare...</> : "Salvează Modificările"}
             </Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
-    </AdminLayout>
+    </>
   )
 }

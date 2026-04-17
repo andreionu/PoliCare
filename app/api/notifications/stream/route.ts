@@ -5,10 +5,13 @@ export const dynamic = "force-dynamic"
 export async function GET() {
   const encoder = new TextEncoder()
   let intervalId: ReturnType<typeof setInterval>
+  let isClosed = false
 
   const stream = new ReadableStream({
     start(controller) {
       const tick = async () => {
+        if (isClosed) return
+
         try {
           const pendingAppointments = await prisma.appointment.findMany({
             where: { status: "IN_ASTEPTARE" },
@@ -23,15 +26,28 @@ export async function GET() {
               doctor: { select: { name: true } },
             },
           })
+          
+          if (isClosed) return
+
           const payload = JSON.stringify({
             pendingAppointments,
             serverTime: new Date().toISOString(),
           })
-          controller.enqueue(encoder.encode(`data: ${payload}\n\n`))
+          
+          try {
+            controller.enqueue(encoder.encode(`data: ${payload}\n\n`))
+          } catch (e) {
+            // ignore if closed exactly at this tick
+          }
         } catch {
-          controller.enqueue(
-            encoder.encode(`event: error\ndata: {"error":"db_unavailable"}\n\n`)
-          )
+          if (isClosed) return
+          try {
+            controller.enqueue(
+              encoder.encode(`event: error\ndata: {"error":"db_unavailable"}\n\n`)
+            )
+          } catch (e) {
+            // ignore
+          }
         }
       }
 
@@ -39,6 +55,7 @@ export async function GET() {
       intervalId = setInterval(tick, 5_000)
     },
     cancel() {
+      isClosed = true
       clearInterval(intervalId)
     },
   })

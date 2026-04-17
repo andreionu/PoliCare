@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { AdminLayout } from "@/components/admin-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -213,7 +212,7 @@ export default function PatientsPage() {
   const getGenderDisplay = (gender: string) => GENDER_LABELS[gender] ?? gender
 
   return (
-    <AdminLayout userRole={role}>
+    <>
       <main className="flex-1 p-6 overflow-auto">
         <div className="max-w-[1600px] mx-auto space-y-8">
           {/* Header */}
@@ -449,23 +448,23 @@ export default function PatientsPage() {
       <Dialog open={showAddPatient} onOpenChange={setShowAddPatient}>
         <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader className="pb-4 border-b">
-            <div className="w-12 h-12 rounded-2xl bg-primary/5 dark:bg-primary/10 flex items-center justify-center mb-4">
-              <UserPlus className="w-6 h-6 text-primary" />
-            </div>
+
             <DialogTitle className="text-2xl font-bold tracking-tight">Adaugă Pacient Nou</DialogTitle>
             <DialogDescription className="text-muted-foreground">Înregistrează un nou pacient în baza de date a clinicii.</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nume Complet *</Label>
-              <Input
-                id="name"
-                placeholder="ex: Andrei Popescu"
-                value={newPatient.name}
-                onChange={(e) => setNewPatient({ ...newPatient, name: e.target.value })}
-              />
-            </div>
+          <form onSubmit={(e) => { e.preventDefault(); handleAddPatient(); }}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nume Complet *</Label>
+                <Input
+                  id="name"
+                  required
+                  placeholder="ex: Andrei Popescu"
+                  value={newPatient.name}
+                  onChange={(e) => setNewPatient({ ...newPatient, name: e.target.value })}
+                />
+              </div>
             
              <div className="space-y-2">
               <Label htmlFor="cnp">CNP <span className="text-muted-foreground font-normal text-xs">(opțional, se completează la prezentare)</span></Label>
@@ -492,7 +491,7 @@ export default function PatientsPage() {
                 <Label htmlFor="gender">Gen</Label>
                 <select
                   id="gender"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium shadow-sm outline-none focus-visible:ring-[3px] focus-visible:border-primary focus-visible:ring-primary/20 transition-all hover:border-primary/40 disabled:cursor-not-allowed disabled:opacity-50"
                   value={newPatient.gender}
                   onChange={(e) => setNewPatient({ ...newPatient, gender: e.target.value })}
                 >
@@ -508,6 +507,7 @@ export default function PatientsPage() {
               <Label htmlFor="phone">Telefon *</Label>
               <Input
                 id="phone"
+                required
                 placeholder="07xx xxx xxx"
                 value={newPatient.phone}
                 onChange={(e) => setNewPatient({ ...newPatient, phone: e.target.value })}
@@ -527,10 +527,10 @@ export default function PatientsPage() {
           </div>
 
           <DialogFooter className="pt-6 border-t mt-6">
-            <Button variant="ghost" onClick={() => setShowAddPatient(false)} disabled={saving} className="rounded-xl h-11 px-6">
+            <Button type="button" variant="ghost" onClick={() => setShowAddPatient(false)} disabled={saving} className="rounded-xl h-11 px-6 font-semibold text-muted-foreground hover:bg-accent">
               Anulează
             </Button>
-            <Button onClick={handleAddPatient} disabled={saving} className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl h-11 px-8 font-bold text-white">
+            <Button type="submit" disabled={saving} className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl h-11 px-8 font-bold text-white">
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -541,8 +541,9 @@ export default function PatientsPage() {
               )}
             </Button>
           </DialogFooter>
+        </form>
         </DialogContent>
       </Dialog>
-    </AdminLayout>
+    </>
   )
 }

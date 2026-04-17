@@ -14,7 +14,7 @@ const mockPrisma = {
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }))
 
 // Import AFTER mocking
-const { GET, POST } = await import("@/app/api/patients/route")
+import { GET, POST } from "@/app/api/patients/route"
 
 function makeRequest(method: string, body?: unknown, searchParams?: Record<string, string>): Request {
   const url = new URL("http://localhost/api/patients")

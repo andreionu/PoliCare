@@ -217,33 +217,33 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg h-[600px] flex flex-col animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 sm:p-4">
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl h-[90vh] sm:h-[640px] flex flex-col animate-in fade-in slide-in-from-bottom-4 sm:zoom-in duration-300">
 
         {/* Header */}
-        <div className="px-5 pt-5 pb-4 border-b border-slate-100">
-          <div className="flex items-center justify-between mb-4">
+        <div className="px-6 pt-6 pb-4 border-b border-slate-100 shrink-0">
+          <div className="flex items-center justify-between mb-5">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#206070]">Rezervare Online</p>
-              <h2 className="text-lg font-black italic text-slate-900 leading-tight">Programare PoliCare</h2>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#206070] mb-0.5">Rezervare Online</p>
+              <h2 className="text-xl font-black text-slate-900 leading-tight">Programare PoliCare</h2>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-xl h-8 w-8">
+            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-xl h-9 w-9 hover:bg-slate-100">
               <X className="w-4 h-4" />
             </Button>
           </div>
 
           {/* Step bar */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             {[1, 2, 3, 4, 5].map((s, i) => (
               <div key={s} className="flex items-center flex-1 last:flex-none">
                 <div className={cn(
-                  "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black transition-colors duration-150 shrink-0",
-                  step >= s ? "bg-[#206070] text-white" : "bg-slate-100 text-slate-400"
+                  "w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black transition-all duration-200 shrink-0",
+                  step >= s ? "bg-[#206070] text-white shadow-sm shadow-[#206070]/30" : "bg-slate-100 text-slate-400"
                 )}>
                   {step > s ? <Check className="w-3.5 h-3.5" /> : s}
                 </div>
                 {i < 4 && (
-                  <div className={cn("h-0.5 flex-1 mx-1 rounded-full transition-colors duration-150", step > s ? "bg-[#206070]" : "bg-slate-100")} />
+                  <div className={cn("h-0.5 flex-1 mx-1.5 rounded-full transition-colors duration-300", step > s ? "bg-[#206070]" : "bg-slate-100")} />
                 )}
               </div>
             ))}
@@ -252,7 +252,8 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-5">
+        <form onSubmit={(e) => { e.preventDefault(); if (step === 5) handleSubmit(); }} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="flex-1 overflow-y-auto px-6 py-5">
 
           {/* Step 1 — Department */}
           {step === 1 && (
@@ -263,22 +264,23 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
                   <div key={i} className="h-14 rounded-xl bg-slate-100 animate-pulse" />
                 ))
               ) : (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {departments.map((dept) => {
                     const Icon = departmentIcons[dept.name] || departmentIcons.default
                     return (
                       <button
                         key={dept.id}
+                        type="button"
                         onClick={() => { setSelectedDepartment(dept.id); setSelectedServiceId(null); setSelectedDoctor(null) }}
                         className={cn(
-                          "p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-colors duration-150",
+                          "p-5 rounded-xl border-2 flex flex-col items-center gap-2.5 transition-all duration-150 hover:-translate-y-0.5",
                           selectedDepartment === dept.id
-                            ? "border-[#206070] bg-[#206070]/5 text-[#206070]"
-                            : "border-slate-100 bg-white hover:border-slate-200 text-slate-600"
+                            ? "border-[#206070] bg-[#206070]/5 text-[#206070] shadow-sm"
+                            : "border-slate-100 bg-slate-50/50 hover:border-slate-200 text-slate-500"
                         )}
                       >
                         <Icon className="w-6 h-6" />
-                        <span className="text-xs font-black uppercase tracking-tight">{dept.name}</span>
+                        <span className="text-xs font-bold tracking-tight text-center leading-tight">{dept.name}</span>
                       </button>
                     )
                   })}
@@ -391,21 +393,22 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
                       <Loader2 className="w-6 h-6 text-[#206070] animate-spin" />
                     </div>
                   ) : (
-                    <div className="grid grid-cols-4 gap-1.5">
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
                       {timeSlots.map((time) => {
                         const occupied = isSlotOccupied(time)
                         return (
                           <button
                             key={time}
+                            type="button"
                             disabled={occupied}
                             onClick={() => setSelectedTime(time)}
                             className={cn(
-                              "h-9 rounded-lg text-xs font-bold transition-colors duration-150",
+                              "h-10 rounded-xl text-xs font-semibold transition-all duration-150",
                               occupied
                                 ? "bg-slate-50 text-slate-200 cursor-not-allowed"
                                 : selectedTime === time
-                                  ? "bg-[#206070] text-white"
-                                  : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+                                  ? "bg-[#206070] text-white shadow-sm"
+                                  : "bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-800"
                             )}
                           >
                             {time}
@@ -423,74 +426,92 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
             </div>
           )}
 
-          {/* Step 5 — Contact */}
           {step === 5 && (
             <div className="space-y-4">
-              <div className="p-3 rounded-xl bg-slate-50 text-xs text-slate-500 space-y-1 mb-2">
-                <p><span className="font-bold text-slate-700">Data:</span> {selectedDate} la {selectedTime}</p>
-                <p><span className="font-bold text-slate-700">Medic:</span> {doctors.find(d => d.id === selectedDoctor)?.name}</p>
-                <p><span className="font-bold text-slate-700">Durată:</span> {getServiceDuration()} min</p>
+              {/* Summary card */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Rezumat programare</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div><p className="text-[10px] text-slate-400 mb-0.5">Data</p><p className="text-xs font-bold text-slate-800">{selectedDate}</p></div>
+                  <div><p className="text-[10px] text-slate-400 mb-0.5">Ora</p><p className="text-xs font-bold text-slate-800">{selectedTime}</p></div>
+                  <div><p className="text-[10px] text-slate-400 mb-0.5">Durată</p><p className="text-xs font-bold text-slate-800">{getServiceDuration()} min</p></div>
+                </div>
+                <div className="mt-2 pt-2 border-t border-slate-100">
+                  <p className="text-[10px] text-slate-400 mb-0.5">Medic</p>
+                  <p className="text-xs font-bold text-slate-800">{doctors.find(d => d.id === selectedDoctor)?.name}</p>
+                </div>
               </div>
-              <div>
-                <Label className="text-xs font-bold text-slate-500 mb-1.5 block">Nume complet *</Label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: sanitize(e.target.value) })}
-                  className="h-10 rounded-xl bg-slate-50 border-slate-200 text-sm"
-                  placeholder="Ion Popescu"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-bold text-slate-500 mb-1.5 block">Telefon *</Label>
-                <Input
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: sanitize(e.target.value) })}
-                  className="h-10 rounded-xl bg-slate-50 border-slate-200 text-sm"
-                  placeholder="0712 345 678"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-bold text-slate-500 mb-1.5 block">Email *</Label>
-                <Input
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: sanitize(e.target.value) })}
-                  className="h-10 rounded-xl bg-slate-50 border-slate-200 text-sm"
-                  placeholder="nume@email.com"
-                />
+
+              {/* Form fields — 2 cols on sm+ */}
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <Label className="text-xs font-bold text-slate-500 mb-1.5 block">Nume complet *</Label>
+                  <Input
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: sanitize(e.target.value) })}
+                    className="h-11 rounded-xl bg-slate-50 border-slate-200"
+                    placeholder="Ion Popescu"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-bold text-slate-500 mb-1.5 block">Telefon *</Label>
+                  <Input
+                    required
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: sanitize(e.target.value) })}
+                    className="h-11 rounded-xl bg-slate-50 border-slate-200"
+                    placeholder="0712 345 678"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-bold text-slate-500 mb-1.5 block">Email *</Label>
+                  <Input
+                    required
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: sanitize(e.target.value) })}
+                    className="h-11 rounded-xl bg-slate-50 border-slate-200"
+                    placeholder="nume@email.com"
+                  />
+                </div>
               </div>
             </div>
           )}
-        </div>
+          </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-slate-100 flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between shrink-0 bg-white rounded-b-3xl sm:rounded-b-2xl">
           <Button
+            type="button"
             variant="ghost"
             onClick={() => setStep(s => s - 1)}
             disabled={step === 1}
-            className="h-9 px-4 rounded-xl text-sm font-bold text-slate-400"
+            className="h-10 px-5 rounded-xl text-sm font-semibold text-slate-400 hover:text-slate-600 hover:bg-slate-100"
           >
             Înapoi
           </Button>
 
           {step < 5 ? (
             <Button
+              type="button"
               onClick={() => setStep(s => s + 1)}
               disabled={!canProceed()}
-              className="h-9 px-5 bg-[#206070] hover:bg-[#1a4d5a] rounded-xl text-sm font-bold"
+              className="h-10 px-6 bg-[#206070] hover:bg-[#1a4d5a] rounded-xl text-sm font-bold shadow-sm shadow-[#206070]/20"
             >
               Continuă <ChevronRight className="ml-1 w-4 h-4" />
             </Button>
           ) : (
             <Button
-              onClick={handleSubmit}
+              type="submit"
               disabled={submitting || !canProceed()}
-              className="h-9 px-5 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-sm font-bold"
+              className="h-10 px-6 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-sm font-bold shadow-sm"
             >
               {submitting ? <><Loader2 className="mr-2 w-4 h-4 animate-spin" />Se trimite...</> : <><Check className="mr-1.5 w-4 h-4" />Confirmă</>}
             </Button>
           )}
         </div>
+        </form>
       </div>
     </div>
   )

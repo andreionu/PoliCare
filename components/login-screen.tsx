@@ -79,7 +79,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       <div className="relative hidden lg:flex flex-col justify-between p-16 overflow-hidden bg-slate-900 text-white">
         <div className="absolute inset-0 z-0">
           <img 
-            src="/modern_clinic_login_hero_1775509392356.png" 
+            src="/modern-medical-clinic-reception-with-friendly-staf.jpg" 
             alt="PoliCare Hero" 
             className="w-full h-full object-cover opacity-60 scale-105"
           />

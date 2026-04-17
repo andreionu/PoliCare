@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { useState, useEffect } from "react"
 
 import { Logo } from "@/components/logo"
 import { SidebarNav } from "@/components/sidebar-nav"
@@ -8,10 +9,16 @@ import { Header } from "@/components/header"
 
 interface AdminLayoutProps {
   children: React.ReactNode
-  userRole?: "super-admin" | "front-desk" | null | string
 }
 
-export function AdminLayout({ children, userRole }: AdminLayoutProps) {
+export function AdminLayout({ children }: AdminLayoutProps) {
+  const [userRole, setUserRole] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Only access localStorage strictly on client side to prevent hydration mismatches
+    setUserRole(localStorage.getItem("userRole"))
+  }, [])
+
   return (
     <div className="flex min-h-screen bg-background">
       <aside className="hidden lg:flex w-64 flex-col border-r bg-card sticky top-0 h-screen shadow-sm">

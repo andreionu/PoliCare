@@ -14,9 +14,9 @@ const mockPrisma = {
 }
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }))
 
-const { sendAppointmentNotification } = await import("@/lib/notifications")
-const { sendEmail } = await import("@/lib/email")
-const { sendSMS } = await import("@/lib/sms")
+import { sendAppointmentNotification } from "@/lib/notifications"
+import { sendEmail } from "@/lib/email"
+import { sendSMS } from "@/lib/sms"
 
 const mockAppt = {
   id: "a1",

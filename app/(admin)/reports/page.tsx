@@ -1,6 +1,5 @@
 "use client"
 
-import { AdminLayout } from "@/components/admin-layout"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -142,7 +141,7 @@ export default function ReportsPage() {
   }
 
   return (
-    <AdminLayout>
+    <>
       <div className="flex-1 overflow-y-auto">
         <div className="p-8 max-w-[1600px] mx-auto">
           <div className="mb-8 flex items-center justify-between">
@@ -407,7 +406,7 @@ export default function ReportsPage() {
           </div>
 
           <DialogFooter className="pt-6 border-t mt-6">
-            <Button variant="ghost" onClick={() => setIsGenerateReportOpen(false)} disabled={generatingReport} className="h-11 rounded-xl px-6 font-semibold hover:bg-slate-50 transition-colors">
+            <Button variant="ghost" onClick={() => setIsGenerateReportOpen(false)} disabled={generatingReport} className="h-11 rounded-xl px-6 font-semibold text-muted-foreground hover:bg-accent">
               Anulează
             </Button>
             <Button onClick={handleGenerateReport} disabled={generatingReport} className="gap-2 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl h-11 px-8 font-bold text-white transition-all">
@@ -426,6 +425,6 @@ export default function ReportsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </AdminLayout>
+    </>
   )
 }

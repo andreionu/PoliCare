@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { AdminLayout } from "@/components/admin-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -200,7 +199,7 @@ export default function ServicesPage() {
   const deptsCovered = new Set(services.map((s) => s.department.id)).size
 
   return (
-    <AdminLayout userRole={role as "super-admin" | "front-desk" | null}>
+    <>
       <main className="flex-1 p-6 overflow-auto">
         <div className="max-w-[1600px] mx-auto space-y-8">
           {/* Header */}
@@ -392,7 +391,7 @@ export default function ServicesPage() {
                             <DropdownMenuLabel className="text-xs uppercase font-bold text-muted-foreground px-2 pb-2">Opțiuni</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 
-                              className="text-destructive font-semibold rounded-lg cursor-pointer"
+                              className="text-destructive font-semibold rounded-lg cursor-pointer hover:bg-destructive/10 hover:text-destructive"
                               onClick={() => handleDelete(service)}
                             >
                               Șterge Serviciu
@@ -413,17 +412,16 @@ export default function ServicesPage() {
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader className="pb-4 border-b">
-            <div className="w-12 h-12 rounded-2xl bg-primary/5 dark:bg-primary/10 flex items-center justify-center mb-4">
-              <Plus className="w-6 h-6 text-primary" />
-            </div>
+
             <DialogTitle className="text-2xl font-bold tracking-tight">Serviciu Nou</DialogTitle>
             <DialogDescription className="text-muted-foreground">Adaugă o nouă procedură medicală în portofoliul clinicii.</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <form onSubmit={(e) => { e.preventDefault(); handleAdd(); }} className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Nume *</Label>
               <Input
+                required
                 placeholder="ex: Consultație cardiologie"
                 value={addForm.name}
                 onChange={(e) => { setAddForm({ ...addForm, name: e.target.value }); setAddErrors({ ...addErrors, name: false }) }}
@@ -435,6 +433,7 @@ export default function ServicesPage() {
             <div className="space-y-2">
               <Label>Departament *</Label>
               <Select
+                required
                 value={addForm.departmentId}
                 onValueChange={(v) => { setAddForm({ ...addForm, departmentId: v }); setAddErrors({ ...addErrors, departmentId: false }) }}
               >
@@ -454,6 +453,7 @@ export default function ServicesPage() {
               <div className="space-y-2">
                 <Label>Durată (minute) *</Label>
                 <Input
+                  required
                   type="number"
                   min="1"
                   placeholder="30"
@@ -486,13 +486,12 @@ export default function ServicesPage() {
                 className="resize-none"
               />
             </div>
-          </div>
 
           <DialogFooter className="pt-6 border-t mt-6">
-            <Button variant="ghost" onClick={() => setShowAdd(false)} disabled={saving} className="rounded-xl h-11 px-6">
+            <Button type="button" variant="ghost" onClick={() => setShowAdd(false)} disabled={saving} className="rounded-xl h-11 px-6 font-semibold text-muted-foreground hover:bg-accent">
               Anulează
             </Button>
-            <Button onClick={handleAdd} disabled={saving} className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl h-11 px-8 font-bold text-white">
+            <Button type="submit" disabled={saving} className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl h-11 px-8 font-bold text-white">
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -503,6 +502,7 @@ export default function ServicesPage() {
               )}
             </Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -510,17 +510,16 @@ export default function ServicesPage() {
       <Dialog open={showEdit} onOpenChange={setShowEdit}>
         <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader className="pb-4 border-b">
-            <div className="w-12 h-12 rounded-2xl bg-primary/5 dark:bg-primary/10 flex items-center justify-center mb-4">
-              <Wrench className="w-6 h-6 text-primary" />
-            </div>
+
             <DialogTitle className="text-2xl font-bold tracking-tight">Editează Serviciu</DialogTitle>
             <DialogDescription className="text-muted-foreground">Actualizează tarifele sau detaliile procedurii medicale.</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <form onSubmit={(e) => { e.preventDefault(); handleEdit(); }} className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Nume</Label>
               <Input
+                required
                 value={editForm.name}
                 onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
               />
@@ -528,7 +527,7 @@ export default function ServicesPage() {
 
             <div className="space-y-2">
               <Label>Departament</Label>
-              <Select value={editForm.departmentId} onValueChange={(v) => setEditForm({ ...editForm, departmentId: v })}>
+              <Select required value={editForm.departmentId} onValueChange={(v) => setEditForm({ ...editForm, departmentId: v })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -544,6 +543,7 @@ export default function ServicesPage() {
               <div className="space-y-2">
                 <Label>Durată (minute)</Label>
                 <Input
+                  required
                   type="number"
                   min="1"
                   value={editForm.duration}
@@ -583,13 +583,12 @@ export default function ServicesPage() {
               />
               <Label htmlFor="edit-isActive">Serviciu activ</Label>
             </div>
-          </div>
 
           <DialogFooter className="pt-6 border-t mt-6">
-            <Button variant="ghost" onClick={() => setShowEdit(false)} disabled={saving} className="rounded-xl h-11 px-6">
+            <Button type="button" variant="ghost" onClick={() => setShowEdit(false)} disabled={saving} className="rounded-xl h-11 px-6 font-semibold text-muted-foreground hover:bg-accent">
               Anulează
             </Button>
-            <Button onClick={handleEdit} disabled={saving} className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl h-11 px-8 font-bold text-white">
+            <Button type="submit" disabled={saving} className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl h-11 px-8 font-bold text-white">
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -600,8 +599,9 @@ export default function ServicesPage() {
               )}
             </Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
-    </AdminLayout>
+    </>
   )
 }

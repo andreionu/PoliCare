@@ -15,7 +15,7 @@ describe("useDebounce", () => {
   })
 
   it("does not update before delay elapses", () => {
-    const { result, rerender } = renderHook(({ value }) => useDebounce(value, 300), {
+    const { result, rerender } = renderHook(({ value }: { value: any }) => useDebounce(value, 300), {
       initialProps: { value: "initial" },
     })
     rerender({ value: "updated" })
@@ -23,7 +23,7 @@ describe("useDebounce", () => {
   })
 
   it("updates after delay elapses", () => {
-    const { result, rerender } = renderHook(({ value }) => useDebounce(value, 300), {
+    const { result, rerender } = renderHook(({ value }: { value: any }) => useDebounce(value, 300), {
       initialProps: { value: "initial" },
     })
     rerender({ value: "updated" })
@@ -32,7 +32,7 @@ describe("useDebounce", () => {
   })
 
   it("resets timer on rapid changes (only last value wins)", () => {
-    const { result, rerender } = renderHook(({ value }) => useDebounce(value, 300), {
+    const { result, rerender } = renderHook(({ value }: { value: any }) => useDebounce(value, 300), {
       initialProps: { value: "a" },
     })
     rerender({ value: "b" })

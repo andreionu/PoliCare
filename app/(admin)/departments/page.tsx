@@ -1,6 +1,5 @@
 "use client"
 
-import { AdminLayout } from "@/components/admin-layout"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -210,7 +209,7 @@ export default function DepartmentsPage() {
   }, [departments])
 
   return (
-    <AdminLayout>
+    <>
       <main className="flex-1 p-6 overflow-auto">
         <div className="max-w-[1600px] mx-auto space-y-8">
           {/* Header */}
@@ -359,10 +358,11 @@ export default function DepartmentsPage() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-6">
+          <form onSubmit={(e) => { e.preventDefault(); handleEditDepartment(); }} className="space-y-6">
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Nume Departament</Label>
                 <Input
+                  required
                   value={editFormData.name}
                   onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
                   className={cn("h-12 rounded-xl bg-muted/50 border-none px-4 font-bold text-lg", editErrors.name && "ring-2 ring-rose-500")}
@@ -372,7 +372,7 @@ export default function DepartmentsPage() {
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Iconiță</Label>
-                  <Select value={editFormData.icon} onValueChange={(v) => setEditFormData({ ...editFormData, icon: v })}>
+                  <Select required value={editFormData.icon} onValueChange={(v) => setEditFormData({ ...editFormData, icon: v })}>
                     <SelectTrigger className="h-12 rounded-xl bg-muted/50 border-none px-4 font-medium">
                       <SelectValue />
                     </SelectTrigger>
@@ -385,7 +385,7 @@ export default function DepartmentsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Culoare Temă</Label>
-                  <Select value={editFormData.color} onValueChange={(v) => setEditFormData({ ...editFormData, color: v })}>
+                  <Select required value={editFormData.color} onValueChange={(v) => setEditFormData({ ...editFormData, color: v })}>
                     <SelectTrigger className="h-12 rounded-xl bg-muted/50 border-none px-4 font-medium">
                       <SelectValue />
                     </SelectTrigger>
@@ -400,7 +400,7 @@ export default function DepartmentsPage() {
 
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Status</Label>
-                <Select value={editFormData.status} onValueChange={(v) => setEditFormData({ ...editFormData, status: v })}>
+                <Select required value={editFormData.status} onValueChange={(v) => setEditFormData({ ...editFormData, status: v })}>
                   <SelectTrigger className="h-12 rounded-xl bg-muted/50 border-none px-4 font-medium">
                     <SelectValue />
                   </SelectTrigger>
@@ -420,14 +420,13 @@ export default function DepartmentsPage() {
                    rows={3}
                 />
               </div>
-            </div>
-
             <DialogFooter className="flex flex-col sm:flex-row gap-3 pt-6 border-t mt-6">
-              <Button variant="ghost" onClick={() => setIsEditDepartmentOpen(false)} className="h-11 rounded-xl font-bold uppercase tracking-widest text-muted-foreground/80 px-6 hover:bg-slate-50 transition-colors">Anulează</Button>
-              <Button onClick={handleEditDepartment} disabled={saving} className="h-11 px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl font-bold uppercase tracking-widest text-white transition-all active:scale-95">
+              <Button type="button" variant="ghost" onClick={() => setIsEditDepartmentOpen(false)} className="h-11 rounded-xl font-semibold text-muted-foreground hover:bg-accent px-6">Anulează</Button>
+              <Button type="submit" disabled={saving} className="h-11 px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl font-bold uppercase tracking-widest text-white transition-all active:scale-95">
                 {saving ? "Salvare..." : "Actualizează"}
               </Button>
             </DialogFooter>
+          </form>
           </div>
         </DialogContent>
       </Dialog>
@@ -437,19 +436,18 @@ export default function DepartmentsPage() {
         <DialogContent className="max-w-2xl rounded-2xl border-none shadow-2xl p-0 overflow-hidden">
           <div className="p-8 space-y-8">
             <DialogHeader>
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4">
-                <Plus className="w-6 h-6 text-emerald-600" />
-              </div>
+
               <DialogTitle className="text-2xl font-bold text-foreground tracking-tight">Adaugă Departament</DialogTitle>
               <DialogDescription className="text-muted-foreground font-medium">
                 Definește o nouă arie medicală și customizează-i prezența vizuală.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-6">
+          <form onSubmit={(e) => { e.preventDefault(); handleAddDepartment(); }} className="space-y-6">
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Nume Departament</Label>
                 <Input
+                  required
                   value={departmentFormData.name}
                   onChange={(e) => setDepartmentFormData({ ...departmentFormData, name: e.target.value })}
                   className={cn("h-12 rounded-xl bg-muted/50 border-none px-4 font-bold text-lg", departmentErrors.name && "ring-2 ring-rose-500")}
@@ -460,7 +458,7 @@ export default function DepartmentsPage() {
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Iconiță</Label>
-                  <Select value={departmentFormData.icon || ""} onValueChange={(v) => setDepartmentFormData({ ...departmentFormData, icon: v })}>
+                  <Select required value={departmentFormData.icon || ""} onValueChange={(v) => setDepartmentFormData({ ...departmentFormData, icon: v })}>
                     <SelectTrigger className="h-12 rounded-xl bg-muted/50 border-none px-4 font-medium">
                       <SelectValue placeholder="Alege icon" />
                     </SelectTrigger>
@@ -473,7 +471,7 @@ export default function DepartmentsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Culoare Temă</Label>
-                  <Select value={departmentFormData.color || ""} onValueChange={(v) => setDepartmentFormData({ ...departmentFormData, color: v })}>
+                  <Select required value={departmentFormData.color || ""} onValueChange={(v) => setDepartmentFormData({ ...departmentFormData, color: v })}>
                     <SelectTrigger className="h-12 rounded-xl bg-muted/50 border-none px-4 font-medium">
                       <SelectValue placeholder="Alege culoare" />
                     </SelectTrigger>
@@ -496,11 +494,9 @@ export default function DepartmentsPage() {
                    rows={3}
                 />
               </div>
-            </div>
-
             <DialogFooter className="flex flex-col sm:flex-row gap-3 pt-6 border-t mt-6">
-              <Button variant="ghost" onClick={() => setIsAddDepartmentOpen(false)} className="h-11 rounded-xl font-bold uppercase tracking-widest text-muted-foreground/80 px-6 hover:bg-slate-50 transition-colors">Anulează</Button>
-              <Button onClick={handleAddDepartment} disabled={saving} className="h-11 px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl font-bold uppercase tracking-widest text-white transition-all active:scale-95 group">
+              <Button type="button" variant="ghost" onClick={() => setIsAddDepartmentOpen(false)} className="h-11 rounded-xl font-semibold text-muted-foreground hover:bg-accent px-6">Anulează</Button>
+              <Button type="submit" disabled={saving} className="h-11 px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl font-bold uppercase tracking-widest text-white transition-all active:scale-95 group">
                 {saving ? "Creare..." : (
                    <>
                      CREEAZĂ DEPARTAMENT
@@ -508,9 +504,10 @@ export default function DepartmentsPage() {
                 )}
               </Button>
             </DialogFooter>
+          </form>
           </div>
         </DialogContent>
       </Dialog>
-    </AdminLayout>
+    </>
   )
 }

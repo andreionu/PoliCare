@@ -1,6 +1,5 @@
 "use client"
 
-import { AdminLayout } from "@/components/admin-layout"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -206,7 +205,7 @@ export default function DoctorsPage() {
   }, [doctors])
 
   return (
-    <AdminLayout>
+    <>
       <main className="flex-1 p-6 overflow-auto">
         <div className="max-w-[1600px] mx-auto space-y-8">
           {/* Header */}
@@ -231,7 +230,7 @@ export default function DoctorsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               { label: "Total Medici", val: stats.total, icon: Stethoscope, color: "text-primary", bg: "bg-primary/5", shadow: "shadow-primary/10" },
-              { label: "Sesiuni Active", val: stats.active, icon: Activity, color: "text-emerald-600", bg: "bg-emerald-50", shadow: "shadow-emerald-200" },
+              { label: "Medici Activi", val: stats.active, icon: Activity, color: "text-emerald-600", bg: "bg-emerald-50", shadow: "shadow-emerald-200" },
               { label: "Rating Mediu", val: stats.avgRating, icon: Award, color: "text-amber-600", bg: "bg-amber-50", shadow: "shadow-amber-200" },
             ].map((stat, i) => (
               <Card key={i} className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm rounded-2xl">
@@ -380,20 +379,19 @@ export default function DoctorsPage() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border-none shadow-2xl p-0">
           <div className="p-8 space-y-8">
             <DialogHeader>
-              <div className="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center mb-4">
-                <UserPlus className="w-6 h-6 text-primary" />
-              </div>
+
               <DialogTitle className="text-2xl font-bold text-foreground tracking-tight">Adaugă Medic Nou</DialogTitle>
               <DialogDescription className="text-muted-foreground font-medium">
                 Înregistrează un nou specialist medical în baza de date **PoliCare**.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-6">
+            <form onSubmit={(e) => { e.preventDefault(); handleAddDoctor(); }} className="space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Nume Complet</Label>
                   <Input
+                    required
                     placeholder="Dr. Andrei Ionescu"
                     value={formData.name}
                     onChange={(e) => {
@@ -407,6 +405,7 @@ export default function DoctorsPage() {
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Departament</Label>
                   <Select
+                    required
                     value={formData.departmentId}
                     onValueChange={(value) => {
                       setFormData({ ...formData, departmentId: value })
@@ -431,6 +430,7 @@ export default function DoctorsPage() {
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Specialitate</Label>
                   <Input
+                    required
                     placeholder="Cardiologie"
                     value={formData.specialty}
                     onChange={(e) => {
@@ -457,6 +457,7 @@ export default function DoctorsPage() {
                   <div className="relative group">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
                     <Input
+                      required
                       type="email"
                       placeholder="andrei.i@policare.ro"
                       value={formData.email}
@@ -473,6 +474,7 @@ export default function DoctorsPage() {
                   <div className="relative group">
                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
                     <Input
+                      required
                       type="tel"
                       placeholder="07XX XXX XXX"
                       value={formData.phone}
@@ -496,19 +498,19 @@ export default function DoctorsPage() {
                   className="resize-none rounded-xl bg-muted/50 border-none p-4 font-medium"
                 />
               </div>
-            </div>
 
             <DialogFooter className="flex flex-col sm:flex-row gap-3 pt-6 border-t mt-6">
               <Button 
+                type="button"
                 variant="ghost" 
                 onClick={() => setIsAddDoctorOpen(false)} 
                 disabled={saving} 
-                className="h-11 rounded-xl font-bold uppercase tracking-widest text-muted-foreground/60 hover:bg-slate-50 px-6"
+                className="h-11 rounded-xl font-semibold text-muted-foreground hover:bg-accent px-6"
               >
                 Anulează
               </Button>
               <Button 
-                onClick={handleAddDoctor} 
+                type="submit"
                 disabled={saving || departments.length === 0} 
                 className="h-11 px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl font-bold text-sm tracking-wide transition-all translate-y-0 active:scale-95 text-white"
               >
@@ -524,9 +526,10 @@ export default function DoctorsPage() {
                 )}
               </Button>
             </DialogFooter>
-          </div>
+          </form>
+        </div>
         </DialogContent>
       </Dialog>
-    </AdminLayout>
+    </>
   )
 }

@@ -161,6 +161,37 @@ async function main() {
 
   console.log("✅ Created services for all departments")
 
+  // Helper: create doctor
+  async function upsertDoctor(data: {
+    name: string
+    email: string
+    phone: string
+    avatar?: string
+    specialty: string
+    experience: string
+    rating: number
+    bio: string
+    departmentId: string
+  }) {
+    await prisma.doctor.upsert({
+      where: { email: data.email },
+      update: {
+        avatar: data.avatar,
+        status: "ACTIV"
+      },
+      create: { ...data, status: "ACTIV" }
+    })
+  }
+
+  // Create doctors
+  await Promise.all([
+    upsertDoctor({ name: "Dr. Mihai Popescu", email: "mihai.popescu@policare.ro", phone: "+40 700 111 222", avatar: "/male-doctor.png", specialty: "Medic Primar Cardiologie", experience: "15 ani", rating: 4.9, bio: "Specialist în ecocardiografie și patologie cardiovasculară complexă.", departmentId: cardio.id }),
+    upsertDoctor({ name: "Dr. Elena Ionescu", email: "elena.ionescu@policare.ro", phone: "+40 700 222 333", avatar: "/female-doctor.png", specialty: "Medic Specialist ORL", experience: "8 ani", rating: 4.8, bio: "Experiență vastă în chirurgia endoscopică naso-sinusală.", departmentId: orl.id }),
+    upsertDoctor({ name: "Dr. Andrei Radu", email: "andrei.radu@policare.ro", phone: "+40 700 333 444", avatar: "/male-doctor-2.jpg", specialty: "Medic Primar Oftalmologie", experience: "20 ani", rating: 5.0, bio: "Chirurg de pol anterior, specializat în chirurgia cataractei.", departmentId: oftalmo.id }),
+    upsertDoctor({ name: "Dr. Maria Dumitrescu", email: "maria.dumitrescu@policare.ro", phone: "+40 700 444 555", avatar: "/female-doctor-3.jpg", specialty: "Medic Specialist Dermatologie", experience: "10 ani", rating: 4.7, bio: "Expertiză în dermatoscopie digitală și dermatologie estetică.", departmentId: derma.id }),
+    upsertDoctor({ name: "Dr. Ionuț Stan", email: "ionut.stan@policare.ro", phone: "+40 700 555 666", avatar: "/male-doctor-3.jpg", specialty: "Medic Primar Pediatrie", experience: "12 ani", rating: 4.9, bio: "Pasiune pentru pediatrie generală și explorare funcțională respiratorie la copii.", departmentId: pediatrie.id }),
+  ])
+  console.log("✅ Created doctors for all departments")
   // Create clinic settings
   await prisma.settings.upsert({
     where: { id: "clinic_settings" },

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { AdminLayout } from "@/components/admin-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,6 +9,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
@@ -112,7 +112,7 @@ export default function PatientDetailPage() {
 
   // Edit patient modal
   const [showEditPatient, setShowEditPatient] = useState(false)
-  const [editForm, setEditForm] = useState({ name: "", cnp: "", gender: "", phone: "", email: "", address: "", status: "", notes: "" })
+  const [editForm, setEditForm] = useState({ name: "", cnp: "", gender: "NONE", phone: "", email: "", address: "", status: "", notes: "" })
   const [savingPatient, setSavingPatient] = useState(false)
 
   // Add medical record modal
@@ -154,7 +154,7 @@ export default function PatientDetailPage() {
     setEditForm({
       name: patient.name,
       cnp: patient.cnp || "",
-      gender: patient.gender || "",
+      gender: patient.gender || "NONE",
       phone: patient.phone,
       email: patient.email || "",
       address: patient.address || "",
@@ -174,7 +174,7 @@ export default function PatientDetailPage() {
         body: JSON.stringify({
           name: editForm.name,
           cnp: editForm.cnp || null,
-          gender: editForm.gender || null,
+          gender: editForm.gender === "NONE" ? null : editForm.gender,
           phone: editForm.phone,
           email: editForm.email || null,
           address: editForm.address || null,
@@ -236,28 +236,28 @@ export default function PatientDetailPage() {
 
   if (loading) {
     return (
-      <AdminLayout userRole={role as "super-admin" | "front-desk" | null}>
+      <>
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      </AdminLayout>
+      </>
     )
   }
 
   if (!patient) {
     return (
-      <AdminLayout userRole={role as "super-admin" | "front-desk" | null}>
+      <>
         <div className="flex-1 flex flex-col items-center justify-center gap-4">
           <AlertCircle className="h-12 w-12 text-muted-foreground" />
           <p className="text-muted-foreground">Pacientul nu a fost găsit.</p>
           <Button onClick={() => router.push("/patients")}>Înapoi la Pacienți</Button>
         </div>
-      </AdminLayout>
+      </>
     )
   }
 
   return (
-    <AdminLayout userRole={role as "super-admin" | "front-desk" | null}>
+    <>
       <div className="flex-1 overflow-y-auto">
         <div className="p-8 max-w-[1600px] mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
           {/* Header Section */}
@@ -297,14 +297,14 @@ export default function PatientDetailPage() {
               <Button 
                 variant="outline" 
                 onClick={handleOpenEdit}
-                className="h-11 px-6 rounded-xl border-blue-100 text-blue-700 font-bold hover:bg-blue-50 transition-all shadow-sm"
+              className="h-11 px-6 rounded-xl border-primary/20 text-primary font-bold hover:bg-primary/5 transition-all shadow-sm"
               >
                 <Edit className="h-4 w-4 mr-2" />
                 Editează Profil
               </Button>
               <Button 
                 onClick={() => setShowAddRecord(true)}
-                className="h-11 px-6 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 rounded-xl font-bold transition-all"
+                className="h-11 px-6 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl font-bold text-white transition-all"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Adaugă Fișă
@@ -567,16 +567,14 @@ export default function PatientDetailPage() {
 
       {/* Edit Patient Modal */}
       <Dialog open={showEditPatient} onOpenChange={setShowEditPatient}>
-        <DialogContent className="max-w-md rounded-[32px] p-8 border-none shadow-2xl">
-          <DialogHeader className="pb-4 border-b border-muted/50">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
-              <Edit className="w-6 h-6 text-blue-600" />
-            </div>
-            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Editează Profil</DialogTitle>
-            <DialogDescription className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Actualizează datele oficiale pentru {patient.name}</DialogDescription>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader className="pb-4 border-b">
+
+            <DialogTitle className="text-2xl font-bold tracking-tight">Editează Profil</DialogTitle>
+            <DialogDescription className="text-muted-foreground">Actualizează datele oficiale pentru {patient.name}</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 py-6 font-medium">
+          <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 ml-1">Nume complet</Label>
               <Input 
@@ -597,16 +595,17 @@ export default function PatientDetailPage() {
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 ml-1">Gen</Label>
-                <select
-                  className="flex h-12 w-full rounded-xl border border-muted/50 bg-muted/30 px-3 py-2 text-sm focus:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-all font-bold"
-                  value={editForm.gender}
-                  onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
-                >
-                  <option value="">Nespecificat</option>
-                  <option value="MASCULIN">Masculin</option>
-                  <option value="FEMININ">Feminin</option>
-                  <option value="ALTUL">Altul</option>
-                </select>
+              <Select value={editForm.gender} onValueChange={(v) => setEditForm({ ...editForm, gender: v })}>
+                <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-muted/50">
+                  <SelectValue placeholder="Nespecificat" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">Nespecificat</SelectItem>
+                  <SelectItem value="MASCULIN">Masculin</SelectItem>
+                  <SelectItem value="FEMININ">Feminin</SelectItem>
+                  <SelectItem value="ALTUL">Altul</SelectItem>
+                </SelectContent>
+              </Select>
               </div>
             </div>
             <div className="space-y-2">
@@ -628,22 +627,23 @@ export default function PatientDetailPage() {
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 ml-1">Status Pacient</Label>
-              <select
-                className="flex h-12 w-full rounded-xl border border-muted/50 bg-muted/30 px-3 py-2 text-sm focus:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-all font-bold"
-                value={editForm.status}
-                onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-              >
-                <option value="NOU">Nou</option>
-                <option value="ACTIV">Activ</option>
-                <option value="PROGRAMAT">Programat</option>
-                <option value="INACTIV">Inactiv</option>
-              </select>
+              <Select value={editForm.status} onValueChange={(v) => setEditForm({ ...editForm, status: v })}>
+                <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-muted/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NOU">Nou</SelectItem>
+                  <SelectItem value="ACTIV">Activ</SelectItem>
+                  <SelectItem value="PROGRAMAT">Programat</SelectItem>
+                  <SelectItem value="INACTIV">Inactiv</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          <DialogFooter className="pt-6 border-t border-muted/50 flex gap-3">
-            <Button variant="ghost" onClick={() => setShowEditPatient(false)} disabled={savingPatient} className="flex-1 h-12 rounded-xl font-bold uppercase tracking-widest text-xs">Anulează</Button>
-            <Button onClick={handleSavePatient} disabled={savingPatient} className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 rounded-xl font-bold uppercase tracking-widest text-xs">
+          <DialogFooter className="pt-6 border-t border-muted/50">
+            <Button type="button" variant="ghost" onClick={() => setShowEditPatient(false)} disabled={savingPatient} className="h-11 rounded-xl px-6 font-semibold text-muted-foreground hover:bg-accent">Anulează</Button>
+            <Button onClick={handleSavePatient} disabled={savingPatient} className="h-11 px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl font-bold text-white transition-all">
               {savingPatient ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Salvare...</> : "Salvează"}
             </Button>
           </DialogFooter>
@@ -652,18 +652,16 @@ export default function PatientDetailPage() {
 
       {/* Add Medical Record Modal */}
       <Dialog open={showAddRecord} onOpenChange={setShowAddRecord}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-[32px] p-8 border-none shadow-2xl">
-          <DialogHeader className="pb-6 border-b border-muted/50">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center mb-4">
-              <Plus className="w-7 h-7 text-indigo-600" />
-            </div>
-            <DialogTitle className="text-3xl font-black tracking-tight uppercase">Adaugă Fișă Medicală</DialogTitle>
-            <DialogDescription className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
+          <DialogHeader className="pb-4 border-b">
+
+            <DialogTitle className="text-2xl font-bold tracking-tight">Adaugă Fișă Medicală</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Introduceți rezultatele consultației și recomandările clinice
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-8 py-8">
+          <div className="space-y-6 py-2">
             <div className="grid md:grid-cols-2 gap-8">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Data Vizitei</Label>
@@ -752,14 +750,14 @@ export default function PatientDetailPage() {
             </div>
           </div>
 
-          <DialogFooter className="pt-8 border-t border-muted/50 flex gap-4">
-            <Button variant="ghost" onClick={() => setShowAddRecord(false)} disabled={savingRecord} className="flex-1 h-14 rounded-2xl font-black uppercase tracking-[0.2em] text-xs">Anulează</Button>
-            <Button onClick={handleAddRecord} disabled={savingRecord} className="flex-1 h-14 bg-indigo-600 hover:bg-indigo-700 shadow-xl shadow-indigo-100 rounded-2xl font-black uppercase tracking-[0.2em] text-xs">
+          <DialogFooter className="pt-6 border-t border-muted/50">
+            <Button type="button" variant="ghost" onClick={() => setShowAddRecord(false)} disabled={savingRecord} className="h-11 rounded-xl px-6 font-semibold text-muted-foreground hover:bg-accent">Anulează</Button>
+            <Button onClick={handleAddRecord} disabled={savingRecord} className="h-11 px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl font-bold text-white transition-all">
               {savingRecord ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Salvare...</> : "Finalizează Fișa"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </AdminLayout>
+    </>
   )
 }

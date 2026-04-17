@@ -12,8 +12,8 @@ const mockPrisma = {
 
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }))
 
-const { GET: listGET, POST } = await import("@/app/api/departments/route")
-const { GET: detailGET, PUT, DELETE } = await import("@/app/api/departments/[id]/route")
+import { GET as listGET, POST } from "@/app/api/departments/route"
+import { GET as detailGET, PUT, DELETE } from "@/app/api/departments/[id]/route"
 
 function makeListRequest(method: string, body?: unknown): Request {
   return new Request("http://localhost/api/departments", {

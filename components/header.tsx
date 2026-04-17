@@ -40,7 +40,7 @@ export function Header() {
   const handleLogout = () => {
     localStorage.removeItem("userRole")
     localStorage.removeItem("userName")
-    window.location.href = "/admin"
+    window.location.href = "/login"
   }
 
   const initials = userName

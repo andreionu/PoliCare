@@ -1,11 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { AdminLayout } from "@/components/admin-layout"
 import { DashboardStats } from "@/components/dashboard-stats"
 import { RecentAppointments } from "@/components/recent-appointments"
 import { DepartmentsOverview } from "@/components/departments-overview"
-import { LoginScreen } from "@/components/login-screen"
 import { Preloader } from "@/components/preloader"
 import { Badge } from "@/components/ui/badge"
 
@@ -33,34 +31,18 @@ interface DashboardData {
 }
 
 export default function DashboardPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [statsData, setStatsData] = useState<DashboardData | null>(null)
   const [loadingStats, setLoadingStats] = useState(false)
 
-  // Restore auth from localStorage on mount
   useEffect(() => {
-    const storedRole = localStorage.getItem("userRole")
-    if (storedRole) setIsAuthenticated(true)
-  }, [])
-
-  const handleLogin = () => {
-    setIsLoading(true)
-    setTimeout(() => {
-      setIsAuthenticated(true)
-      setIsLoading(false)
-    }, 2000)
-  }
-
-  useEffect(() => {
-    if (!isAuthenticated) return
     setLoadingStats(true)
     fetch("/api/dashboard/stats")
       .then((r) => r.json())
       .then((data) => setStatsData(data))
       .catch(console.error)
       .finally(() => setLoadingStats(false))
-  }, [isAuthenticated])
+  }, [])
 
   const [greeting, setGreeting] = useState("")
 
@@ -71,16 +53,12 @@ export default function DashboardPage() {
     else setGreeting("Bună seara")
   }, [])
 
-  if (!isAuthenticated && !isLoading) {
-    return <LoginScreen onLogin={handleLogin} />
-  }
-
   if (isLoading) {
     return <Preloader />
   }
 
   return (
-    <AdminLayout>
+    <>
       <main className="flex-1 overflow-y-auto bg-[#F8FAFC] dark:bg-[#0A0C10]/50">
         <div className="p-8 max-w-[1600px] mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -133,6 +111,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
-    </AdminLayout>
+    </>
   )
 }

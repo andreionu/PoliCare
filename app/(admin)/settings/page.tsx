@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { AdminLayout } from "@/components/admin-layout"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -173,16 +172,16 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <AdminLayout>
+      <>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      </AdminLayout>
+      </>
     )
   }
 
   return (
-    <AdminLayout>
+    <>
       <div className="flex-1 overflow-y-auto">
         <div className="p-8 max-w-[1600px] mx-auto">
           <div className="mb-10 flex items-center justify-between">
@@ -522,9 +521,7 @@ export default function SettingsPage() {
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
         <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader className="pb-4 border-b border-border/50">
-            <div className="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center mb-4">
-               <Lock className="w-6 h-6 text-primary" />
-            </div>
+
             <DialogTitle className="text-2xl font-bold tracking-tight">Schimbă Parola</DialogTitle>
             <DialogDescription className="text-muted-foreground">Introdu email-ul contului și parolele pentru a schimba parola</DialogDescription>
           </DialogHeader>
@@ -573,7 +570,7 @@ export default function SettingsPage() {
           <DialogFooter className="pt-6 border-t mt-6">
             <Button
               variant="ghost"
-              className="h-11 rounded-xl px-6 font-semibold hover:bg-slate-50 transition-colors"
+              className="h-11 rounded-xl px-6 font-semibold text-muted-foreground hover:bg-accent"
               onClick={() => {
                 setShowPasswordDialog(false)
                 setPasswordForm({ email: "", currentPassword: "", newPassword: "", confirmPassword: "" })
@@ -595,6 +592,6 @@ export default function SettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </AdminLayout>
+    </>
   )
 }

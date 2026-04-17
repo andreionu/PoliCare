@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { AdminLayout } from "@/components/admin-layout"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -77,7 +76,7 @@ export default function ActivityPage() {
   const activities = data?.activities ?? []
 
   return (
-    <AdminLayout>
+    <>
       <div className="flex-1 overflow-y-auto">
         <div className="p-8 max-w-[1600px] mx-auto">
           <div className="mb-10 flex items-center justify-between">
@@ -229,6 +228,6 @@ export default function ActivityPage() {
           </Card>
         </div>
       </div>
-    </AdminLayout>
+    </>
   )
 }

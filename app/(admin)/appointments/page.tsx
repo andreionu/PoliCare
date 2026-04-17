@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useMemo } from "react"
 import { useSearchParams } from "next/navigation"
-import { AdminLayout } from "@/components/admin-layout"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,6 +9,14 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Dialog,
   DialogContent,
@@ -41,6 +48,10 @@ import {
   MoreHorizontal,
   ArrowRight,
   CalendarX,
+  Pencil,
+  UserX,
+  ExternalLink,
+  Play,
 } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { useDebounce } from "@/hooks/use-debounce"
@@ -788,7 +799,7 @@ export default function AppointmentsPage() {
   )
 
   return (
-    <AdminLayout>
+    <>
       <main className="flex-1 p-6 overflow-auto">
         <div className="max-w-[1600px] mx-auto space-y-8">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -813,9 +824,9 @@ export default function AppointmentsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm">
-              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors" />
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors" />
               <div className="flex items-center gap-4 relative z-10">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/20">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-200">
                   <CalendarIcon className="w-7 h-7 text-white" />
                 </div>
                 <div>
@@ -826,9 +837,9 @@ export default function AppointmentsPage() {
             </Card>
 
             <Card className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm">
-              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-green-500/5 rounded-full blur-3xl group-hover:bg-green-500/10 transition-colors" />
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-colors" />
               <div className="flex items-center gap-4 relative z-10">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/20">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-200">
                   <CheckCircle className="w-7 h-7 text-white" />
                 </div>
                 <div>
@@ -852,10 +863,10 @@ export default function AppointmentsPage() {
             </Card>
 
             <Card className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm">
-              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors" />
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-indigo-500/5 rounded-full blur-3xl group-hover:bg-indigo-500/10 transition-colors" />
               <div className="flex items-center gap-4 relative z-10">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/20">
-                  <Loader2 className="w-7 h-7 text-white" />
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-200">
+                  <Loader2 className="w-7 h-7 text-white animate-[spin_3s_linear_infinite]" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">În Desfășurare</p>
@@ -1079,7 +1090,7 @@ export default function AppointmentsPage() {
                                 <Button 
                                   variant="outline" 
                                   size="sm" 
-                                  className="h-10 px-4 border-red-100 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-xl font-bold transition-all" 
+                                  className="h-10 px-4 border-destructive/30 text-destructive hover:bg-destructive/5 hover:border-destructive/50 rounded-xl font-bold transition-all" 
                                   onClick={() => handleDeclineClick(appointment)}
                                 >
                                   <XCircle className="w-4 h-4 mr-2" />
@@ -1134,9 +1145,127 @@ export default function AppointmentsPage() {
                               </Button>
                             )}
                             
-                            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl group/more">
-                               <MoreHorizontal className="w-4 h-4 text-muted-foreground group-hover/more:text-foreground transition-colors" />
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-muted transition-all">
+                                  <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-52 rounded-xl shadow-xl border-none p-1.5">
+                                <DropdownMenuLabel className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/60 px-2 pb-1">
+                                  Acțiuni
+                                </DropdownMenuLabel>
+
+                                {/* View patient profile */}
+                                <DropdownMenuItem
+                                  className="rounded-lg cursor-pointer gap-2 font-medium"
+                                  onClick={() => window.open(`/patients/${appointment.patient.id}`, "_blank")}
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                  Profil Pacient
+                                </DropdownMenuItem>
+
+                                {/* Reschedule / Edit — always available if not terminal */}
+                                {!["FINALIZAT", "ANULAT", "NEPREZENTARE"].includes(appointment.status) && (
+                                  <DropdownMenuItem
+                                    className="rounded-lg cursor-pointer gap-2 font-medium"
+                                    onClick={() => handleEditClick(appointment)}
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                    Reprogramează
+                                  </DropdownMenuItem>
+                                )}
+
+                                {/* IN_ASTEPTARE: Confirm + Decline */}
+                                {appointment.status === "IN_ASTEPTARE" && (
+                                  <>
+                                    <DropdownMenuSeparator className="my-1" />
+                                    <DropdownMenuItem
+                                      className="rounded-lg cursor-pointer gap-2 font-medium text-emerald-700 focus:text-emerald-700 focus:bg-emerald-50"
+                                      onClick={() => handleConfirmClick(appointment)}
+                                    >
+                                      <CheckCircle className="w-4 h-4" />
+                                      Confirmă
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="rounded-lg cursor-pointer gap-2 font-medium text-destructive focus:text-destructive focus:bg-destructive/10"
+                                      onClick={() => handleDeclineClick(appointment)}
+                                    >
+                                      <XCircle className="w-4 h-4" />
+                                      Respinge
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="rounded-lg cursor-pointer gap-2 font-medium text-orange-600 focus:text-orange-600 focus:bg-orange-50"
+                                      onClick={() => handleNoShow(appointment)}
+                                      disabled={saving}
+                                    >
+                                      <UserX className="w-4 h-4" />
+                                      Neprezentare
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+
+                                {/* CONFIRMAT: Start + Reminder + No-show */}
+                                {appointment.status === "CONFIRMAT" && (
+                                  <>
+                                    <DropdownMenuSeparator className="my-1" />
+                                    <DropdownMenuItem
+                                      className="rounded-lg cursor-pointer gap-2 font-medium text-indigo-700 focus:text-indigo-700 focus:bg-indigo-50"
+                                      onClick={() => handleStartAppointment(appointment)}
+                                      disabled={saving}
+                                    >
+                                      <Play className="w-4 h-4" />
+                                      Începe Consultația
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="rounded-lg cursor-pointer gap-2 font-medium"
+                                      onClick={() => handleSendReminder(appointment)}
+                                      disabled={sendingReminder === appointment.id}
+                                    >
+                                      <Bell className="w-4 h-4" />
+                                      Trimite Reminder
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="rounded-lg cursor-pointer gap-2 font-medium text-orange-600 focus:text-orange-600 focus:bg-orange-50"
+                                      onClick={() => handleNoShow(appointment)}
+                                      disabled={saving}
+                                    >
+                                      <UserX className="w-4 h-4" />
+                                      Neprezentare
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+
+                                {/* IN_DESFASURARE: Finish */}
+                                {appointment.status === "IN_DESFASURARE" && (
+                                  <>
+                                    <DropdownMenuSeparator className="my-1" />
+                                    <DropdownMenuItem
+                                      className="rounded-lg cursor-pointer gap-2 font-medium text-emerald-700 focus:text-emerald-700 focus:bg-emerald-50"
+                                      onClick={() => handleFinishAppointment(appointment)}
+                                      disabled={saving}
+                                    >
+                                      <CheckCircle className="w-4 h-4" />
+                                      Finalizează
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+
+                                {/* Terminal statuses: allow decline/cancel if not already */}
+                                {appointment.status === "FINALIZAT" && (
+                                  <>
+                                    <DropdownMenuSeparator className="my-1" />
+                                    <DropdownMenuItem
+                                      className="rounded-lg cursor-pointer gap-2 font-medium"
+                                      onClick={() => handleEditClick(appointment)}
+                                    >
+                                      <Pencil className="w-4 h-4" />
+                                      Editează Note
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </div>
                       </div>
@@ -1215,14 +1344,12 @@ export default function AppointmentsPage() {
       >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
           <DialogHeader className="pb-4 border-b">
-            <div className="w-12 h-12 rounded-2xl bg-primary/5 dark:bg-primary/10 flex items-center justify-center mb-4">
-              <Plus className="w-6 h-6 text-primary" />
-            </div>
+
             <DialogTitle className="text-2xl font-bold tracking-tight">Programare Nouă</DialogTitle>
             <DialogDescription className="text-muted-foreground">Completează detaliile pentru a rezerva un loc în calendar.</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6">
+          <form onSubmit={(e) => { e.preventDefault(); handleAddAppointment(); }} className="space-y-6">
             <Tabs value={patientMode} onValueChange={(v) => setPatientMode(v as "existing" | "new")}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="existing">Pacient Existent</TabsTrigger>
@@ -1279,6 +1406,7 @@ export default function AppointmentsPage() {
                     Nume pacient <span className="text-destructive">*</span>
                   </Label>
                   <Input
+                    required={patientMode === "new"}
                     id="patientName"
                     placeholder="Ion Popescu"
                     value={appointmentFormData.patientName}
@@ -1299,6 +1427,7 @@ export default function AppointmentsPage() {
                       Telefon <span className="text-destructive">*</span>
                     </Label>
                     <Input
+                      required={patientMode === "new"}
                       id="patientPhone"
                       type="tel"
                       placeholder="+40 723 456 789"
@@ -1334,6 +1463,7 @@ export default function AppointmentsPage() {
                       Gen <span className="text-destructive">*</span>
                     </Label>
                     <Select
+                      required={patientMode === "new"}
                       value={appointmentFormData.patientGender}
                       onValueChange={(value) => {
                         setAppointmentFormData({ ...appointmentFormData, patientGender: value })
@@ -1356,6 +1486,7 @@ export default function AppointmentsPage() {
                       CNP <span className="text-destructive">*</span>
                     </Label>
                     <Input
+                      required={patientMode === "new"}
                       id="patientCnp"
                       placeholder="1234567890123"
                       value={appointmentFormData.patientCnp}
@@ -1376,6 +1507,7 @@ export default function AppointmentsPage() {
                 Departament <span className="text-destructive">*</span>
               </Label>
               <Select
+                required
                 value={appointmentFormData.departmentId}
                 onValueChange={(value) => {
                   setAppointmentFormData({ ...appointmentFormData, departmentId: value, doctorId: "" })
@@ -1403,6 +1535,7 @@ export default function AppointmentsPage() {
                 Serviciu <span className="text-destructive">*</span>
               </Label>
               <Select
+                required
                 value={appointmentFormData.serviceId}
                 onValueChange={(value) => {
                   setAppointmentFormData({ ...appointmentFormData, serviceId: value })
@@ -1432,6 +1565,7 @@ export default function AppointmentsPage() {
                 Medic <span className="text-destructive">*</span>
               </Label>
               <Select
+                required
                 value={appointmentFormData.doctorId}
                 onValueChange={(value) => {
                   setAppointmentFormData({ ...appointmentFormData, doctorId: value })
@@ -1460,6 +1594,7 @@ export default function AppointmentsPage() {
                   Data <span className="text-destructive">*</span>
                 </Label>
                 <Input
+                  required
                   id="date"
                   type="date"
                   value={appointmentFormData.date}
@@ -1476,6 +1611,7 @@ export default function AppointmentsPage() {
                   Ora <span className="text-destructive">*</span>
                 </Label>
                 <Select
+                  required
                   value={appointmentFormData.time}
                   onValueChange={(value) => {
                     setAppointmentFormData({ ...appointmentFormData, time: value })
@@ -1522,13 +1658,12 @@ export default function AppointmentsPage() {
                 className="resize-none mt-2"
               />
             </div>
-          </div>
 
           <DialogFooter className="pt-6 border-t mt-6">
-            <Button variant="ghost" onClick={() => setIsNewAppointmentOpen(false)} disabled={saving} className="rounded-xl h-11 px-6">
+            <Button type="button" variant="ghost" onClick={() => setIsNewAppointmentOpen(false)} disabled={saving} className="rounded-xl h-11 px-6 font-semibold text-muted-foreground hover:bg-accent">
               Anulează
             </Button>
-            <Button onClick={handleAddAppointment} disabled={saving} className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 rounded-xl h-11 px-8">
+            <Button type="submit" disabled={saving} className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl h-11 px-8 font-bold text-white transition-all">
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1539,15 +1674,14 @@ export default function AppointmentsPage() {
               )}
             </Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={confirmModalOpen} onOpenChange={setConfirmModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader className="pb-4 border-b">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center mb-4">
-              <CheckCircle className="w-6 h-6 text-emerald-600" />
-            </div>
+
             <DialogTitle className="text-2xl font-bold tracking-tight">Confirmă Programarea</DialogTitle>
             <DialogDescription className="text-muted-foreground">
               Verifică detaliile și trimite confirmarea către pacientul <span className="font-semibold text-foreground">{selectedAppointment?.patient.name}</span>.
@@ -1604,10 +1738,10 @@ export default function AppointmentsPage() {
           </div>
 
           <DialogFooter className="pt-6 border-t mt-6">
-            <Button variant="ghost" onClick={() => setConfirmModalOpen(false)} disabled={saving} className="rounded-xl h-11 px-6">
+            <Button variant="ghost" onClick={() => setConfirmModalOpen(false)} disabled={saving} className="rounded-xl h-11 px-6 font-semibold text-muted-foreground hover:bg-accent">
               Anulează
             </Button>
-            <Button onClick={handleFinalConfirm} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200 rounded-xl h-11 px-8">
+            <Button onClick={handleFinalConfirm} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200 rounded-xl h-11 px-8 font-bold text-white transition-all">
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1624,9 +1758,7 @@ export default function AppointmentsPage() {
       <Dialog open={declineModalOpen} onOpenChange={setDeclineModalOpen}>
         <DialogContent className="sm:max-w-[550px]">
           <DialogHeader className="pb-4 border-b">
-            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-900/20 flex items-center justify-center mb-4">
-              <AlertCircle className="w-6 h-6 text-rose-600" />
-            </div>
+
             <DialogTitle className="text-2xl font-bold tracking-tight text-rose-600">Respinge Programarea</DialogTitle>
             <DialogDescription className="text-muted-foreground">
               Această acțiune va anula programarea și va notifica pacientul <span className="font-semibold text-foreground">{selectedAppointment?.patient.name}</span>.
@@ -1708,10 +1840,10 @@ export default function AppointmentsPage() {
           </div>
 
           <DialogFooter className="pt-6 border-t mt-6">
-            <Button variant="ghost" onClick={() => setDeclineModalOpen(false)} disabled={saving} className="rounded-xl h-11 px-6 text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" onClick={() => setDeclineModalOpen(false)} disabled={saving} className="rounded-xl h-11 px-6 font-semibold text-muted-foreground hover:bg-accent">
               Anulează
             </Button>
-            <Button variant="destructive" onClick={handleFinalDecline} disabled={saving || !declineReason || !declineMessage} className="bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-200 rounded-xl h-11 px-8 font-bold">
+            <Button variant="destructive" onClick={handleFinalDecline} disabled={saving || !declineReason || !declineMessage} className="rounded-xl h-11 px-8 font-bold shadow-lg shadow-destructive/20 transition-all">
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1729,9 +1861,7 @@ export default function AppointmentsPage() {
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
         <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader className="pb-4 border-b">
-            <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center mb-4">
-              <CalendarIcon className="w-6 h-6 text-amber-600" />
-            </div>
+
             <DialogTitle className="text-2xl font-bold tracking-tight">Reprogramează / Editează</DialogTitle>
             <DialogDescription className="text-muted-foreground italic">
               Actualizează detaliile programării pentru <span className="font-semibold text-foreground not-italic">{editingAppointment?.patient.name}</span>.
@@ -1819,7 +1949,7 @@ export default function AppointmentsPage() {
           </div>
 
           <DialogFooter className="pt-6 border-t mt-6">
-            <Button variant="ghost" onClick={() => setEditModalOpen(false)} disabled={saving} className="rounded-xl h-11 px-6">
+            <Button variant="ghost" onClick={() => setEditModalOpen(false)} disabled={saving} className="rounded-xl h-11 px-6 font-semibold text-muted-foreground hover:bg-accent">
               Anulează
             </Button>
             <Button onClick={handleSaveEdit} disabled={saving} className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl h-11 px-8 font-bold text-white">
@@ -1834,6 +1964,6 @@ export default function AppointmentsPage() {
       </Dialog>
         </div>
       </main>
-    </AdminLayout>
+    </>
   )
 }
