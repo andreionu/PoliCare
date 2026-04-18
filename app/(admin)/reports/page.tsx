@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileText, TrendingUp, Download, Calendar, Users, Activity, Loader2 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
 
 interface MonthStat {
   month: string
@@ -30,6 +31,9 @@ interface StatsData {
   appointmentsThisMonth: number
   completionRate: number
   monthlyTrend: MonthStat[]
+  servicePopularity: Array<{ name: string; value: number }>
+  peakHours: Array<{ hour: string; count: number }>
+  demographics: Array<{ name: string; value: number }>
 }
 
 interface GeneratedReport {
@@ -219,6 +223,69 @@ export default function ReportsPage() {
                     )}
                   </div>
                 </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Analytics Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+            <Card className="border-none shadow-sm bg-white dark:bg-card/50 backdrop-blur-sm p-6 overflow-hidden">
+              <div className="mb-6 flex items-center justify-between">
+                 <div>
+                    <h3 className="font-bold tracking-tight text-foreground/90 text-lg">Top Servicii & Consultații</h3>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-1">Ultimele 3 luni</p>
+                 </div>
+                 <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
+                    <Activity className="w-5 h-5 text-primary" />
+                 </div>
+              </div>
+              <div className="h-[250px] w-full">
+                {loadingStats ? (
+                  <div className="w-full h-full flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+                ) : statsData?.servicePopularity?.length ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={statsData.servicePopularity} layout="vertical" margin={{ top: 0, right: 0, left: 40, bottom: 0 }}>
+                      <XAxis type="number" hide />
+                      <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12, fontWeight: 600}} />
+                      <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                      <Bar dataKey="value" fill="#0ea5e9" radius={[0, 4, 4, 0]} barSize={24}>
+                        {statsData.servicePopularity.map((entry, index) => (
+                           <Cell key={`cell-${index}`} fill={['#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7'][index % 5]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-sm font-medium text-muted-foreground">Nu există date suficiente.</div>
+                )}
+              </div>
+            </Card>
+
+            <Card className="border-none shadow-sm bg-white dark:bg-card/50 backdrop-blur-sm p-6 overflow-hidden">
+               <div className="mb-6 flex items-center justify-between">
+                 <div>
+                    <h3 className="font-bold tracking-tight text-foreground/90 text-lg">Ore de Vârf</h3>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-1">Distribuția programărilor</p>
+                 </div>
+                 <div className="w-10 h-10 rounded-xl bg-emerald-500/5 flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-emerald-500" />
+                 </div>
+              </div>
+              <div className="h-[250px] w-full">
+                {loadingStats ? (
+                  <div className="w-full h-full flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-emerald-500" /></div>
+                ) : statsData?.peakHours?.length ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={statsData.peakHours} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12, fontWeight: 600}} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
+                      <Tooltip cursor={{fill: '#f1f5f9'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                      <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} barSize={32} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-sm font-medium text-muted-foreground">Nu există date suficiente.</div>
+                )}
               </div>
             </Card>
           </div>

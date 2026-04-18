@@ -1,16 +1,40 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
-// GET /api/patients - Get all patients (supports ?phone=X and ?search=X filters)
+// GET /api/patients - Get all patients (supports ?phone=X, ?email=X and ?search=X filters)
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const phone = searchParams.get("phone")
+    const email = searchParams.get("email")
     const search = searchParams.get("search")
 
-    const where: Record<string, unknown> = {}
-    if (phone) where.phone = phone
-    if (search) where.name = { contains: search, mode: "insensitive" }
+    const where: any = {}
+    
+    // Support OR matching for smart booking
+    if (phone && email) {
+      where.OR = [
+        { phone: phone },
+        { email: email }
+      ]
+    } else if (phone) {
+      where.phone = phone
+    } else if (email) {
+      where.email = email
+    }
+
+    if (search) {
+      if (where.OR) {
+        // If we already have an OR, we need to AND it with the search
+        where.AND = [
+           { OR: where.OR },
+           { name: { contains: search, mode: "insensitive" } }
+        ]
+        delete where.OR
+      } else {
+        where.name = { contains: search, mode: "insensitive" }
+      }
+    }
 
     const patients = await prisma.patient.findMany({
       where,
@@ -44,8 +68,9 @@ export async function GET(request: Request) {
 
 // POST /api/patients - Create a new patient
 export async function POST(request: Request) {
+  let body: any;
   try {
-    const body = await request.json()
+    body = await request.json()
 
     const patient = await prisma.patient.create({
       data: {
@@ -67,10 +92,37 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json(patient, { status: 201 })
-  } catch (error) {
-    console.error("Error creating patient:", error)
+  } catch (error: any) {
+    // Handle expected CNP uniqueness conflict (P2002)
+    if (error.code === 'P2002' || (error.message && error.message.includes('unique constraint'))) {
+       try {
+         if (body && body.cnp) {
+           const existing = await prisma.patient.findUnique({ where: { cnp: body.cnp } });
+           if (existing) {
+             return NextResponse.json(
+               { error: "Un alt pacient este deja înregistrat cu acest CNP.", existingPatientId: existing.id },
+               { status: 409 }
+             )
+           }
+         }
+         // If we don't have body or can't find the existing one, still return a 409 if we're sure it's a conflict
+         return NextResponse.json(
+           { error: "Un pacient cu acest CNP există deja în sistem.", isConflict: true },
+           { status: 409 }
+         )
+       } catch (e) {
+          console.error("Critical error during conflict resolution:", e)
+       }
+    }
+    
+    // Only log actual unexpected errors
+    console.error("Unexpected error creating patient:", error)
+    
     return NextResponse.json(
-      { error: "Failed to create patient" },
+      { 
+        error: "Eroare la crearea pacientului: " + (error.message || 'Eroare necunoscută'), 
+        code: error.code 
+      },
       { status: 500 }
     )
   }

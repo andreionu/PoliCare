@@ -68,6 +68,7 @@ export default function LandingPage() {
   const [preselectedDept, setPreselectedDept] = useState<string | null>(null)
   const [departments, setDepartments]       = useState<Department[]>([])
   const [stats, setStats]                   = useState<Stats>({ totalPatients: 0, totalDoctors: 0, totalDepartments: 0 })
+  const [settings, setSettings]             = useState<any>(null)
   const [loading, setLoading]               = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
@@ -80,12 +81,15 @@ export default function LandingPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [deptRes, patRes, docRes] = await Promise.all([
-          fetch("/api/departments"), fetch("/api/patients"), fetch("/api/doctors"),
+        const [deptRes, patRes, docRes, settingsRes] = await Promise.all([
+          fetch("/api/departments"), fetch("/api/patients"), fetch("/api/doctors"), fetch("/api/settings")
         ])
-        const [depts, pats, docs] = await Promise.all([deptRes.json(), patRes.json(), docRes.json()])
+        const [depts, pats, docs, sett] = await Promise.all([
+          deptRes.json(), patRes.json(), docRes.json(), settingsRes.json()
+        ])
         setDepartments(depts)
         setStats({ totalPatients: pats.length, totalDoctors: docs.length, totalDepartments: depts.length })
+        setSettings(sett)
       } catch (err) {
         console.error(err)
       } finally {
@@ -177,7 +181,16 @@ export default function LandingPage() {
               </div>
               <div className="absolute bottom-12 left-8 z-10 bg-white shadow-lg border border-slate-100 px-3 py-2.5 rounded-2xl flex items-center gap-2.5">
                 <div className="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center"><Clock className="w-4 h-4 text-blue-600" /></div>
-                <div><p className="text-[9px] font-semibold uppercase tracking-wider text-blue-600 leading-none mb-0.5">Disponibilitate</p><p className="text-xs font-bold text-slate-800 leading-none">Suport 24/7</p></div>
+                {loading ? (
+                   <div className="w-20 h-8 bg-slate-50 animate-pulse rounded-lg" />
+                ) : (
+                  <div>
+                    <p className="text-[9px] font-semibold uppercase tracking-wider text-blue-600 leading-none mb-0.5">Program Lucru</p>
+                    <p className="text-xs font-bold text-slate-800 leading-none">
+                      {settings?.workdayStart} - {settings?.workdayEnd}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -196,7 +209,9 @@ export default function LandingPage() {
               </div>
               <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm shadow-md px-2.5 py-2 rounded-xl flex items-center gap-2">
                 <Clock className="w-3.5 h-3.5 text-blue-600" />
-                <span className="text-[10px] font-bold text-slate-800">Suport 24/7</span>
+                <span className="text-[10px] font-bold text-slate-800">
+                  {loading ? "Program: --" : `L-V: ${settings?.workdayStart}-${settings?.workdayEnd}`}
+                </span>
               </div>
             </div>
           </div>
@@ -351,9 +366,9 @@ export default function LandingPage() {
                 </ul>
               </div>
               <div className="space-y-4 col-span-2 sm:col-span-1" id="contact">
-                <h4 className="text-xs font-bold uppercase tracking-widest text-white">Contact</h4>
+                <h4 className="text-xs font-bold uppercase tracking-widest text-white">Contact & Program</h4>
                 <ul className="space-y-3">
-                  {[{icon:Phone,label:"Telefon",value:"+40 770 166 201"},{icon:Mail,label:"Email",value:"contact@policare.ro"}].map(({icon:Icon,label,value}) => (
+                  {[{icon:Phone,label:"Telefon",value:settings?.clinicPhone || "+40 770 166 201"},{icon:Mail,label:"Email",value:settings?.clinicEmail || "contact@policare.ro"}].map(({icon:Icon,label,value}) => (
                     <li key={label} className="flex items-start gap-3">
                       <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700/60 flex items-center justify-center shrink-0 mt-0.5">
                         <Icon className="h-3.5 w-3.5 text-[#40A0D0]" />
@@ -364,6 +379,24 @@ export default function LandingPage() {
                       </div>
                     </li>
                   ))}
+                  <li className="flex items-start gap-3 pt-1 border-t border-slate-800/50">
+                    <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700/60 flex items-center justify-center shrink-0 mt-0.5">
+                      <Clock className="h-3.5 w-3.5 text-amber-500" />
+                    </div>
+                    {!loading && settings && (
+                      <div>
+                        <p className="text-[10px] text-slate-500 mb-0.5">Program Lucru</p>
+                        <div className="space-y-0.5">
+                          <p className="text-xs text-white font-medium">Luni - Vineri: {settings.workdayStart} - {settings.workdayEnd}</p>
+                          <p className="text-xs text-slate-500 font-medium">
+                            {settings.workingDays.split(",").includes("5") || settings.workingDays.split(",").includes("6") 
+                              ? "Sâmbătă - Duminică: Consultă booking" 
+                              : "Sâmbătă - Duminică: Închis"}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </li>
                 </ul>
               </div>
             </div>

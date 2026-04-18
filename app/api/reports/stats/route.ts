@@ -43,11 +43,65 @@ export async function GET() {
       })
     }
 
+    // Advanced Analytics
+    
+    // 1. Service Popularity (Group by Appointment Type)
+    const appointmentsByType = await prisma.appointment.groupBy({
+      by: ['type'],
+      _count: { id: true },
+      where: {
+        date: { gte: new Date(now.getFullYear(), now.getMonth() - 2, 1) } // Last 3 months for relevance
+      },
+      orderBy: { _count: { id: 'desc' } },
+      take: 5
+    });
+    
+    const servicePopularity = appointmentsByType.map(item => ({
+      name: item.type || "General",
+      value: item._count.id
+    }));
+
+    // 2. Peak Hours
+    const allAppointments = await prisma.appointment.findMany({
+      where: {
+        date: { gte: new Date(now.getFullYear(), now.getMonth() - 1, 1) }, // Last 2 months
+        status: { notIn: ["ANULAT", "NEPREZENTARE"] }
+      },
+      select: { startTime: true }
+    });
+
+    const hourCounts: Record<string, number> = {};
+    allAppointments.forEach(app => {
+      const hour = app.startTime.split(':')[0];
+      if (hour) {
+        hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+      }
+    });
+
+    const peakHours = Object.keys(hourCounts).sort().map(hour => ({
+      hour: `${hour}:00`,
+      count: hourCounts[hour]
+    }));
+
+    // 3. Demographics
+    const demographicsData = await prisma.patient.groupBy({
+      by: ['gender'],
+      _count: { id: true }
+    });
+    
+    const demographics = demographicsData.map(item => ({
+      name: item.gender === "MASCULIN" ? "Masculin" : item.gender === "FEMININ" ? "Feminin" : "Altul/Nespecificat",
+      value: item._count.id
+    }));
+
     return NextResponse.json({
       patientsThisMonth,
       appointmentsThisMonth,
       completionRate,
       monthlyTrend,
+      servicePopularity,
+      peakHours,
+      demographics
     })
   } catch (error) {
     console.error("Error fetching report stats:", error)

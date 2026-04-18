@@ -83,6 +83,11 @@ export default function PatientsPage() {
     phone: "",
   })
 
+  // Merge state
+  const [showMergeDialog, setShowMergeDialog] = useState(false)
+  const [duplicatePatientId, setDuplicatePatientId] = useState<string | null>(null)
+  const [mergingPatient, setMergingPatient] = useState(false)
+
   // Real patient data from API
   const [patients, setPatients] = useState<Patient[]>([])
   const debouncedSearch = useDebounce(searchQuery, 300)
@@ -131,6 +136,14 @@ export default function PatientsPage() {
         }),
       })
 
+      if (response.status === 409) {
+        const errorData = await response.json()
+        setDuplicatePatientId(errorData.existingPatientId)
+        setShowMergeDialog(true)
+        setSaving(false)
+        return
+      }
+
       if (!response.ok) throw new Error("Failed to create patient")
 
       // Refresh the list
@@ -159,6 +172,70 @@ export default function PatientsPage() {
       })
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleMerge = async () => {
+    if (!duplicatePatientId) return
+    setMergingPatient(true)
+
+    try {
+      // Create new patient first
+      const createResponse = await fetch("/api/patients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newPatient.name,
+          // Omitem CNP-ul pentru a evita o nouă coliziune până la contopire
+          cnp: null, 
+          age: newPatient.age ? Number(newPatient.age) : null,
+          gender: newPatient.gender,
+          phone: newPatient.phone,
+          email: newPatient.email || null,
+          status: "NOU",
+        }),
+      })
+
+      if (!createResponse.ok) throw new Error("Failed to create temp patient")
+      const tempPatient = await createResponse.json()
+
+      // Apelăm endpoint de merge: Sursa (id-ul duplicat existent) -> Target (id-ul pacientului nou creat)
+      const mergeResponse = await fetch("/api/patients/merge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sourcePatientId: duplicatePatientId,
+          targetPatientId: tempPatient.id
+        })
+      })
+
+      if (!mergeResponse.ok) throw new Error("Failed to merge patients")
+
+      // Returnăm CNP-ul către pacientul target (în momentul acesta source e șters)
+      await fetch(`/api/patients/${tempPatient.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cnp: newPatient.cnp })
+      })
+
+      await fetchPatients()
+      setShowMergeDialog(false)
+      setShowAddPatient(false)
+      setNewPatient({ name: "", cnp: "", age: "", gender: "", email: "", phone: "" })
+      
+      toast({
+        title: "Contopire Reușită",
+        description: "Contul vechi a fost arhivat și datele transferate.",
+      })
+    } catch (error) {
+      console.error("Error merging:", error)
+      toast({
+        title: "Eroare Contopire",
+        description: "Nu s-a putut efectua contopirea conturilor.",
+        variant: "destructive"
+      })
+    } finally {
+      setMergingPatient(false)
     }
   }
 
@@ -542,6 +619,46 @@ export default function PatientsPage() {
             </Button>
           </DialogFooter>
         </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Merge Conflict Dialog */}
+      <Dialog open={showMergeDialog} onOpenChange={(open) => {
+        if (!open) setShowMergeDialog(false);
+      }}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader className="pb-4 border-b">
+            <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center mb-4">
+               <Activity className="w-6 h-6 text-amber-500" />
+            </div>
+            <DialogTitle className="text-2xl font-bold tracking-tight text-amber-600">Pacient Existent (Conflict CNP)</DialogTitle>
+            <DialogDescription className="text-foreground font-medium mt-2">
+              Am detectat un alt cont cu același CNP în baza de date. 
+              Aceasta indică, de obicei, că pacientul a mai fost aici, dar și-a schimbat numărul de telefon.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Doriți să contopiți datele în noul profil? Toate programările și istoricul medical vor fi transferate, iar vechiul profil va fi șters.
+            </p>
+          </div>
+
+          <DialogFooter className="pt-6 border-t mt-6">
+            <Button variant="ghost" onClick={() => setShowMergeDialog(false)} disabled={mergingPatient} className="rounded-xl h-11 px-6 font-semibold text-muted-foreground hover:bg-accent">
+              Anulează Salvarea
+            </Button>
+            <Button onClick={handleMerge} disabled={mergingPatient} className="bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-500/20 rounded-xl h-11 px-8 font-bold text-white transition-all">
+               {mergingPatient ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Se Contopește...
+                </>
+              ) : (
+                "Contopește Profilurile"
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

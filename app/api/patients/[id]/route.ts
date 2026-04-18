@@ -48,9 +48,10 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let body: any;
   try {
     const { id } = await params
-    const body = await request.json()
+    body = await request.json()
 
     const patient = await prisma.patient.update({
       where: { id },
@@ -73,8 +74,26 @@ export async function PUT(
     })
 
     return NextResponse.json(patient)
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating patient:", error)
+    
+    // Handle CNP uniqueness conflict
+    if (error.code === 'P2002' && error.meta?.target?.includes('cnp')) {
+       try {
+         if (body && body.cnp) {
+           const existing = await prisma.patient.findUnique({ where: { cnp: body.cnp } });
+           if (existing && existing.id !== (await params).id) {
+             return NextResponse.json(
+               { error: "Un alt pacient este deja înregistrat cu acest CNP.", existingPatientId: existing.id },
+               { status: 409 }
+             )
+           }
+         }
+       } catch (e) {
+         console.error("Error finding conflicting patient:", e)
+       }
+    }
+    
     return NextResponse.json(
       { error: "Failed to update patient" },
       { status: 500 }

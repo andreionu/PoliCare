@@ -79,6 +79,7 @@ interface Doctor {
   name: string
   specialty: string | null
   departmentId: string | null
+  avatar: string | null
 }
 
 interface Department {
@@ -164,10 +165,6 @@ const getStatusTextColor = (status: string) => {
 }
 
 const DAYS_OF_WEEK = ["Luni", "Marți", "Miercuri", "Joi", "Vineri", "Sâmbătă", "Duminică"]
-const TIME_SLOTS = [
-  "08:00", "09:00", "10:00", "11:00", "12:00", "13:00",
-  "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00",
-]
 const DECLINE_REASONS: Record<string, string> = {
   "Doctor Indisponibil":
     "Ne cerem scuze, dar doctorul nu este disponibil la data și ora selectată. Vă rugăm să reprogramați consultația pentru o altă oră convenabilă.",
@@ -215,6 +212,7 @@ export default function AppointmentsPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
   const [services, setServices] = useState<Service[]>([])
+  const [settings, setSettings] = useState<any>(null)
 
   // Loading states
   const [loading, setLoading] = useState(true)
@@ -242,24 +240,26 @@ export default function AppointmentsPage() {
   // Fetch all data on mount
   const fetchData = async () => {
     try {
-      const [appointmentsRes, patientsRes, doctorsRes, departmentsRes, servicesRes] = await Promise.all([
+      const [appointmentsRes, patientsRes, doctorsRes, departmentsRes, servicesRes, settingsRes] = await Promise.all([
         fetch("/api/appointments"),
         fetch("/api/patients"),
         fetch("/api/doctors"),
         fetch("/api/departments"),
         fetch("/api/services"),
+        fetch("/api/settings"),
       ])
 
       if (!appointmentsRes.ok || !patientsRes.ok || !doctorsRes.ok || !departmentsRes.ok || !servicesRes.ok) {
         throw new Error("Failed to fetch data")
       }
 
-      const [appointmentsData, patientsData, doctorsData, departmentsData, servicesData] = await Promise.all([
+      const [appointmentsData, patientsData, doctorsData, departmentsData, servicesData, settingsData] = await Promise.all([
         appointmentsRes.json(),
         patientsRes.json(),
         doctorsRes.json(),
         departmentsRes.json(),
         servicesRes.json(),
+        settingsRes.json(),
       ])
 
       setAppointments(appointmentsData)
@@ -267,6 +267,7 @@ export default function AppointmentsPage() {
       setDoctors(doctorsData)
       setDepartments(departmentsData)
       setServices(servicesData)
+      setSettings(settingsData)
     } catch (error) {
       console.error("Error fetching data:", error)
       toast({
@@ -780,6 +781,20 @@ export default function AppointmentsPage() {
     return index
   }, [filteredAppointments])
 
+  const dynamicTimeSlots = useMemo(() => {
+    if (!settings) return ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"]
+    const slots = []
+    let curr = settings.workdayStart
+    while (curr < settings.workdayEnd) {
+      slots.push(curr)
+      const [h, m] = curr.split(":").map(Number)
+      const nextM = m + 60 // Admin view uses 1h slots by default
+      const nextH = h + Math.floor(nextM / 60)
+      curr = `${String(nextH).padStart(2, "0")}:${String(nextM % 60).padStart(2, "0")}`
+    }
+    return slots
+  }, [settings])
+
   const weekDates = useMemo(() => {
     const monday = new Date(currentWeekStart)
     return DAYS_OF_WEEK.map((_, index) => {
@@ -1288,7 +1303,7 @@ export default function AppointmentsPage() {
                 </div>
 
                 <div className="divide-y">
-                  {TIME_SLOTS.map((time) => (
+                  {dynamicTimeSlots.map((time) => (
                     <div key={time} className="grid grid-cols-8 min-h-[80px]">
                       <div className="p-3 text-sm font-medium text-muted-foreground border-r flex items-start">
                         {time}
@@ -1580,7 +1595,15 @@ export default function AppointmentsPage() {
                     .filter((doc) => !appointmentFormData.departmentId || doc.departmentId === appointmentFormData.departmentId)
                     .map((doc) => (
                       <SelectItem key={doc.id} value={doc.id}>
-                        {doc.name}
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-6 w-6 rounded-lg">
+                            <AvatarImage src={doc.avatar || ""} alt={doc.name} />
+                            <AvatarFallback className="text-[10px] font-bold bg-muted">
+                              {doc.name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium text-sm">{doc.name}</span>
+                        </div>
                       </SelectItem>
                     ))}
                 </SelectContent>

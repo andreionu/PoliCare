@@ -26,6 +26,7 @@ interface Doctor {
   name: string
   specialty: string | null
   departmentId: string | null
+  avatar: string | null
   status: string
 }
 
@@ -78,17 +79,20 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
 
   const [occupiedSlots, setOccupiedSlots] = useState<ExistingAppointment[]>([])
   const [checkingAvailability, setCheckingAvailability] = useState(false)
+  const [settings, setSettings] = useState<any>(null)
 
   useEffect(() => {
     Promise.all([
       fetch("/api/departments").then(r => r.json()),
       fetch("/api/doctors").then(r => r.json()),
       fetch("/api/services").then(r => r.json()),
+      fetch("/api/settings").then(r => r.json()),
     ])
-      .then(([depts, docs, svcs]) => {
+      .then(([depts, docs, svcs, sett]) => {
         setDepartments(depts)
         setDoctors(docs)
         setServices(svcs)
+        setSettings(sett)
       })
       .catch(() => toast({ title: "Eroare", description: "Nu s-au putut încărca datele.", variant: "destructive" }))
       .finally(() => setLoading(false))
@@ -149,10 +153,20 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
     setSubmitting(true)
     try {
       let patientId: string
-      const existing = await fetch(`/api/patients?phone=${encodeURIComponent(phone)}`).then(r => r.json())
-      const found = existing.find((p: any) => p.phone === phone)
+      // Smart lookup by phone OR email
+      const existing = await fetch(`/api/patients?phone=${encodeURIComponent(phone)}&email=${encodeURIComponent(email)}`).then(r => r.json())
+      const found = existing.find((p: any) => p.phone === phone || p.email === email)
+      
       if (found) {
         patientId = found.id
+        // Update profile if they provided new contact info
+        if (found.phone !== phone || found.email !== email || found.name !== name) {
+          await fetch(`/api/patients/${found.id}`, {
+             method: "PUT",
+             headers: { "Content-Type": "application/json" },
+             body: JSON.stringify({ name, phone, email })
+          })
+        }
       } else {
         const created = await fetch("/api/patients", {
           method: "POST",
@@ -353,9 +367,17 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
                       : "border-slate-100 bg-white hover:border-slate-200"
                   )}
                 >
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#206070] to-[#40A0D0] flex items-center justify-center text-white text-sm font-black shrink-0">
-                    {doc.name.charAt(0)}
-                  </div>
+                  {doc.avatar ? (
+                    <img 
+                      src={doc.avatar} 
+                      alt={doc.name} 
+                      className="w-10 h-10 rounded-xl object-cover shrink-0" 
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#206070] to-[#40A0D0] flex items-center justify-center text-white text-sm font-black shrink-0">
+                      {doc.name.charAt(0)}
+                    </div>
+                  )}
                   <div className="text-left">
                     <p className="text-sm font-bold text-slate-800">{doc.name}</p>
                     <p className="text-xs text-slate-400">{doc.specialty}</p>
@@ -374,7 +396,17 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
                 <Input
                   type="date"
                   value={selectedDate}
-                  onChange={(e) => { setSelectedDate(e.target.value); setSelectedTime("") }}
+                  onChange={(e) => {
+                    const date = new Date(e.target.value)
+                    const jsDay = date.getDay()
+                    const adminDay = (jsDay + 6) % 7
+                    if (settings && !settings.workingDays.split(",").includes(String(adminDay))) {
+                      toast({ title: "Zi nelucrătoare", description: "Clinica este închisă în această zi.", variant: "destructive" })
+                      return
+                    }
+                    setSelectedDate(e.target.value)
+                    setSelectedTime("")
+                  }}
                   min={new Date().toISOString().split("T")[0]}
                   className="h-10 rounded-xl bg-slate-50 border-slate-200 text-sm"
                 />
@@ -384,9 +416,14 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-bold text-slate-500">Interval orar</Label>
-                    <span className="text-xs text-slate-400 flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> {getServiceDuration()} min
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">
+                        {settings?.workdayStart} - {settings?.workdayEnd}
+                      </span>
+                      <span className="text-xs text-slate-400 flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> {getServiceDuration()} min
+                      </span>
+                    </div>
                   </div>
                   {checkingAvailability ? (
                     <div className="flex justify-center py-8">
@@ -394,27 +431,50 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
                     </div>
                   ) : (
                     <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                      {timeSlots.map((time) => {
-                        const occupied = isSlotOccupied(time)
-                        return (
-                          <button
-                            key={time}
-                            type="button"
-                            disabled={occupied}
-                            onClick={() => setSelectedTime(time)}
-                            className={cn(
-                              "h-10 rounded-xl text-xs font-semibold transition-all duration-150",
-                              occupied
-                                ? "bg-slate-50 text-slate-200 cursor-not-allowed"
-                                : selectedTime === time
-                                  ? "bg-[#206070] text-white shadow-sm"
-                                  : "bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-800"
-                            )}
-                          >
-                            {time}
-                          </button>
-                        )
-                      })}
+                      {(() => {
+                        const slots = []
+                        if (settings) {
+                          let curr = settings.workdayStart
+                          const end = settings.workdayEnd
+                          while (curr < end) {
+                            slots.push(curr)
+                            const [h, m] = curr.split(":").map(Number)
+                            const nextM = m + 30
+                            const nextH = h + Math.floor(nextM / 60)
+                            curr = `${String(nextH).padStart(2, "0")}:${String(nextM % 60).padStart(2, "0")}`
+                          }
+                        } else {
+                          // Fallback to defaults while loading
+                          return ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"].map(time => {
+                            const occupied = isSlotOccupied(time)
+                            return (
+                              <button key={time} type="button" disabled className="h-10 rounded-xl text-xs font-semibold bg-slate-50 text-slate-200">{time}</button>
+                            )
+                          })
+                        }
+                        
+                        return slots.map((time) => {
+                          const occupied = isSlotOccupied(time)
+                          return (
+                            <button
+                              key={time}
+                              type="button"
+                              disabled={occupied}
+                              onClick={() => setSelectedTime(time)}
+                              className={cn(
+                                "h-10 rounded-xl text-xs font-semibold transition-all duration-150",
+                                occupied
+                                  ? "bg-slate-50 text-slate-200 cursor-not-allowed"
+                                  : selectedTime === time
+                                    ? "bg-[#206070] text-white shadow-sm"
+                                    : "bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-800"
+                              )}
+                            >
+                              {time}
+                            </button>
+                          )
+                        })
+                      })()}
                     </div>
                   )}
                   <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50">

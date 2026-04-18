@@ -76,8 +76,30 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    // --- Conflict detection ---
-    const doctor = await prisma.doctor.findUnique({ where: { id: body.doctorId }, select: { status: true, name: true } })
+    // --- Working hours and status validation ---
+    const [settings, doctor] = await Promise.all([
+      prisma.settings.findUnique({ where: { id: "clinic_settings" } }),
+      prisma.doctor.findUnique({ where: { id: body.doctorId }, select: { status: true, name: true } })
+    ])
+
+    if (settings) {
+      const date = new Date(body.date)
+      const jsDay = date.getDay() // 0: Sun, 1: Mon...
+      const adminDay = (jsDay + 6) % 7 // Map to 0: Lun, 6: Dum
+      
+      const isWorkingDay = settings.workingDays.split(",").includes(String(adminDay))
+      if (!isWorkingDay) {
+        return NextResponse.json({ error: "CONFLICT", message: "Clinica este închisă în această zi." }, { status: 409 })
+      }
+
+      if (body.startTime < settings.workdayStart || body.endTime > settings.workdayEnd) {
+        return NextResponse.json({ 
+          error: "CONFLICT", 
+          message: `Programul clinicii este între ${settings.workdayStart} și ${settings.workdayEnd}.` 
+        }, { status: 409 })
+      }
+    }
+
     if (doctor?.status === "IN_CONCEDIU") {
       return NextResponse.json({ error: "CONFLICT", message: `Dr. ${doctor.name} este în concediu` }, { status: 409 })
     }
@@ -101,7 +123,7 @@ export async function POST(request: Request) {
         { status: 409 }
       )
     }
-    // --- End conflict detection ---
+    // --- End validation ---
 
     const appointment = await prisma.appointment.create({
       data: {
