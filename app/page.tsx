@@ -320,7 +320,7 @@ export default function LandingPage() {
             </div>
             <div className="relative z-10 flex flex-col sm:flex-row gap-3 w-full lg:w-auto shrink-0">
               <Button size="lg" className="h-11 px-7 bg-white text-[#206070] hover:bg-blue-50 rounded-xl font-bold text-sm shadow-xl w-full sm:w-auto" onClick={() => openBooking()}>
-                Programează Acum
+                Programează-te Acum
               </Button>
               <a href="tel:+40770166201" className="flex items-center justify-center h-11 px-7 border border-white/25 text-white rounded-xl font-semibold text-sm hover:bg-white/10 transition-all w-full sm:w-auto">
                 <Phone className="mr-2 h-4 w-4" />Sună-ne

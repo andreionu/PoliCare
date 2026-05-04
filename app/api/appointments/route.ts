@@ -161,7 +161,7 @@ export async function POST(request: Request) {
           department: appointment.department ? { name: appointment.department.name } : null,
         },
         "BOOKING_RECEIVED",
-        { sendEmail: body.sendEmail ?? false, sendSMS: body.sendSMS ?? false }
+        { sendEmail: body.sendEmail ?? false, sendSMS: false } // Force false for SMS to save costs; SMS will be sent upon CONFIRMATION
       )
     }
 

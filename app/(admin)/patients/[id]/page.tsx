@@ -32,6 +32,10 @@ import {
   FileText,
   AlertCircle,
   CheckCircle2,
+  Upload,
+  File,
+  Download,
+  Image as ImageIcon
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
@@ -67,6 +71,15 @@ interface PatientDetail {
     notes: string | null
     followUpRequired: boolean
     followUpDate: string | null
+    followUpDate: string | null
+  }>
+  documents: Array<{
+    id: string
+    name: string
+    url: string
+    type: string
+    size: number
+    createdAt: string
   }>
   createdAt: string
 }
@@ -128,6 +141,37 @@ export default function PatientDetailPage() {
     followUpDate: "",
   })
   const [savingRecord, setSavingRecord] = useState(false)
+
+  // Document Upload
+  const [uploading, setUploading] = useState(false)
+
+  const handleUploadDocument = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return
+    const file = e.target.files[0]
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("patientId", patientId)
+
+      const response = await fetch("/api/documents", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Failed to upload document")
+      }
+      await fetchPatient()
+      toast({ title: "Succes", description: "Documentul a fost încărcat." })
+    } catch (error: any) {
+      console.error("Upload error:", error)
+      toast({ title: "Eroare", description: error.message || "Nu s-a putut încărca documentul.", variant: "destructive" })
+    } finally {
+      setUploading(false)
+    }
+  }
 
   const fetchPatient = useCallback(async () => {
     try {
@@ -473,6 +517,12 @@ export default function PatientDetailPage() {
                   >
                     Fișe Medicale ({patient.medicalRecords.length})
                   </TabsTrigger>
+                  <TabsTrigger 
+                    value="documents" 
+                    className="flex-1 py-3 px-6 rounded-xl data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm font-bold text-sm transition-all"
+                  >
+                    Documente ({patient.documents?.length || 0})
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="appointments" className="mt-0 space-y-4 outline-none">
@@ -555,6 +605,62 @@ export default function PatientDetailPage() {
                             </div>
                           </Card>
                         </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="documents" className="mt-0 space-y-4 outline-none">
+                  <Card className="p-6 border-none shadow-sm bg-white dark:bg-card/50 rounded-2xl mb-6">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                      <div>
+                        <h3 className="font-bold text-lg">Atașamente Medicale</h3>
+                        <p className="text-sm text-muted-foreground">Încărcați rezultate analize, imagistică sau alte documente (PDF, JPG, PNG, max 10MB)</p>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={handleUploadDocument}
+                          disabled={uploading}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                        />
+                        <Button disabled={uploading} className="gap-2 px-6 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-all shadow-md">
+                          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                          {uploading ? "Se încarcă..." : "Încarcă Document"}
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+
+                  {!patient.documents || patient.documents.length === 0 ? (
+                    <Card className="p-16 text-center border-dashed border-2 bg-transparent rounded-2xl">
+                      <div className="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-4">
+                        <File className="h-8 w-8 text-indigo-300" />
+                      </div>
+                      <h4 className="font-bold text-muted-foreground italic uppercase tracking-widest text-sm">Niciun document atașat</h4>
+                    </Card>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {patient.documents.map((doc) => (
+                        <Card key={doc.id} className="p-4 border shadow-sm bg-white rounded-2xl flex items-center gap-4 hover:shadow-md transition-shadow group">
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${doc.type.includes('pdf') ? 'bg-rose-50 text-rose-500' : 'bg-blue-50 text-blue-500'}`}>
+                            {doc.type.includes('pdf') ? <FileText className="h-6 w-6" /> : <ImageIcon className="h-6 w-6" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-sm truncate text-foreground">{doc.name}</p>
+                            <div className="flex gap-2 text-xs text-muted-foreground font-medium mt-1">
+                              <span>{(doc.size / 1024 / 1024).toFixed(2)} MB</span>
+                              <span>•</span>
+                              <span>{new Date(doc.createdAt).toLocaleDateString("ro-RO")}</span>
+                            </div>
+                          </div>
+                          <Button variant="ghost" size="icon" className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" asChild>
+                            <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                              <Download className="h-5 w-5 text-muted-foreground hover:text-foreground" />
+                            </a>
+                          </Button>
+                        </Card>
                       ))}
                     </div>
                   )}

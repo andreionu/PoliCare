@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // USER & AUTHENTICATION
@@ -126,6 +125,7 @@ model Patient {
 
   appointments   Appointment[]
   medicalRecords MedicalRecord[]
+  documents      Document[]
 
   createdBy   User?   @relation("PatientCreatedBy", fields: [createdById], references: [id])
   createdById String?
@@ -279,6 +279,8 @@ model MedicalRecord {
   appointment   Appointment? @relation(fields: [appointmentId], references: [id])
   appointmentId String?      @unique
 
+  documents     Document[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -324,4 +326,23 @@ model Settings {
   reminderHoursBefore        Int     @default(24)
 
   updatedAt DateTime @updatedAt
+}
+
+// DOCUMENT (MEDICAL ATTACHMENT)
+model Document {
+  id        String   @id @default(cuid())
+  name      String
+  url       String
+  type      String
+  size      Int
+  createdAt DateTime @default(now())
+
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patientId String
+
+  medicalRecord   MedicalRecord? @relation(fields: [medicalRecordId], references: [id], onDelete: SetNull)
+  medicalRecordId String?
+
+  @@index([patientId])
+  @@index([medicalRecordId])
 }

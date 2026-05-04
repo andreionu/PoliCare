@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { X, Heart, Users, Baby, Eye, Ear, ChevronRight, Check, Loader2, Clock, AlertCircle } from "lucide-react"
+import { X, Heart, Users, Baby, Eye, Ear, ChevronRight, Check, Loader2, Clock, AlertCircle, CalendarX } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 
@@ -75,6 +75,7 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
   const [selectedDate, setSelectedDate] = useState("")
   const [selectedTime, setSelectedTime] = useState("")
   const [formData, setFormData] = useState({ name: "", phone: "", email: "" })
+  const [preferences, setPreferences] = useState({ email: true, sms: true })
   const [isSubmitted, setIsSubmitted] = useState(false)
 
   const [occupiedSlots, setOccupiedSlots] = useState<ExistingAppointment[]>([])
@@ -108,7 +109,7 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
       .finally(() => setCheckingAvailability(false))
   }, [selectedDoctor, selectedDate])
 
-  const sanitize = (s: string) => s.trim().replace(/[<>]/g, "")
+  const sanitize = (s: string) => s.replace(/[<>]/g, "")
   const validateEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
   const validatePhone = (p: string) => /^[0-9+\s()-]{10,20}$/.test(p)
 
@@ -118,6 +119,18 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
   }
 
   const isSlotOccupied = (time: string) => {
+    if (selectedDate) {
+      const today = new Date()
+      // Adjust for local timezone if needed, but simple comparison works for most cases
+      const isToday = selectedDate === new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().split("T")[0]
+      if (isToday) {
+        const [h, m] = time.split(":").map(Number)
+        if (h < today.getHours() || (h === today.getHours() && m <= today.getMinutes())) {
+          return true // Time has passed today
+        }
+      }
+    }
+
     const duration = getServiceDuration()
     const [h, m] = time.split(":").map(Number)
     const slotStart = h * 60 + m
@@ -139,9 +152,9 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
   }
 
   const handleSubmit = async () => {
-    const name = sanitize(formData.name)
-    const email = sanitize(formData.email.toLowerCase())
-    const phone = sanitize(formData.phone)
+    const name = sanitize(formData.name).trim()
+    const email = sanitize(formData.email.toLowerCase()).trim()
+    const phone = sanitize(formData.phone).trim()
 
     if (name.length < 2) {
       toast({ title: "Eroare", description: "Introduceți un nume valid.", variant: "destructive" }); return
@@ -191,7 +204,7 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
           notes: selectedServiceId === "other" ? sanitize(otherServiceDescription) : null,
           patientId, doctorId: selectedDoctor, departmentId: selectedDepartment,
           serviceId: selectedServiceId === "other" ? null : selectedServiceId,
-          sendEmail: true, sendSMS: true,
+          sendEmail: preferences.email, sendSMS: preferences.sms,
         }),
       })
 
@@ -439,7 +452,7 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
                           while (curr < end) {
                             slots.push(curr)
                             const [h, m] = curr.split(":").map(Number)
-                            const nextM = m + 30
+                            const nextM = m + 15
                             const nextH = h + Math.floor(nextM / 60)
                             curr = `${String(nextH).padStart(2, "0")}:${String(nextM % 60).padStart(2, "0")}`
                           }
@@ -453,6 +466,18 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
                           })
                         }
                         
+                        const availableSlotsCount = slots.filter(time => !isSlotOccupied(time)).length
+                        
+                        if (slots.length > 0 && availableSlotsCount === 0) {
+                          return (
+                            <div className="col-span-4 sm:col-span-6 flex flex-col items-center justify-center py-6 text-center">
+                              <CalendarX className="w-8 h-8 text-slate-300 mb-2" />
+                              <p className="text-sm font-semibold text-slate-600">Nu mai sunt locuri disponibile.</p>
+                              <p className="text-xs text-slate-400 mt-1">Te rugăm să alegi o altă zi pentru programare.</p>
+                            </div>
+                          )
+                        }
+
                         return slots.map((time) => {
                           const occupied = isSlotOccupied(time)
                           return (
@@ -534,6 +559,39 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
                     className="h-11 rounded-xl bg-slate-50 border-slate-200"
                     placeholder="nume@email.com"
                   />
+                </div>
+              </div>
+
+              {/* Notification Preferences */}
+              <div className="pt-2">
+                <p className="text-xs font-bold text-slate-500 mb-3">Opțiuni de confirmare</p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-white">
+                    <button
+                      type="button"
+                      onClick={() => setPreferences({ ...preferences, email: !preferences.email })}
+                      className={cn("w-5 h-5 rounded flex items-center justify-center shrink-0 transition-colors", preferences.email ? "bg-[#206070] text-white" : "border-2 border-slate-200 bg-white")}
+                    >
+                      {preferences.email && <Check className="w-3.5 h-3.5" />}
+                    </button>
+                    <div className="flex-1 cursor-pointer" onClick={() => setPreferences({ ...preferences, email: !preferences.email })}>
+                      <p className="text-sm font-semibold text-slate-700">Doresc confirmare pe Email</p>
+                      <p className="text-xs text-slate-400">Vei primi detaliile programării pe email.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-white">
+                    <button
+                      type="button"
+                      onClick={() => setPreferences({ ...preferences, sms: !preferences.sms })}
+                      className={cn("w-5 h-5 rounded flex items-center justify-center shrink-0 transition-colors", preferences.sms ? "bg-[#206070] text-white" : "border-2 border-slate-200 bg-white")}
+                    >
+                      {preferences.sms && <Check className="w-3.5 h-3.5" />}
+                    </button>
+                    <div className="flex-1 cursor-pointer" onClick={() => setPreferences({ ...preferences, sms: !preferences.sms })}>
+                      <p className="text-sm font-semibold text-slate-700">Doresc SMS cu remindere</p>
+                      <p className="text-xs text-slate-400">Notificare imediată și cu 24h înainte.</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

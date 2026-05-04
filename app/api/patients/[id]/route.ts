@@ -23,6 +23,9 @@ export async function GET(
         medicalRecords: {
           orderBy: { visitDate: "desc" },
         },
+        documents: {
+          orderBy: { createdAt: "desc" },
+        },
       },
     })
 

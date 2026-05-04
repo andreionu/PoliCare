@@ -228,7 +228,7 @@ export default function ReportsPage() {
           </div>
 
           {/* Analytics Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
             <Card className="border-none shadow-sm bg-white dark:bg-card/50 backdrop-blur-sm p-6 overflow-hidden">
               <div className="mb-6 flex items-center justify-between">
                  <div>
@@ -282,6 +282,44 @@ export default function ReportsPage() {
                       <Tooltip cursor={{fill: '#f1f5f9'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                       <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} barSize={32} />
                     </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-sm font-medium text-muted-foreground">Nu există date suficiente.</div>
+                )}
+              </div>
+            </Card>
+
+            <Card className="border-none shadow-sm bg-white dark:bg-card/50 backdrop-blur-sm p-6 overflow-hidden">
+               <div className="mb-6 flex items-center justify-between">
+                 <div>
+                    <h3 className="font-bold tracking-tight text-foreground/90 text-lg">Demografice</h3>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-1">Distribuția pe Vârstă</p>
+                 </div>
+                 <div className="w-10 h-10 rounded-xl bg-purple-500/5 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-purple-500" />
+                 </div>
+              </div>
+              <div className="h-[250px] w-full">
+                {loadingStats ? (
+                  <div className="w-full h-full flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-purple-500" /></div>
+                ) : statsData?.demographics?.length ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={statsData.demographics}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {statsData.demographics.map((entry, index) => (
+                           <Cell key={`cell-${index}`} fill={['#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#f97316'][index % 5]} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                    </PieChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-sm font-medium text-muted-foreground">Nu există date suficiente.</div>
