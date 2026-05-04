@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useMemo } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -180,6 +180,7 @@ const DECLINE_REASONS: Record<string, string> = {
 export default function AppointmentsPage() {
   const { toast } = useToast()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const prefillApplied = useRef(false)
 
   // View and UI state
@@ -302,9 +303,11 @@ export default function AppointmentsPage() {
     if (patientId) {
       setPatientMode("existing")
       setSelectedPatientId(patientId)
+      // Only auto-open if we came from a patient context, not doctor calendar
+      setIsNewAppointmentOpen(true)
+    } else if (doctorId) {
+      setViewMode("calendar")
     }
-
-    setIsNewAppointmentOpen(true)
   }, [loading, searchParams])
 
   // Real-time availability check when doctor + date + time are all filled (debounced 400ms)
@@ -758,13 +761,16 @@ export default function AppointmentsPage() {
   const filteredAppointments = useMemo(
     () =>
       appointments.filter((apt) => {
+        const urlDoctorId = searchParams.get("doctorId")
+        if (urlDoctorId && apt.doctorId !== urlDoctorId) return false
+
         const matchesSearch =
           apt.patient.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
           apt.doctor.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
         const matchesFilter = statusFilter === "Toate" || getStatusDisplay(apt.status) === statusFilter
         return matchesSearch && matchesFilter
       }),
-    [appointments, debouncedSearchTerm, statusFilter],
+    [appointments, debouncedSearchTerm, statusFilter, searchParams],
   )
 
   // Pre-index calendar slots for O(1) lookup instead of O(n) per cell
@@ -812,6 +818,19 @@ export default function AppointmentsPage() {
     }),
     [appointments],
   )
+
+  const handleEmptySlotClick = (dayIndex: number, timeStr: string) => {
+    const date = new Date(currentWeekStart)
+    date.setDate(currentWeekStart.getDate() + (dayIndex - 1))
+    
+    setAppointmentFormData(prev => ({
+      ...prev,
+      date: date.toISOString().split("T")[0],
+      time: timeStr,
+      doctorId: searchParams.get("doctorId") || prev.doctorId
+    }))
+    setIsNewAppointmentOpen(true)
+  }
 
   return (
     <>
@@ -902,6 +921,29 @@ export default function AppointmentsPage() {
                   className="pl-12 h-12 bg-muted/50 border-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl transition-all"
                 />
               </div>
+
+              <Select 
+                value={searchParams.get("doctorId") || "all"} 
+                onValueChange={(val) => {
+                  const params = new URLSearchParams(searchParams.toString())
+                  if (val === "all") params.delete("doctorId")
+                  else params.set("doctorId", val)
+                  router.push(`/appointments?${params.toString()}`)
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-[220px] h-12 bg-muted/50 border-none rounded-xl focus:ring-2 focus:ring-primary transition-all font-medium data-[state=open]:ring-2 data-[state=open]:ring-primary">
+                  <div className="flex items-center gap-2 truncate text-foreground">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    <SelectValue placeholder="Toți Medicii" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-none shadow-xl max-h-[300px]">
+                  <SelectItem value="all" className="font-semibold text-primary">Toți Medicii</SelectItem>
+                  {doctors.map(d => (
+                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <div className="flex p-1 bg-muted/50 rounded-xl items-center">
                 {["Toate", "Confirmat", "În așteptare", "Anulat"].map((status) => (
                   <Button
@@ -1017,19 +1059,19 @@ export default function AppointmentsPage() {
                       <div key={appointment.id} className="group relative bg-white dark:bg-card/50 rounded-2xl border border-border/50 p-5 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 transition-all duration-300">
                         <div className="flex flex-col lg:flex-row lg:items-center gap-6">
                           {/* Patient info with Avatar */}
-                          <div className="flex items-center gap-4 min-w-[280px]">
+                          <div className="flex items-center gap-4 w-full lg:w-[320px] shrink-0">
                             <Avatar className="h-14 w-14 border-2 border-background shadow-sm ring-2 ring-muted/50">
                               <AvatarFallback className="bg-gradient-to-br from-primary/5 to-primary/10 text-primary font-bold text-lg">
                                 {appointment.patient.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
                               </AvatarFallback>
                             </Avatar>
                             <div className="space-y-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-foreground text-lg tracking-tight group-hover:text-primary transition-colors">{appointment.patient.name}</span>
-                                <Badge variant={getStatusColor(appointment.status)} className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getStatusBgColor(appointment.status)} ${getStatusTextColor(appointment.status)} border-none shadow-sm`}>
-                                  {getStatusDisplay(appointment.status)}
-                                </Badge>
-                              </div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-bold text-foreground text-lg tracking-tight group-hover:text-primary transition-colors truncate max-w-[160px]">{appointment.patient.name}</span>
+                                  <Badge variant={getStatusColor(appointment.status)} className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getStatusBgColor(appointment.status)} ${getStatusTextColor(appointment.status)} border-none shadow-sm shrink-0`}>
+                                    {getStatusDisplay(appointment.status)}
+                                  </Badge>
+                                </div>
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 {appointment.type && (
                                   <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-muted text-[11px] font-medium uppercase tracking-tight">
@@ -1090,7 +1132,7 @@ export default function AppointmentsPage() {
                           </div>
 
                           {/* Actions */}
-                          <div className="flex items-center gap-2 self-end lg:self-center">
+                          <div className="flex items-center gap-2 self-end lg:self-center w-full lg:w-[220px] shrink-0 justify-end">
                             {appointment.status === "IN_ASTEPTARE" && (
                               <div className="flex gap-2">
                                 <Button 
@@ -1311,30 +1353,43 @@ export default function AppointmentsPage() {
                       {[1, 2, 3, 4, 5, 6, 7].map((day) => {
                         const appointmentsInSlot = calendarIndex.get(`${day}-${time.split(":")[0]}`) ?? []
                         return (
-                          <div key={day} className="border-r last:border-r-0 p-2 hover:bg-muted/30 transition-colors">
-                            {appointmentsInSlot.map((apt) => (
-                              <div
-                                key={apt.id}
-                                onClick={() => handleEditClick(apt)}
-                                className={`group/apt relative p-2.5 rounded-xl border-l-4 mb-2 cursor-pointer shadow-sm hover:shadow-md hover:translate-y-[-1px] transition-all duration-200 ${getStatusBgColor(apt.status)} border-background/20`}
-                                style={{ borderLeftColor: getStatusColor(apt.status) === 'default' ? 'var(--primary)' : getStatusColor(apt.status) === 'secondary' ? '#f59e0b' : '#10b981' }}
-                              >
-                                <div className="flex items-center justify-between mb-1">
-                                  <span className={`text-[10px] font-bold uppercase tracking-wider ${getStatusTextColor(apt.status)}`}>
-                                    {apt.startTime}
-                                  </span>
-                                  <div className="opacity-0 group-hover/apt:opacity-100 transition-opacity">
-                                    <MoreHorizontal className={`w-3 h-3 ${getStatusTextColor(apt.status)}`} />
+                          <div 
+                            key={day} 
+                            className="relative border-r last:border-r-0 p-2 hover:bg-primary/5 transition-colors cursor-pointer group/cell min-h-[5rem]"
+                            onClick={(e) => {
+                              if (e.target === e.currentTarget || (e.target as HTMLElement).closest('.empty-click-area')) {
+                                handleEmptySlotClick(day, time)
+                              }
+                            }}
+                          >
+                            <div className="empty-click-area absolute inset-0 z-0 flex items-center justify-center opacity-0 group-hover/cell:opacity-100 transition-opacity pointer-events-none">
+                              {appointmentsInSlot.length === 0 && <Plus className="w-6 h-6 text-primary/40" />}
+                            </div>
+                            <div className="relative z-10">
+                              {appointmentsInSlot.map((apt) => (
+                                <div
+                                  key={apt.id}
+                                  onClick={() => handleEditClick(apt)}
+                                  className={`group/apt relative p-2.5 rounded-xl border-l-4 mb-2 cursor-pointer shadow-sm hover:shadow-md hover:translate-y-[-1px] transition-all duration-200 ${getStatusBgColor(apt.status)} border-background/20`}
+                                  style={{ borderLeftColor: getStatusColor(apt.status) === 'default' ? 'var(--primary)' : getStatusColor(apt.status) === 'secondary' ? '#f59e0b' : '#10b981' }}
+                                >
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className={`text-[10px] font-bold uppercase tracking-wider ${getStatusTextColor(apt.status)}`}>
+                                      {apt.startTime}
+                                    </span>
+                                    <div className="opacity-0 group-hover/apt:opacity-100 transition-opacity">
+                                      <MoreHorizontal className={`w-3 h-3 ${getStatusTextColor(apt.status)}`} />
+                                    </div>
+                                  </div>
+                                  <div className={`text-xs font-bold truncate ${getStatusTextColor(apt.status)}`}>
+                                    {apt.patient.name}
+                                  </div>
+                                  <div className={`text-[10px] truncate opacity-80 font-medium ${getStatusTextColor(apt.status)} mt-0.5`}>
+                                    {apt.doctor.name}
                                   </div>
                                 </div>
-                                <div className={`text-xs font-bold truncate ${getStatusTextColor(apt.status)}`}>
-                                  {apt.patient.name}
-                                </div>
-                                <div className={`text-[10px] truncate opacity-80 font-medium ${getStatusTextColor(apt.status)} mt-0.5`}>
-                                  {apt.doctor.name}
-                                </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
                         )
                       })}

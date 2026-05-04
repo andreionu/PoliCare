@@ -74,37 +74,62 @@ export function Header() {
         <div className="flex items-center gap-2">
           <Popover open={popoverOpen} onOpenChange={(open) => { setPopoverOpen(open); if (open) markAllSeen() }}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/10 hover:text-blue-600 transition-all">
+              <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/10 hover:text-blue-600 transition-all focus-visible:ring-0">
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-card">
+                  <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-card animate-in zoom-in">
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-80 p-0">
-              <div className="flex items-center justify-between px-4 py-3 border-b">
-                <h3 className="text-sm font-semibold">Programări noi</h3>
-                {unreadCount > 0 && (
-                  <Badge variant="destructive" className="text-xs">{unreadCount} noi</Badge>
-                )}
+            <PopoverContent align="end" className="w-[380px] p-0 rounded-2xl shadow-2xl border-none overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-br from-primary/5 to-primary/10 border-b border-primary/10">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-[15px] font-bold text-foreground tracking-tight">Programări noi</h3>
+                  {unreadCount > 0 && (
+                    <Badge variant="destructive" className="bg-rose-500 hover:bg-rose-600 text-[10px] px-2 py-0.5 rounded-full shadow-sm">
+                      {unreadCount} noi
+                    </Badge>
+                  )}
+                </div>
               </div>
-              <ScrollArea className="h-72">
+              <ScrollArea className="h-[400px] bg-white dark:bg-card">
                 {appointments.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full py-10 text-muted-foreground text-sm gap-2">
-                    <Bell className="h-8 w-8 opacity-30" />
-                    <span>Nicio programare în așteptare</span>
+                  <div className="flex flex-col items-center justify-center h-full py-16 text-muted-foreground gap-4 animate-in fade-in">
+                    <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center shadow-sm">
+                      <Bell className="h-8 w-8 text-primary/40" />
+                    </div>
+                    <span className="font-semibold text-sm">Nicio programare în așteptare</span>
                   </div>
                 ) : (
-                  <div className="divide-y">
+                  <div className="divide-y divide-border/50">
                     {appointments.map((appt) => (
-                      <div key={appt.id} className="flex gap-3 px-4 py-3 hover:bg-muted/50 transition-colors">
-                        <Clock className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{appt.patient.name}</p>
-                          <p className="text-xs text-muted-foreground">Dr. {appt.doctor.name} · {appt.startTime}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
+                      <div 
+                        key={appt.id} 
+                        className="group flex gap-4 px-5 py-4 hover:bg-muted/50 transition-all cursor-pointer relative overflow-hidden"
+                        onClick={() => {
+                          setPopoverOpen(false);
+                          router.push('/appointments');
+                        }}
+                      >
+                        <div className="absolute inset-y-0 left-0 w-1 bg-amber-400 scale-y-0 group-hover:scale-y-100 transition-transform origin-top" />
+                        <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center shrink-0 border border-amber-100 dark:border-amber-800/30 group-hover:scale-110 transition-transform">
+                          <Clock className="h-5 w-5 text-amber-500" />
+                        </div>
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                              {appt.patient.name}
+                            </p>
+                            <span className="text-xs font-bold text-amber-600 shrink-0 bg-amber-100 px-2 py-0.5 rounded-md">
+                              {appt.startTime}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground font-medium truncate">
+                            Dr. {appt.doctor.name}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground/60 font-bold uppercase tracking-widest pt-1">
                             {formatDistanceToNow(new Date(appt.createdAt), { addSuffix: true, locale: ro })}
                           </p>
                         </div>
@@ -113,6 +138,20 @@ export function Header() {
                   </div>
                 )}
               </ScrollArea>
+              {appointments.length > 0 && (
+                <div className="p-3 bg-muted/30 border-t border-border/50">
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-10 text-xs font-bold uppercase tracking-widest text-primary border-primary/20 hover:bg-primary/5 rounded-xl transition-all"
+                    onClick={() => {
+                      setPopoverOpen(false);
+                      router.push('/appointments');
+                    }}
+                  >
+                    Gestionează programările
+                  </Button>
+                </div>
+              )}
             </PopoverContent>
           </Popover>
 
