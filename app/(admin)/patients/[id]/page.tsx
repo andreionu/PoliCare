@@ -71,7 +71,6 @@ interface PatientDetail {
     notes: string | null
     followUpRequired: boolean
     followUpDate: string | null
-    followUpDate: string | null
   }>
   documents: Array<{
     id: string
@@ -125,8 +124,9 @@ export default function PatientDetailPage() {
 
   // Edit patient modal
   const [showEditPatient, setShowEditPatient] = useState(false)
-  const [editForm, setEditForm] = useState({ name: "", cnp: "", gender: "NONE", phone: "", email: "", address: "", status: "", notes: "" })
+  const [editForm, setEditForm] = useState({ name: "", cnp: "", gender: "NONE", phone: "", email: "", address: "", status: "", notes: "", primaryDoctorId: "NONE" })
   const [savingPatient, setSavingPatient] = useState(false)
+  const [doctors, setDoctors] = useState<{ id: string; name: string }[]>([])
 
   // Add medical record modal
   const [showAddRecord, setShowAddRecord] = useState(false)
@@ -191,6 +191,19 @@ export default function PatientDetailPage() {
     const storedRole = localStorage.getItem("userRole") as string | null
     setRole(storedRole)
     fetchPatient()
+    
+    const fetchDoctors = async () => {
+      try {
+        const response = await fetch("/api/doctors")
+        if (response.ok) {
+          const data = await response.json()
+          setDoctors(data)
+        }
+      } catch (e) {
+        console.error("Error fetching doctors", e)
+      }
+    }
+    fetchDoctors()
   }, [fetchPatient])
 
   const handleOpenEdit = () => {
@@ -204,6 +217,7 @@ export default function PatientDetailPage() {
       address: patient.address || "",
       status: patient.status,
       notes: patient.notes || "",
+      primaryDoctorId: patient.primaryDoctor?.id || "NONE",
     })
     setShowEditPatient(true)
   }
@@ -224,6 +238,7 @@ export default function PatientDetailPage() {
           address: editForm.address || null,
           status: editForm.status,
           notes: editForm.notes || null,
+          primaryDoctorId: editForm.primaryDoctorId === "NONE" ? null : editForm.primaryDoctorId,
         }),
       })
       if (!response.ok) throw new Error("Failed to update patient")
@@ -742,6 +757,20 @@ export default function PatientDetailPage() {
                   <SelectItem value="ACTIV">Activ</SelectItem>
                   <SelectItem value="PROGRAMAT">Programat</SelectItem>
                   <SelectItem value="INACTIV">Inactiv</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 ml-1">Medic Principal</Label>
+              <Select value={editForm.primaryDoctorId} onValueChange={(v) => setEditForm({ ...editForm, primaryDoctorId: v })}>
+                <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-muted/50">
+                  <SelectValue placeholder="Neasignat" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">Neasignat</SelectItem>
+                  {doctors.map(d => (
+                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

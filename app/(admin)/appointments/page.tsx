@@ -106,6 +106,7 @@ interface Appointment {
   notes: string | null
   patient: Patient
   doctor: Doctor
+  doctorId?: string
   department: Department | null
   service?: Service | null
   notifications?: Notification[]
@@ -358,6 +359,38 @@ export default function AppointmentsPage() {
       setDeclineMessage("")
     }
   }, [declineReason])
+
+  const isSlotOccupied = (time: string) => {
+    if (!appointmentFormData.doctorId || !appointmentFormData.date) return false
+
+    const today = new Date()
+    const isToday = appointmentFormData.date === new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().split("T")[0]
+    if (isToday) {
+      const [h, m] = time.split(":").map(Number)
+      if (h < today.getHours() || (h === today.getHours() && m <= today.getMinutes())) {
+        return true
+      }
+    }
+
+    const duration = services.find(s => s.id === appointmentFormData.serviceId)?.duration || 30
+    const [h, m] = time.split(":").map(Number)
+    const slotStart = h * 60 + m
+    const slotEnd = slotStart + duration
+
+    return appointments.some(apt => {
+      if (apt.doctor?.id !== appointmentFormData.doctorId && apt.doctorId !== appointmentFormData.doctorId) return false
+      if (apt.status === "ANULAT" || apt.status === "NEPREZENTARE") return false
+      const aptDate = new Date(apt.date).toISOString().split("T")[0]
+      if (aptDate !== appointmentFormData.date) return false
+
+      const [oh1, om1] = apt.startTime.split(":").map(Number)
+      const [oh2, om2] = (apt.endTime || "00:00").split(":").map(Number)
+      const aptStart = oh1 * 60 + om1
+      const aptEnd = apt.endTime ? (oh2 * 60 + om2) : (aptStart + apt.duration)
+
+      return slotStart < aptEnd && slotEnd > aptStart
+    })
+  }
 
   const handleConfirmClick = (appointment: Appointment) => {
     setSelectedAppointment(appointment)
@@ -1085,8 +1118,8 @@ export default function AppointmentsPage() {
                           </div>
 
                           {/* Middle section: Doctor & Time */}
-                          <div className="grid grid-cols-2 sm:grid-cols-3 flex-1 gap-4 lg:gap-8 py-4 lg:py-0 border-y lg:border-none border-border/50">
-                            <div className="flex flex-col gap-1">
+                          <div className="flex flex-col sm:flex-row flex-1 gap-4 lg:gap-8 py-4 lg:py-0 border-y lg:border-none border-border/50">
+                            <div className="flex flex-col gap-1 w-full sm:w-[200px] shrink-0">
                               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
                                 <User className="w-3 h-3" />
                                 Medic
@@ -1095,7 +1128,7 @@ export default function AppointmentsPage() {
                               <span className="text-xs text-muted-foreground">{appointment.department?.name || "General"}</span>
                             </div>
 
-                            <div className="flex flex-col gap-1">
+                            <div className="flex flex-col gap-1 w-full sm:w-[150px] shrink-0">
                               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
                                 <CalendarIcon className="w-3 h-3" />
                                 Dată
@@ -1104,7 +1137,7 @@ export default function AppointmentsPage() {
                               <span className="text-xs text-muted-foreground">{new Date(appointment.date).getFullYear()}</span>
                             </div>
 
-                            <div className="flex flex-col gap-1">
+                            <div className="flex flex-col gap-1 w-full sm:w-[150px] shrink-0">
                               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
                                 <Clock className="w-3 h-3" />
                                 Programare
@@ -1684,27 +1717,68 @@ export default function AppointmentsPage() {
                 />
                 {appointmentErrors.date && <p className="text-sm text-destructive mt-1">Data este obligatorie</p>}
               </div>
-              <div>
-                <Label htmlFor="time" className="block text-sm font-medium text-foreground">
-                  Ora <span className="text-destructive">*</span>
+              <div className="col-span-2">
+                <Label htmlFor="time" className="block text-sm font-medium text-foreground mb-2">
+                  Interval orar disponibil <span className="text-destructive">*</span>
                 </Label>
-                <Select
-                  required
-                  value={appointmentFormData.time}
-                  onValueChange={(value) => {
-                    setAppointmentFormData({ ...appointmentFormData, time: value })
-                    setAppointmentErrors({ ...appointmentErrors, time: false })
-                  }}
-                >
-                  <SelectTrigger className={`mt-2 ${appointmentErrors.time ? "border-destructive" : ""}`}>
-                    <SelectValue placeholder="Selectează ora" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {["08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30"].map((t) => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {appointmentFormData.date && appointmentFormData.doctorId && appointmentFormData.serviceId ? (
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-2">
+                    {(() => {
+                      const slots = []
+                      if (settings) {
+                        let curr = settings.workdayStart
+                        const end = settings.workdayEnd
+                        while (curr < end) {
+                          slots.push(curr)
+                          const [h, m] = curr.split(":").map(Number)
+                          const nextM = m + 15
+                          const nextH = h + Math.floor(nextM / 60)
+                          curr = `${String(nextH).padStart(2, "0")}:${String(nextM % 60).padStart(2, "0")}`
+                        }
+                      }
+                      
+                      const availableSlotsCount = slots.filter(time => !isSlotOccupied(time)).length
+                      
+                      if (slots.length > 0 && availableSlotsCount === 0) {
+                        return (
+                          <div className="col-span-4 sm:col-span-6 flex flex-col items-center justify-center py-6 text-center bg-muted/20 rounded-xl">
+                            <CalendarX className="w-8 h-8 text-slate-300 mb-2" />
+                            <p className="text-sm font-semibold text-slate-600">Nu mai sunt locuri disponibile.</p>
+                            <p className="text-xs text-slate-400 mt-1">Te rugăm să alegi o altă zi pentru programare.</p>
+                          </div>
+                        )
+                      }
+
+                      return slots.map((time) => {
+                        const occupied = isSlotOccupied(time)
+                        return (
+                          <button
+                            key={time}
+                            type="button"
+                            disabled={occupied}
+                            onClick={() => {
+                              setAppointmentFormData({ ...appointmentFormData, time })
+                              setAppointmentErrors({ ...appointmentErrors, time: false })
+                            }}
+                            className={`h-10 rounded-xl text-xs font-semibold transition-all duration-150 ${
+                              occupied
+                                ? "bg-slate-100 text-slate-300 cursor-not-allowed"
+                                : appointmentFormData.time === time
+                                  ? "bg-primary text-white shadow-md shadow-primary/20"
+                                  : "bg-muted/50 text-foreground hover:bg-primary/10 hover:text-primary"
+                            }`}
+                          >
+                            {time}
+                          </button>
+                        )
+                      })
+                    })()}
+                  </div>
+                ) : (
+                  <div className="h-24 rounded-xl border border-dashed border-muted flex items-center justify-center text-sm text-muted-foreground bg-muted/10">
+                    Selectează întâi serviciul, medicul și data
+                  </div>
+                )}
                 {appointmentErrors.time && <p className="text-sm text-destructive mt-1">Ora este obligatorie</p>}
               </div>
             </div>

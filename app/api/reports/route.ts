@@ -49,8 +49,8 @@ export async function GET(request: Request) {
   const period = searchParams.get("period") || "current-month"
   const format = searchParams.get("format") || "csv"
 
-  if (format !== "csv") {
-    return NextResponse.json({ error: "FORMAT_UNSUPPORTED", message: "Numai formatul CSV este disponibil momentan." }, { status: 422 })
+  if (format !== "csv" && format !== "excel" && format !== "json") {
+    return NextResponse.json({ error: "FORMAT_UNSUPPORTED", message: "Format nesuportat." }, { status: 422 })
   }
 
   const { start, end } = getDateRange(period)
@@ -59,6 +59,8 @@ export async function GET(request: Request) {
   try {
     let csvContent = ""
     let filename = `raport-${type}-${dateStr}.csv`
+    let header = ""
+    let rows: string[] = []
 
     if (type === "patients") {
       const patients = await prisma.patient.findMany({
@@ -66,8 +68,8 @@ export async function GET(request: Request) {
         include: { primaryDoctor: { select: { name: true } } },
         orderBy: { createdAt: "desc" },
       })
-      const header = toCsvRow(["Nume", "CNP", "Vârstă", "Gen", "Telefon", "Email", "Status", "Medic primar", "Data înregistrare"])
-      const rows = patients.map((p) => toCsvRow([
+      header = toCsvRow(["Nume", "CNP", "Vârstă", "Gen", "Telefon", "Email", "Status", "Medic primar", "Data înregistrare"])
+      rows = patients.map((p) => toCsvRow([
         p.name, p.cnp, p.age, p.gender, p.phone, p.email, p.status,
         p.primaryDoctor?.name, new Date(p.createdAt).toLocaleDateString("ro-RO"),
       ]))
@@ -82,8 +84,8 @@ export async function GET(request: Request) {
         },
         orderBy: [{ date: "asc" }, { startTime: "asc" }],
       })
-      const header = toCsvRow(["ID", "Data", "Ora", "Pacient", "Medic", "Departament", "Status", "Durată (min)"])
-      const rows = appointments.map((a) => toCsvRow([
+      header = toCsvRow(["ID", "Data", "Ora", "Pacient", "Medic", "Departament", "Status", "Durată (min)"])
+      rows = appointments.map((a) => toCsvRow([
         a.id,
         new Date(a.date).toLocaleDateString("ro-RO"),
         a.startTime,
@@ -102,8 +104,8 @@ export async function GET(request: Request) {
         },
         orderBy: { name: "asc" },
       })
-      const header = toCsvRow(["Nume", "Specialitate", "Departament", "Experiență", "Rating", "Nr. programări", "Nr. pacienți"])
-      const rows = doctors.map((d) => toCsvRow([
+      header = toCsvRow(["Nume", "Specialitate", "Departament", "Experiență", "Rating", "Nr. programări", "Nr. pacienți"])
+      rows = doctors.map((d) => toCsvRow([
         d.name, d.specialty, d.department.name, d.experience, d.rating,
         d._count.appointments, d._count.patients,
       ]))
@@ -115,13 +117,17 @@ export async function GET(request: Request) {
         },
         orderBy: { name: "asc" },
       })
-      const header = toCsvRow(["Departament", "Status", "Nr. medici", "Nr. programări"])
-      const rows = departments.map((d) => toCsvRow([
+      header = toCsvRow(["Departament", "Status", "Nr. medici", "Nr. programări"])
+      rows = departments.map((d) => toCsvRow([
         d.name, d.status, d._count.doctors, d._count.appointments,
       ]))
       csvContent = [header, ...rows].join("\r\n")
     } else {
       return NextResponse.json({ error: "Unknown report type" }, { status: 400 })
+    }
+
+    if (format === "json") {
+      return NextResponse.json({ headers: header.split(","), rows: rows.map(r => r.split(",")) })
     }
 
     // BOM for Excel UTF-8 compatibility

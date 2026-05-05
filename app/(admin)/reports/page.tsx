@@ -16,7 +16,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileText, TrendingUp, Download, Calendar, Users, Activity, Loader2 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid, Legend } from "recharts"
+import * as XLSX from "xlsx"
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
 
 interface MonthStat {
   month: string
@@ -96,48 +99,110 @@ export default function ReportsPage() {
       return
     }
 
-    if (reportFormData.format !== "csv") {
-      toast({ title: "Format în curând disponibil", description: "Momentan este disponibil doar formatul CSV." })
-      return
-    }
-
     setGeneratingReport(true)
     try {
-      const url = `/api/reports?type=${reportFormData.type}&period=${reportFormData.period}&format=csv`
-      const response = await fetch(url)
-
-      if (!response.ok) {
-        const data = await response.json()
-        toast({ title: "Eroare", description: data.message || "Nu s-a putut genera raportul.", variant: "destructive" })
-        return
-      }
-
-      const blob = await response.blob()
-      const objectUrl = URL.createObjectURL(blob)
-      const a = document.createElement("a")
+      const typeLabel = TYPE_LABELS[reportFormData.type]
+      const periodLabel = PERIOD_LABELS[reportFormData.period]
       const dateStr = new Date().toISOString().split("T")[0]
-      a.href = objectUrl
-      a.download = `raport-${reportFormData.type}-${dateStr}.csv`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(objectUrl)
+      const title = `Raport ${typeLabel} — ${periodLabel}`
+
+      if (reportFormData.format === "csv") {
+        const url = `/api/reports?type=${reportFormData.type}&period=${reportFormData.period}&format=csv`
+        const response = await fetch(url)
+        if (!response.ok) throw new Error("API Error")
+        const blob = await response.blob()
+        const objectUrl = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = objectUrl
+        a.download = `raport-${reportFormData.type}-${dateStr}.csv`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(objectUrl)
+      } else {
+        // Excel & PDF fetch JSON first
+        const url = `/api/reports?type=${reportFormData.type}&period=${reportFormData.period}&format=json`
+        const response = await fetch(url)
+        if (!response.ok) throw new Error("API Error")
+        const data = await response.json()
+        
+        // Remove quotes from JSON strings that were escaped for CSV
+        const cleanStr = (s: string) => s.replace(/^"|"$/g, '').replace(/""/g, '"')
+        const headers = data.headers.map(cleanStr)
+        const rows = data.rows.map((row: string[]) => row.map(cleanStr))
+
+        if (reportFormData.format === "excel") {
+          const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
+          const wb = XLSX.utils.book_new()
+          XLSX.utils.book_append_sheet(wb, ws, "Raport")
+          XLSX.writeFile(wb, `raport-${reportFormData.type}-${dateStr}.xlsx`)
+        } else if (reportFormData.format === "pdf") {
+          const doc = new jsPDF()
+          
+          // PDF Template styling
+          doc.setFillColor(32, 96, 112) // #206070 Primary color
+          doc.rect(0, 0, 210, 40, "F")
+          
+          doc.setTextColor(255, 255, 255)
+          doc.setFontSize(24)
+          doc.setFont("helvetica", "bold")
+          doc.text("POLICARE", 14, 22)
+          
+          doc.setFontSize(10)
+          doc.setFont("helvetica", "normal")
+          doc.text("Clinica Medicala Excellence", 14, 30)
+          
+          doc.setFontSize(12)
+          doc.setTextColor(255, 255, 255)
+          doc.text(`Data: ${new Date().toLocaleDateString("ro-RO")}`, 150, 22)
+
+          doc.setTextColor(30, 41, 59)
+          doc.setFontSize(16)
+          doc.setFont("helvetica", "bold")
+          doc.text(title, 14, 55)
+
+          autoTable(doc, {
+            head: [headers],
+            body: rows,
+            startY: 65,
+            theme: 'grid',
+            headStyles: { fillColor: [32, 96, 112], textColor: 255, fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [248, 250, 252] },
+            styles: { fontSize: 9, cellPadding: 4 },
+          })
+          
+          const pageCount = (doc as any).internal.getNumberOfPages()
+          for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i)
+            doc.setFontSize(8)
+            doc.setTextColor(100, 116, 139)
+            doc.text(
+              `Pagina ${i} din ${pageCount}  |  Generat din portalul administrativ PoliCare`,
+              14,
+              doc.internal.pageSize.height - 10
+            )
+          }
+
+          doc.save(`raport-${reportFormData.type}-${dateStr}.pdf`)
+        }
+      }
 
       const newReport: GeneratedReport = {
         id: Date.now(),
-        title: `Raport ${TYPE_LABELS[reportFormData.type]} — ${PERIOD_LABELS[reportFormData.period]}`,
-        type: TYPE_LABELS[reportFormData.type],
-        period: PERIOD_LABELS[reportFormData.period],
+        title,
+        type: typeLabel,
+        period: periodLabel,
         date: new Date().toLocaleDateString("ro-RO"),
-        format: "CSV",
+        format: reportFormData.format.toUpperCase(),
       }
       setGeneratedReports((prev) => [newReport, ...prev])
 
-      toast({ title: "Raport generat", description: "Fișierul CSV a fost descărcat cu succes." })
+      toast({ title: "Raport generat", description: `Fișierul ${reportFormData.format.toUpperCase()} a fost descărcat cu succes.` })
       setIsGenerateReportOpen(false)
       setReportFormData({ type: "", period: "", format: "" })
       setReportErrors({})
-    } catch {
+    } catch (e: any) {
+      console.error(e)
       toast({ title: "Eroare", description: "Nu s-a putut genera raportul.", variant: "destructive" })
     } finally {
       setGeneratingReport(false)
@@ -163,8 +228,8 @@ export default function ReportsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-            <Card className="relative overflow-hidden group border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm p-6">
-              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity bg-gradient-to-br from-primary to-primary/80" />
+            <Card className="relative overflow-hidden group border border-primary/5 shadow-sm hover:shadow-xl transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm p-6 rounded-2xl">
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 opacity-10 rounded-full blur-3xl group-hover:opacity-30 transition-opacity bg-gradient-to-br from-primary to-primary/80" />
               <div className="flex items-center gap-5 relative z-10">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-white flex items-center justify-center shadow-lg shadow-primary/20">
                   <Users className="w-7 h-7" />
@@ -188,8 +253,8 @@ export default function ReportsPage() {
               </div>
             </Card>
 
-            <Card className="relative overflow-hidden group border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm p-6">
-              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity bg-gradient-to-br from-purple-500 to-fuchsia-600" />
+            <Card className="relative overflow-hidden group border border-purple-500/5 shadow-sm hover:shadow-xl transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm p-6 rounded-2xl">
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 opacity-10 rounded-full blur-3xl group-hover:opacity-30 transition-opacity bg-gradient-to-br from-purple-500 to-fuchsia-600" />
               <div className="flex items-center gap-5 relative z-10">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white flex items-center justify-center shadow-lg shadow-purple-500/20">
                   <Calendar className="w-7 h-7" />
@@ -207,8 +272,8 @@ export default function ReportsPage() {
               </div>
             </Card>
 
-            <Card className="relative overflow-hidden group border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm p-6">
-              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity bg-gradient-to-br from-amber-500 to-orange-600" />
+            <Card className="relative overflow-hidden group border border-amber-500/5 shadow-sm hover:shadow-xl transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm p-6 rounded-2xl">
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 opacity-10 rounded-full blur-3xl group-hover:opacity-30 transition-opacity bg-gradient-to-br from-amber-500 to-orange-600" />
               <div className="flex items-center gap-5 relative z-10">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-lg shadow-amber-500/20">
                   <Activity className="w-7 h-7" />
@@ -229,7 +294,7 @@ export default function ReportsPage() {
 
           {/* Analytics Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-            <Card className="border-none shadow-sm bg-white dark:bg-card/50 backdrop-blur-sm p-6 overflow-hidden">
+            <Card className="border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm p-6 overflow-hidden rounded-2xl">
               <div className="mb-6 flex items-center justify-between">
                  <div>
                     <h3 className="font-bold tracking-tight text-foreground/90 text-lg">Top Servicii & Consultații</h3>
@@ -244,11 +309,12 @@ export default function ReportsPage() {
                   <div className="w-full h-full flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
                 ) : statsData?.servicePopularity?.length ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={statsData.servicePopularity} layout="vertical" margin={{ top: 0, right: 0, left: 40, bottom: 0 }}>
+                    <BarChart data={statsData.servicePopularity} layout="vertical" margin={{ top: 10, right: 30, left: 60, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
                       <XAxis type="number" hide />
-                      <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12, fontWeight: 600}} />
-                      <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                      <Bar dataKey="value" fill="#0ea5e9" radius={[0, 4, 4, 0]} barSize={24}>
+                      <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#475569', fontSize: 11, fontWeight: 500}} width={90} />
+                      <Tooltip cursor={{fill: 'rgba(0,0,0,0.02)'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)', padding: '12px' }} />
+                      <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={28}>
                         {statsData.servicePopularity.map((entry, index) => (
                            <Cell key={`cell-${index}`} fill={['#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7'][index % 5]} />
                         ))}
@@ -261,7 +327,7 @@ export default function ReportsPage() {
               </div>
             </Card>
 
-            <Card className="border-none shadow-sm bg-white dark:bg-card/50 backdrop-blur-sm p-6 overflow-hidden">
+            <Card className="border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm p-6 overflow-hidden rounded-2xl">
                <div className="mb-6 flex items-center justify-between">
                  <div>
                     <h3 className="font-bold tracking-tight text-foreground/90 text-lg">Ore de Vârf</h3>
@@ -276,11 +342,16 @@ export default function ReportsPage() {
                   <div className="w-full h-full flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-emerald-500" /></div>
                 ) : statsData?.peakHours?.length ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={statsData.peakHours} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12, fontWeight: 600}} dy={10} />
-                      <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
-                      <Tooltip cursor={{fill: '#f1f5f9'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                      <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} barSize={32} />
+                    <BarChart data={statsData.peakHours} margin={{ top: 20, right: 10, left: -20, bottom: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{fill: '#475569', fontSize: 11, fontWeight: 500}} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{fill: '#475569', fontSize: 11}} />
+                      <Tooltip cursor={{fill: 'rgba(16, 185, 129, 0.05)'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} itemStyle={{ color: '#10b981', fontWeight: 600 }} />
+                      <Bar dataKey="count" fill="#10b981" radius={[6, 6, 0, 0]} barSize={36}>
+                        {statsData.peakHours.map((entry, index) => (
+                           <Cell key={`cell-${index}`} fill={['#10b981', '#34d399', '#059669', '#047857'][index % 4]} />
+                        ))}
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -289,7 +360,7 @@ export default function ReportsPage() {
               </div>
             </Card>
 
-            <Card className="border-none shadow-sm bg-white dark:bg-card/50 backdrop-blur-sm p-6 overflow-hidden">
+            <Card className="border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm p-6 overflow-hidden rounded-2xl">
                <div className="mb-6 flex items-center justify-between">
                  <div>
                     <h3 className="font-bold tracking-tight text-foreground/90 text-lg">Demografice</h3>
@@ -304,21 +375,23 @@ export default function ReportsPage() {
                   <div className="w-full h-full flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-purple-500" /></div>
                 ) : statsData?.demographics?.length ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
+                    <PieChart margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
                       <Pie
                         data={statsData.demographics}
                         cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
+                        cy="45%"
+                        innerRadius={65}
+                        outerRadius={85}
                         paddingAngle={5}
                         dataKey="value"
+                        stroke="none"
                       >
                         {statsData.demographics.map((entry, index) => (
                            <Cell key={`cell-${index}`} fill={['#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#f97316'][index % 5]} />
                         ))}
                       </Pie>
-                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} itemStyle={{ fontWeight: 600 }} />
+                      <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 500, paddingTop: '10px' }} />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -328,7 +401,7 @@ export default function ReportsPage() {
             </Card>
           </div>
 
-          <Card className="mb-8 border-none shadow-sm overflow-hidden bg-white dark:bg-card/50 backdrop-blur-sm">
+          <Card className="mb-8 border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden bg-white dark:bg-card/50 backdrop-blur-sm rounded-2xl">
             <div className="p-6 border-b border-muted/30">
               <h2 className="text-xl font-bold tracking-tight text-foreground/90">Tendințe Lunare</h2>
             </div>
@@ -377,7 +450,7 @@ export default function ReportsPage() {
             </div>
           </Card>
 
-          <Card className="border-none shadow-sm overflow-hidden bg-white dark:bg-card/50 backdrop-blur-sm">
+          <Card className="border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden bg-white dark:bg-card/50 backdrop-blur-sm rounded-2xl">
             <div className="p-6 border-b border-muted/30">
               <h2 className="text-xl font-bold tracking-tight text-foreground/90">Rapoarte Generate</h2>
             </div>
@@ -502,8 +575,8 @@ export default function ReportsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="csv">CSV</SelectItem>
-                  <SelectItem value="pdf">PDF (în curând)</SelectItem>
-                  <SelectItem value="excel">Excel — XLSX (în curând)</SelectItem>
+                  <SelectItem value="pdf">PDF</SelectItem>
+                  <SelectItem value="excel">Excel — XLSX</SelectItem>
                 </SelectContent>
               </Select>
               {reportErrors.format && <p className="text-sm text-destructive mt-1">Formatul este obligatoriu</p>}
