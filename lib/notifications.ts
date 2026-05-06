@@ -101,11 +101,11 @@ function buildSMSBody(event: NotificationEvent, data: AppointmentData, customMes
 
   switch (event) {
     case "CONFIRMATION":
-      return `Programarea la Dr. ${data.doctor.name} pe ${dateStr} la ora ${data.startTime} a fost CONFIRMATA. Va asteptam!`
+      return `Programarea la ${data.doctor.name} pe ${dateStr} la ora ${data.startTime} a fost CONFIRMATA. Va asteptam!`
     case "CANCELLATION":
-      return `Programarea la Dr. ${data.doctor.name} pe ${dateStr} la ora ${data.startTime} a fost ANULATA. Va rugam sa ne contactati.`
+      return `Programarea la ${data.doctor.name} pe ${dateStr} la ora ${data.startTime} a fost ANULATA. Va rugam sa ne contactati.`
     case "REMINDER":
-      return `Reminder: Programare pe ${dateStr} la ora ${data.startTime} cu Dr. ${data.doctor.name}. Va asteptam!`
+      return `Reminder: Programare pe ${dateStr} la ora ${data.startTime} cu ${data.doctor.name}. Va asteptam!`
     case "CUSTOM":
       return customMessage ?? "Mesaj de la clinica."
     case "BOOKING_RECEIVED":
