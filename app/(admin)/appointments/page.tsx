@@ -221,6 +221,8 @@ export default function AppointmentsPage() {
   const [saving, setSaving] = useState(false)
   const [sendingReminder, setSendingReminder] = useState<string | null>(null)
   const [sendingBulkReminders, setSendingBulkReminders] = useState(false)
+  const [reminderModalState, setReminderModalState] = useState<{ open: boolean; type: "bulk" | "single"; appointmentId?: string }>({ open: false, type: "bulk" })
+  const [reminderOptions, setReminderOptions] = useState({ sendEmail: true, sendSMS: false })
 
   const [appointmentFormData, setAppointmentFormData] = useState({
     patientName: "",
@@ -604,40 +606,49 @@ export default function AppointmentsPage() {
     }
   }
 
-  const handleSendReminder = async (appointment: Appointment) => {
-    setSendingReminder(appointment.id)
-    try {
-      const res = await fetch("/api/notifications/reminders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ appointmentId: appointment.id }),
-      })
-      if (!res.ok) throw new Error("Failed")
-      toast({ title: "Reminder trimis", description: `Reminder trimis pentru ${appointment.patient.name}.` })
-      await fetchData()
-    } catch {
-      toast({ title: "Eroare", description: "Nu s-a putut trimite reminder-ul.", variant: "destructive" })
-    } finally {
-      setSendingReminder(null)
-    }
+  const handleSendReminderClick = (appointment: Appointment) => {
+    setReminderModalState({ open: true, type: "single", appointmentId: appointment.id })
+    setReminderOptions({ sendEmail: true, sendSMS: false })
   }
 
-  const handleBulkReminders = async () => {
-    setSendingBulkReminders(true)
+  const handleBulkRemindersClick = () => {
+    setReminderModalState({ open: true, type: "bulk" })
+    setReminderOptions({ sendEmail: true, sendSMS: false })
+  }
+
+  const handleConfirmReminder = async () => {
+    const isBulk = reminderModalState.type === "bulk"
+    const appointmentId = reminderModalState.appointmentId
+
+    if (isBulk) setSendingBulkReminders(true)
+    else setSendingReminder(appointmentId || "")
+
+    setReminderModalState({ open: false, type: "bulk" })
+
     try {
       const res = await fetch("/api/notifications/reminders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ 
+          appointmentId: isBulk ? undefined : appointmentId,
+          sendEmail: reminderOptions.sendEmail,
+          sendSMS: reminderOptions.sendSMS
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error("Failed")
-      toast({ title: "Remindere trimise", description: `${data.sent} reminder(e) au fost trimise.` })
+      
+      if (isBulk) {
+        toast({ title: "Remindere trimise", description: data.message || `${data.sent} reminder(e) au fost trimise.` })
+      } else {
+        toast({ title: "Reminder trimis", description: data.message || "Reminder trimis cu succes." })
+      }
       await fetchData()
     } catch {
-      toast({ title: "Eroare", description: "Nu s-au putut trimite reminderele.", variant: "destructive" })
+      toast({ title: "Eroare", description: isBulk ? "Nu s-au putut trimite reminderele." : "Nu s-a putut trimite reminder-ul.", variant: "destructive" })
     } finally {
-      setSendingBulkReminders(false)
+      if (isBulk) setSendingBulkReminders(false)
+      else setSendingReminder(null)
     }
   }
 
@@ -878,7 +889,7 @@ export default function AppointmentsPage() {
               <p className="text-muted-foreground text-lg">Eficiență și organizare în gestionarea calendarului clinicii.</p>
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" className="gap-2 h-11 px-5 border-primary/20 hover:bg-primary/5 hover:text-primary transition-all rounded-xl" onClick={handleBulkReminders} disabled={sendingBulkReminders}>
+              <Button variant="outline" className="gap-2 h-11 px-5 border-primary/20 hover:bg-primary/5 hover:text-primary transition-all rounded-xl" onClick={handleBulkRemindersClick} disabled={sendingBulkReminders}>
                 {sendingBulkReminders ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
                 Trimite Remindere
               </Button>
@@ -1203,7 +1214,7 @@ export default function AppointmentsPage() {
                                   variant="outline"
                                   size="icon"
                                   className="h-10 w-10 rounded-xl border-primary/10 text-primary hover:bg-primary/5 transition-all"
-                                  onClick={() => handleSendReminder(appointment)}
+                                  onClick={() => handleSendReminderClick(appointment)}
                                   disabled={sendingReminder === appointment.id}
                                   title="Trimite reminder"
                                 >
@@ -1309,7 +1320,7 @@ export default function AppointmentsPage() {
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                       className="rounded-lg cursor-pointer gap-2 font-medium"
-                                      onClick={() => handleSendReminder(appointment)}
+                                      onClick={() => handleSendReminderClick(appointment)}
                                       disabled={sendingReminder === appointment.id}
                                     >
                                       <Bell className="w-4 h-4" />
@@ -2110,6 +2121,46 @@ export default function AppointmentsPage() {
               ) : (
                 "Salvează Modificările"
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Reminder Options Dialog */}
+      <Dialog open={reminderModalState.open} onOpenChange={(open) => setReminderModalState(prev => ({ ...prev, open }))}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader className="pb-4 border-b">
+            <DialogTitle className="text-2xl font-bold tracking-tight">Trimitere Reminder</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Alege metodele prin care dorești să trimiți {reminderModalState.type === "bulk" ? "reminderele." : "reminder-ul."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="flex items-center gap-3 bg-muted/50 p-4 rounded-xl border border-border/50">
+              <Checkbox
+                id="reminder-email"
+                checked={reminderOptions.sendEmail}
+                onCheckedChange={(c) => setReminderOptions({ ...reminderOptions, sendEmail: c === true })}
+              />
+              <Label htmlFor="reminder-email" className="flex-1 cursor-pointer font-medium">Trimite prin Email</Label>
+            </div>
+            
+            <div className="flex items-center gap-3 bg-muted/50 p-4 rounded-xl border border-border/50">
+              <Checkbox
+                id="reminder-sms"
+                checked={reminderOptions.sendSMS}
+                onCheckedChange={(c) => setReminderOptions({ ...reminderOptions, sendSMS: c === true })}
+              />
+              <Label htmlFor="reminder-sms" className="flex-1 cursor-pointer font-medium">Trimite prin SMS</Label>
+            </div>
+          </div>
+
+          <DialogFooter className="pt-6 border-t mt-2">
+            <Button variant="ghost" onClick={() => setReminderModalState(prev => ({ ...prev, open: false }))} className="rounded-xl h-11 px-6 font-semibold text-muted-foreground hover:bg-accent">
+              Anulează
+            </Button>
+            <Button onClick={handleConfirmReminder} disabled={!reminderOptions.sendEmail && !reminderOptions.sendSMS} className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl h-11 px-8 font-bold text-white">
+              Trimite
             </Button>
           </DialogFooter>
         </DialogContent>

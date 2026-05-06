@@ -213,37 +213,37 @@ export default function ReportsPage() {
     <>
       <div className="flex-1 overflow-y-auto">
         <div className="p-8 max-w-[1600px] mx-auto">
-          <div className="mb-8 flex items-center justify-between">
+          <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-semibold text-foreground mb-2">Rapoarte</h1>
-              <p className="text-muted-foreground">Vizualizează rapoarte și statistici</p>
+              <h1 className="text-4xl font-black tracking-tight text-foreground mb-1">Rapoarte & Analize</h1>
+              <p className="text-sm font-medium text-muted-foreground">O privire detaliată asupra performanței clinicii tale.</p>
             </div>
             <Button 
-              className="gap-2 h-11 px-6 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all rounded-xl font-bold text-white" 
+              className="gap-2 h-12 px-6 bg-gradient-to-r from-primary to-[#40A0D0] hover:from-[#1a4d5a] hover:to-[#206070] shadow-[0_8px_20px_rgb(32,96,112,0.25)] transition-all rounded-2xl font-bold text-white hover:-translate-y-1" 
               onClick={() => setIsGenerateReportOpen(true)}
             >
-              <FileText className="w-4 h-4" />
+              <FileText className="w-5 h-5" />
               Generează Raport
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-            <Card className="relative overflow-hidden group border border-primary/5 shadow-sm hover:shadow-xl transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm p-6 rounded-2xl">
-              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 opacity-10 rounded-full blur-3xl group-hover:opacity-30 transition-opacity bg-gradient-to-br from-primary to-primary/80" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <Card className="relative overflow-hidden group border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 transition-all duration-500 bg-white dark:bg-card/80 backdrop-blur-xl p-6 rounded-[24px]">
+              <div className="absolute top-0 right-0 w-48 h-48 -mr-12 -mt-12 opacity-[0.03] group-hover:opacity-10 rounded-full blur-3xl transition-opacity bg-gradient-to-br from-primary to-primary/80" />
               <div className="flex items-center gap-5 relative z-10">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-white flex items-center justify-center shadow-lg shadow-primary/20">
+                <div className="w-16 h-16 rounded-[20px] bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 text-primary flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform duration-500">
                   <Users className="w-7 h-7" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 mb-1">Pacienți Luna Aceasta</p>
-                  <div className="flex items-baseline gap-2">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1">Pacienți Luna Aceasta</p>
+                  <div className="flex items-baseline gap-3">
                     {loadingStats ? (
-                      <div className="h-8 w-20 bg-muted animate-pulse rounded-lg" />
+                      <div className="h-10 w-24 bg-muted animate-pulse rounded-xl" />
                     ) : (
                       <>
-                        <span className="text-3xl font-extrabold tracking-tight text-foreground">{statsData?.patientsThisMonth.toLocaleString() ?? "—"}</span>
-                        <div className="flex items-center text-emerald-500 text-xs font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded-full">
-                          <TrendingUp className="w-3 h-3 mr-1" />
+                        <span className="text-4xl font-black tracking-tight text-slate-800">{statsData?.patientsThisMonth.toLocaleString() ?? "—"}</span>
+                        <div className="flex items-center text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-lg text-xs font-bold border border-emerald-500/20">
+                          <TrendingUp className="w-3.5 h-3.5 mr-1" />
                           <span>+12%</span>
                         </div>
                       </>
@@ -253,38 +253,38 @@ export default function ReportsPage() {
               </div>
             </Card>
 
-            <Card className="relative overflow-hidden group border border-purple-500/5 shadow-sm hover:shadow-xl transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm p-6 rounded-2xl">
-              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 opacity-10 rounded-full blur-3xl group-hover:opacity-30 transition-opacity bg-gradient-to-br from-purple-500 to-fuchsia-600" />
+            <Card className="relative overflow-hidden group border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 transition-all duration-500 bg-white dark:bg-card/80 backdrop-blur-xl p-6 rounded-[24px]">
+              <div className="absolute top-0 right-0 w-48 h-48 -mr-12 -mt-12 opacity-[0.03] group-hover:opacity-10 rounded-full blur-3xl transition-opacity bg-gradient-to-br from-purple-500 to-fuchsia-600" />
               <div className="flex items-center gap-5 relative z-10">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white flex items-center justify-center shadow-lg shadow-purple-500/20">
+                <div className="w-16 h-16 rounded-[20px] bg-gradient-to-br from-purple-500/10 to-fuchsia-600/5 border border-purple-500/10 text-purple-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform duration-500">
                   <Calendar className="w-7 h-7" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 mb-1">Programări Luna Aceasta</p>
-                  <div className="flex items-baseline gap-2">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1">Programări Luna Aceasta</p>
+                  <div className="flex items-baseline gap-3">
                     {loadingStats ? (
-                      <div className="h-8 w-20 bg-muted animate-pulse rounded-lg" />
+                      <div className="h-10 w-24 bg-muted animate-pulse rounded-xl" />
                     ) : (
-                      <span className="text-3xl font-extrabold tracking-tight text-foreground">{statsData?.appointmentsThisMonth.toLocaleString() ?? "—"}</span>
+                      <span className="text-4xl font-black tracking-tight text-slate-800">{statsData?.appointmentsThisMonth.toLocaleString() ?? "—"}</span>
                     )}
                   </div>
                 </div>
               </div>
             </Card>
 
-            <Card className="relative overflow-hidden group border border-amber-500/5 shadow-sm hover:shadow-xl transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm p-6 rounded-2xl">
-              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 opacity-10 rounded-full blur-3xl group-hover:opacity-30 transition-opacity bg-gradient-to-br from-amber-500 to-orange-600" />
+            <Card className="relative overflow-hidden group border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 transition-all duration-500 bg-white dark:bg-card/80 backdrop-blur-xl p-6 rounded-[24px]">
+              <div className="absolute top-0 right-0 w-48 h-48 -mr-12 -mt-12 opacity-[0.03] group-hover:opacity-10 rounded-full blur-3xl transition-opacity bg-gradient-to-br from-amber-500 to-orange-600" />
               <div className="flex items-center gap-5 relative z-10">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-lg shadow-amber-500/20">
+                <div className="w-16 h-16 rounded-[20px] bg-gradient-to-br from-amber-500/10 to-orange-600/5 border border-amber-500/10 text-amber-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform duration-500">
                   <Activity className="w-7 h-7" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 mb-1">Rata Finalizare</p>
-                  <div className="flex items-baseline gap-2">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1">Rata Finalizare</p>
+                  <div className="flex items-baseline gap-3">
                     {loadingStats ? (
-                      <div className="h-8 w-20 bg-muted animate-pulse rounded-lg" />
+                      <div className="h-10 w-24 bg-muted animate-pulse rounded-xl" />
                     ) : (
-                      <span className="text-3xl font-extrabold tracking-tight text-foreground">{statsData ? `${statsData.completionRate}%` : "—"}</span>
+                      <span className="text-4xl font-black tracking-tight text-slate-800">{statsData ? `${statsData.completionRate}%` : "—"}</span>
                     )}
                   </div>
                 </div>
@@ -293,32 +293,39 @@ export default function ReportsPage() {
           </div>
 
           {/* Analytics Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-            <Card className="border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm p-6 overflow-hidden rounded-2xl">
-              <div className="mb-6 flex items-center justify-between">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+            <Card className="border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-500 bg-white dark:bg-card/80 backdrop-blur-xl p-6 overflow-hidden rounded-[24px]">
+              <div className="mb-8 flex items-center justify-between">
                  <div>
-                    <h3 className="font-bold tracking-tight text-foreground/90 text-lg">Top Servicii & Consultații</h3>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-1">Ultimele 3 luni</p>
+                    <h3 className="font-bold tracking-tight text-slate-800 text-lg">Top Servicii & Consultații</h3>
+                    <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Ultimele 3 luni</p>
                  </div>
-                 <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
-                    <Activity className="w-5 h-5 text-primary" />
+                 <div className="w-12 h-12 rounded-[16px] bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-500/10 flex items-center justify-center shadow-inner">
+                    <Activity className="w-6 h-6 text-blue-600" />
                  </div>
               </div>
-              <div className="h-[250px] w-full">
+              <div className="h-[260px] w-full">
                 {loadingStats ? (
-                  <div className="w-full h-full flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+                  <div className="w-full h-full flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-blue-500" /></div>
                 ) : statsData?.servicePopularity?.length ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={statsData.servicePopularity} layout="vertical" margin={{ top: 10, right: 30, left: 60, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
+                      <defs>
+                        <linearGradient id="colorBlue" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                          <stop offset="100%" stopColor="#06b6d4" stopOpacity={1}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="4 4" horizontal={true} vertical={false} stroke="#f1f5f9" />
                       <XAxis type="number" hide />
-                      <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#475569', fontSize: 11, fontWeight: 500}} width={90} />
-                      <Tooltip cursor={{fill: 'rgba(0,0,0,0.02)'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)', padding: '12px' }} />
-                      <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={28}>
-                        {statsData.servicePopularity.map((entry, index) => (
-                           <Cell key={`cell-${index}`} fill={['#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7'][index % 5]} />
-                        ))}
-                      </Bar>
+                      <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 11, fontWeight: 600}} width={90} />
+                      <Tooltip 
+                        cursor={{fill: 'rgba(59, 130, 246, 0.04)'}} 
+                        contentStyle={{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)', padding: '12px' }} 
+                        itemStyle={{ color: '#0f172a', fontWeight: 800 }} 
+                        formatter={(value: number) => [value, "Consultații / Servicii"]}
+                      />
+                      <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={24} fill="url(#colorBlue)" />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -327,31 +334,38 @@ export default function ReportsPage() {
               </div>
             </Card>
 
-            <Card className="border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm p-6 overflow-hidden rounded-2xl">
-               <div className="mb-6 flex items-center justify-between">
+            <Card className="border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-500 bg-white dark:bg-card/80 backdrop-blur-xl p-6 overflow-hidden rounded-[24px]">
+               <div className="mb-8 flex items-center justify-between">
                  <div>
-                    <h3 className="font-bold tracking-tight text-foreground/90 text-lg">Ore de Vârf</h3>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-1">Distribuția programărilor</p>
+                    <h3 className="font-bold tracking-tight text-slate-800 text-lg">Ore de Vârf</h3>
+                    <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Distribuția programărilor</p>
                  </div>
-                 <div className="w-10 h-10 rounded-xl bg-emerald-500/5 flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-emerald-500" />
+                 <div className="w-12 h-12 rounded-[16px] bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/10 flex items-center justify-center shadow-inner">
+                    <TrendingUp className="w-6 h-6 text-emerald-600" />
                  </div>
               </div>
-              <div className="h-[250px] w-full">
+              <div className="h-[260px] w-full">
                 {loadingStats ? (
                   <div className="w-full h-full flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-emerald-500" /></div>
                 ) : statsData?.peakHours?.length ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={statsData.peakHours} margin={{ top: 20, right: 10, left: -20, bottom: 10 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{fill: '#475569', fontSize: 11, fontWeight: 500}} dy={10} />
-                      <YAxis axisLine={false} tickLine={false} tick={{fill: '#475569', fontSize: 11}} />
-                      <Tooltip cursor={{fill: 'rgba(16, 185, 129, 0.05)'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} itemStyle={{ color: '#10b981', fontWeight: 600 }} />
-                      <Bar dataKey="count" fill="#10b981" radius={[6, 6, 0, 0]} barSize={36}>
-                        {statsData.peakHours.map((entry, index) => (
-                           <Cell key={`cell-${index}`} fill={['#10b981', '#34d399', '#059669', '#047857'][index % 4]} />
-                        ))}
-                      </Bar>
+                      <defs>
+                        <linearGradient id="colorGreen" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#10b981" stopOpacity={1}/>
+                          <stop offset="100%" stopColor="#059669" stopOpacity={0.8}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 11, fontWeight: 600}} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 11}} />
+                      <Tooltip 
+                        cursor={{fill: 'rgba(16, 185, 129, 0.04)'}} 
+                        contentStyle={{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }} 
+                        itemStyle={{ color: '#064e3b', fontWeight: 800 }} 
+                        formatter={(value: number) => [value, "Programări"]}
+                      />
+                      <Bar dataKey="count" fill="url(#colorGreen)" radius={[8, 8, 0, 0]} barSize={32} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -360,38 +374,57 @@ export default function ReportsPage() {
               </div>
             </Card>
 
-            <Card className="border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm p-6 overflow-hidden rounded-2xl">
-               <div className="mb-6 flex items-center justify-between">
+            <Card className="border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-500 bg-white dark:bg-card/80 backdrop-blur-xl p-6 overflow-hidden rounded-[24px]">
+               <div className="mb-8 flex items-center justify-between">
                  <div>
-                    <h3 className="font-bold tracking-tight text-foreground/90 text-lg">Demografice</h3>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-1">Distribuția pe Vârstă</p>
+                    <h3 className="font-bold tracking-tight text-slate-800 text-lg">Demografice</h3>
+                    <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Distribuția pe Vârstă</p>
                  </div>
-                 <div className="w-10 h-10 rounded-xl bg-purple-500/5 flex items-center justify-center">
-                    <Users className="w-5 h-5 text-purple-500" />
+                 <div className="w-12 h-12 rounded-[16px] bg-gradient-to-br from-purple-500/10 to-fuchsia-500/10 border border-purple-500/10 flex items-center justify-center shadow-inner">
+                    <Users className="w-6 h-6 text-purple-600" />
                  </div>
               </div>
-              <div className="h-[250px] w-full">
+              <div className="h-[260px] w-full">
                 {loadingStats ? (
                   <div className="w-full h-full flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-purple-500" /></div>
                 ) : statsData?.demographics?.length ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
+                      <defs>
+                        <linearGradient id="pie0" x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0%" stopColor="#8b5cf6" stopOpacity={1}/>
+                          <stop offset="100%" stopColor="#d946ef" stopOpacity={1}/>
+                        </linearGradient>
+                        <linearGradient id="pie1" x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0%" stopColor="#3b82f6" stopOpacity={1}/>
+                          <stop offset="100%" stopColor="#0ea5e9" stopOpacity={1}/>
+                        </linearGradient>
+                        <linearGradient id="pie2" x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0%" stopColor="#ec4899" stopOpacity={1}/>
+                          <stop offset="100%" stopColor="#f43f5e" stopOpacity={1}/>
+                        </linearGradient>
+                      </defs>
                       <Pie
                         data={statsData.demographics}
                         cx="50%"
                         cy="45%"
-                        innerRadius={65}
+                        innerRadius={60}
                         outerRadius={85}
-                        paddingAngle={5}
+                        paddingAngle={8}
+                        cornerRadius={10}
                         dataKey="value"
                         stroke="none"
                       >
                         {statsData.demographics.map((entry, index) => (
-                           <Cell key={`cell-${index}`} fill={['#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#f97316'][index % 5]} />
+                           <Cell key={`cell-${index}`} fill={`url(#pie${index % 3})`} style={{ filter: 'drop-shadow(0px 10px 10px rgba(0,0,0,0.1))' }} />
                         ))}
                       </Pie>
-                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} itemStyle={{ fontWeight: 600 }} />
-                      <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 500, paddingTop: '10px' }} />
+                      <Tooltip 
+                        contentStyle={{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }} 
+                        itemStyle={{ fontWeight: 800, color: '#0f172a' }} 
+                        formatter={(value: number) => [value, "Pacienți"]}
+                      />
+                      <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 600, paddingTop: '15px' }} />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -401,48 +434,48 @@ export default function ReportsPage() {
             </Card>
           </div>
 
-          <Card className="mb-8 border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden bg-white dark:bg-card/50 backdrop-blur-sm rounded-2xl">
-            <div className="p-6 border-b border-muted/30">
-              <h2 className="text-xl font-bold tracking-tight text-foreground/90">Tendințe Lunare</h2>
+          <Card className="mb-8 border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-500 overflow-hidden bg-white dark:bg-card/80 backdrop-blur-xl rounded-[24px]">
+            <div className="p-8 border-b border-slate-100/80 bg-slate-50/50">
+              <h2 className="text-2xl font-black tracking-tight text-slate-800">Tendințe Lunare</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-muted/30">
-                    <th className="text-left py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">Luna</th>
-                    <th className="text-right py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">Pacienți</th>
-                    <th className="text-right py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">Programări</th>
-                    <th className="text-right py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">Rata Finalizare</th>
-                    <th className="text-right py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">Prog./Pacient</th>
+                  <tr className="bg-slate-50/80 border-b border-slate-100/80">
+                    <th className="text-left py-5 px-8 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Luna</th>
+                    <th className="text-right py-5 px-8 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Pacienți</th>
+                    <th className="text-right py-5 px-8 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Programări</th>
+                    <th className="text-right py-5 px-8 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Rata Finalizare</th>
+                    <th className="text-right py-5 px-8 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Prog./Pacient</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-muted/30">
+                <tbody className="divide-y divide-slate-100/80">
                   {loadingStats ? (
                     <tr>
-                      <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                      <td colSpan={5} className="py-16 text-center text-muted-foreground">
                         <div className="flex items-center justify-center gap-3">
-                          <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
-                          <span className="font-bold text-xs uppercase tracking-widest">Se încarcă datele...</span>
+                          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                          <span className="font-bold text-xs uppercase tracking-widest text-primary">Se încarcă datele...</span>
                         </div>
                       </td>
                     </tr>
                   ) : statsData?.monthlyTrend.length ? (
                     statsData.monthlyTrend.map((stat, index) => (
-                      <tr key={index} className="group hover:bg-primary/5 transition-colors">
-                        <td className="py-4 px-6 text-sm font-bold text-foreground/90">{stat.month}</td>
-                        <td className="py-4 px-6 text-right text-sm font-medium tabular-nums text-foreground/80">{stat.patients.toLocaleString()}</td>
-                        <td className="py-4 px-6 text-right text-sm font-medium tabular-nums text-foreground/80">{stat.appointments.toLocaleString()}</td>
-                        <td className="py-4 px-6 text-right">
-                          <Badge variant="outline" className="rounded-lg border-primary/20 bg-primary/5 text-primary font-bold tabular-nums">
+                      <tr key={index} className="group hover:bg-slate-50/80 transition-colors">
+                        <td className="py-5 px-8 text-sm font-extrabold text-slate-800">{stat.month}</td>
+                        <td className="py-5 px-8 text-right text-sm font-bold tabular-nums text-slate-600">{stat.patients.toLocaleString()}</td>
+                        <td className="py-5 px-8 text-right text-sm font-bold tabular-nums text-slate-600">{stat.appointments.toLocaleString()}</td>
+                        <td className="py-5 px-8 text-right">
+                          <Badge variant="outline" className="rounded-lg border-primary/20 bg-primary/5 text-primary font-black tabular-nums">
                             {stat.completionRate}%
                           </Badge>
                         </td>
-                        <td className="py-4 px-6 text-right text-sm font-bold tabular-nums text-primary">{stat.appointmentsPerPatient}</td>
+                        <td className="py-5 px-8 text-right text-sm font-black tabular-nums text-primary">{stat.appointmentsPerPatient}</td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={5} className="py-12 text-center text-muted-foreground font-medium">Nu există date disponibile</td>
+                      <td colSpan={5} className="py-16 text-center text-slate-500 font-medium">Nu există date disponibile</td>
                     </tr>
                   )}
                 </tbody>
@@ -450,44 +483,44 @@ export default function ReportsPage() {
             </div>
           </Card>
 
-          <Card className="border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden bg-white dark:bg-card/50 backdrop-blur-sm rounded-2xl">
-            <div className="p-6 border-b border-muted/30">
-              <h2 className="text-xl font-bold tracking-tight text-foreground/90">Rapoarte Generate</h2>
+          <Card className="border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-500 overflow-hidden bg-white dark:bg-card/80 backdrop-blur-xl rounded-[24px]">
+            <div className="p-8 border-b border-slate-100/80 bg-slate-50/50">
+              <h2 className="text-2xl font-black tracking-tight text-slate-800">Rapoarte Generate</h2>
             </div>
             {generatedReports.length === 0 ? (
-              <div className="p-16 text-center text-muted-foreground">
-                <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-4 text-muted-foreground/30">
-                  <FileText className="w-8 h-8" />
+              <div className="p-20 text-center text-muted-foreground">
+                <div className="w-20 h-20 rounded-[24px] bg-slate-100/80 flex items-center justify-center mx-auto mb-6 text-slate-300">
+                  <FileText className="w-10 h-10" />
                 </div>
-                <p className="font-bold text-foreground/70">Niciun raport generat în această sesiune.</p>
-                <p className="text-sm font-medium mt-1">Apasă „Generează Raport" pentru a exporta date în format CSV.</p>
+                <p className="font-extrabold text-slate-600 text-lg">Niciun raport generat în această sesiune.</p>
+                <p className="text-sm font-medium mt-2 text-slate-500">Apasă pe <span className="font-bold text-primary">Generează Raport</span> pentru a exporta date.</p>
               </div>
             ) : (
-              <div className="divide-y divide-muted/30">
+              <div className="divide-y divide-slate-100/80">
                 {generatedReports.map((report) => (
-                  <div key={report.id} className="group p-6 hover:bg-primary/5 transition-all duration-300">
+                  <div key={report.id} className="group p-8 hover:bg-slate-50/80 transition-all duration-300">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-start gap-5 flex-1">
-                        <div className="w-12 h-12 rounded-xl bg-primary/5 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <div className="flex items-start gap-6 flex-1">
+                        <div className="w-14 h-14 rounded-[20px] bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 text-primary flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500">
                           <FileText className="w-6 h-6" />
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-bold text-lg text-foreground/90 group-hover:text-primary transition-colors">{report.title}</h3>
-                          <div className="flex flex-wrap items-center gap-3 mt-2 text-xs font-bold uppercase tracking-widest">
+                          <h3 className="font-extrabold text-xl text-slate-800 group-hover:text-primary transition-colors">{report.title}</h3>
+                          <div className="flex flex-wrap items-center gap-3 mt-3 text-[10px] font-bold uppercase tracking-widest">
                             <Badge variant="outline" className="rounded-lg border-primary/20 bg-primary/5 text-primary">
                               {report.type}
                             </Badge>
-                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <div className="flex items-center gap-1.5 text-slate-500 font-bold bg-slate-100 px-3 py-1 rounded-lg">
                               <Calendar className="w-3.5 h-3.5" />
                               <span>{report.date}</span>
                             </div>
-                            <Badge variant="secondary" className="rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-none">
+                            <Badge variant="secondary" className="rounded-lg bg-slate-800 text-white font-black border-none px-3">
                               {report.format}
                             </Badge>
                           </div>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="rounded-xl hover:bg-primary/10 hover:text-primary transition-all">
+                      <Button variant="ghost" size="icon" className="rounded-[16px] w-12 h-12 hover:bg-primary/10 hover:text-primary transition-all bg-slate-50">
                         <Download className="w-5 h-5" />
                       </Button>
                     </div>
@@ -584,18 +617,18 @@ export default function ReportsPage() {
           </div>
 
           <DialogFooter className="pt-6 border-t mt-6">
-            <Button variant="ghost" onClick={() => setIsGenerateReportOpen(false)} disabled={generatingReport} className="h-11 rounded-xl px-6 font-semibold text-muted-foreground hover:bg-accent">
+            <Button variant="ghost" onClick={() => setIsGenerateReportOpen(false)} disabled={generatingReport} className="h-12 rounded-2xl px-6 font-bold text-muted-foreground hover:bg-slate-100 hover:text-slate-900 transition-colors">
               Anulează
             </Button>
-            <Button onClick={handleGenerateReport} disabled={generatingReport} className="gap-2 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl h-11 px-8 font-bold text-white transition-all">
+            <Button onClick={handleGenerateReport} disabled={generatingReport} className="gap-2 bg-gradient-to-r from-primary to-[#40A0D0] hover:from-[#1a4d5a] hover:to-[#206070] shadow-[0_8px_20px_rgb(32,96,112,0.25)] rounded-2xl h-12 px-8 font-bold text-white transition-all hover:-translate-y-1">
               {generatingReport ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin" />
                   Se generează...
                 </>
               ) : (
                 <>
-                  <Download className="w-4 h-4" />
+                  <Download className="w-5 h-5" />
                   Generează Raport
                 </>
               )}

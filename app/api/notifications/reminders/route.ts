@@ -25,6 +25,8 @@ export async function POST(request: Request) {
 
     const hoursBefore = settings.reminderHoursBefore ?? 24
     const now = new Date()
+    const today = new Date(now)
+    today.setHours(0, 0, 0, 0)
     const windowEnd = new Date(now.getTime() + hoursBefore * 60 * 60 * 1000)
 
     // Base query: confirmed appointments with no successful reminder yet
@@ -38,7 +40,7 @@ export async function POST(request: Request) {
     const appointments = await prisma.appointment.findMany({
       where: body.appointmentId
         ? { ...baseWhere, id: body.appointmentId }
-        : { ...baseWhere, date: { gte: now, lte: windowEnd } },
+        : { ...baseWhere, date: { gte: today, lte: windowEnd } },
       include: {
         patient: true,
         doctor: true,
@@ -48,6 +50,20 @@ export async function POST(request: Request) {
 
     let sent = 0
     for (const appt of appointments) {
+      // Don't send reminders for past appointments
+      const aptDate = new Date(appt.date);
+      const [hours, minutes] = appt.startTime.split(":").map(Number);
+      aptDate.setHours(hours, minutes, 0, 0);
+      if (aptDate < now) {
+        continue;
+      }
+
+      const emailOpt = body.sendEmail !== undefined ? body.sendEmail : settings.emailNotifications;
+      const smsOpt = body.sendSMS !== undefined ? body.sendSMS : settings.smsNotifications;
+
+      // Ensure at least one method is selected before attempting to send
+      if (!emailOpt && !smsOpt) continue;
+
       await sendAppointmentNotification(
         {
           id: appt.id,
@@ -63,8 +79,8 @@ export async function POST(request: Request) {
         },
         "REMINDER",
         {
-          sendEmail: settings.emailNotifications,
-          sendSMS: settings.smsNotifications,
+          sendEmail: emailOpt,
+          sendSMS: smsOpt,
         }
       )
       sent++

@@ -89,10 +89,13 @@ export async function GET() {
       _count: { id: true }
     });
     
-    const demographics = demographicsData.map(item => ({
-      name: item.gender === "MASCULIN" ? "Masculin" : item.gender === "FEMININ" ? "Feminin" : "Altul/Nespecificat",
-      value: item._count.id
-    }));
+    const demographics = demographicsData.map(item => {
+      const g = item.gender ? String(item.gender).toUpperCase() : "";
+      return {
+        name: g === "MASCULIN" ? "Masculin" : g === "FEMININ" ? "Feminin" : "Altul/Nespecificat",
+        value: item._count.id
+      };
+    });
 
     return NextResponse.json({
       patientsThisMonth,

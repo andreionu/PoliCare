@@ -128,6 +128,10 @@ export default function PatientDetailPage() {
   const [savingPatient, setSavingPatient] = useState(false)
   const [doctors, setDoctors] = useState<{ id: string; name: string }[]>([])
 
+  // Inline notes editing
+  const [isEditingNotes, setIsEditingNotes] = useState(false)
+  const [notesEditValue, setNotesEditValue] = useState("")
+
   // Add medical record modal
   const [showAddRecord, setShowAddRecord] = useState(false)
   const [recordForm, setRecordForm] = useState({
@@ -251,6 +255,37 @@ export default function PatientDetailPage() {
     } finally {
       setSavingPatient(false)
     }
+  }
+
+  const handleSaveNotes = async () => {
+    if (!patient) return
+    setSavingPatient(true)
+    try {
+      const response = await fetch(`/api/patients/${patientId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: patient.name,
+          phone: patient.phone,
+          status: patient.status,
+          notes: notesEditValue || null,
+        }),
+      })
+      if (!response.ok) throw new Error("Failed to update notes")
+      await fetchPatient()
+      setIsEditingNotes(false)
+      toast({ title: "Succes", description: "Notele pacientului au fost salvate." })
+    } catch (error) {
+      console.error("Error updating notes:", error)
+      toast({ title: "Eroare", description: "Nu s-au putut salva notele.", variant: "destructive" })
+    } finally {
+      setSavingPatient(false)
+    }
+  }
+
+  const handleCancelNotes = () => {
+    setIsEditingNotes(false)
+    setNotesEditValue(patient?.notes || "")
   }
 
   const handleAddRecord = async () => {
@@ -498,21 +533,45 @@ export default function PatientDetailPage() {
               <Card className="p-8 border-none shadow-sm bg-white dark:bg-card/50 backdrop-blur-sm rounded-3xl overflow-hidden relative group">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 to-orange-500 opacity-60" />
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-[10px] font-black font-mono uppercase tracking-[0.3em] text-amber-600 flex items-center gap-2">
+                  <h3 className="text-[12px] font-black font-mono uppercase tracking-[0.3em] text-amber-600 flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                     Note Dosar
                   </h3>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-amber-50 text-amber-600" onClick={handleOpenEdit}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
+                  {!isEditingNotes ? (
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-amber-50 text-amber-600" onClick={() => { setNotesEditValue(patient.notes || ""); setIsEditingNotes(true); }}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  ) : null}
                 </div>
-                <div className="bg-amber-50/10 p-4 rounded-xl border border-amber-100/50 min-h-[120px]">
-                  {patient.notes ? (
-                    <p className="text-sm italic text-muted-foreground whitespace-pre-wrap leading-relaxed">{patient.notes}</p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic">Nu există note speciale înregistrate pentru acest pacient.</p>
-                  )}
-                </div>
+                
+                {isEditingNotes ? (
+                  <div className="space-y-3">
+                    <Textarea 
+                      value={notesEditValue}
+                      onChange={(e) => setNotesEditValue(e.target.value)}
+                      className="min-h-[120px] resize-y bg-amber-50/30 border-amber-200 focus-visible:ring-amber-500 text-sm italic shadow-inner"
+                      placeholder="Adaugă note medicale, atenționări sau istoric..."
+                      autoFocus
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="sm" onClick={handleCancelNotes} disabled={savingPatient} className="h-8 px-4 text-xs font-bold hover:bg-amber-50 text-amber-700 rounded-lg">Anulează</Button>
+                      <Button size="sm" onClick={handleSaveNotes} disabled={savingPatient} className="h-8 px-5 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-md shadow-amber-200 rounded-lg">
+                        {savingPatient ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null} Salvează
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div 
+                    className="bg-amber-50/10 p-4 rounded-xl border border-amber-100/50 min-h-[120px] cursor-pointer hover:bg-amber-50/50 hover:border-amber-200 transition-all"
+                    onClick={() => { setNotesEditValue(patient.notes || ""); setIsEditingNotes(true); }}
+                  >
+                    {patient.notes ? (
+                      <p className="text-sm italic text-muted-foreground whitespace-pre-wrap leading-relaxed">{patient.notes}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground/60 font-medium italic text-center mt-8">Click pentru a adăuga note (alergii, istoric special etc.)</p>
+                    )}
+                  </div>
+                )}
               </Card>
             </div>
 
