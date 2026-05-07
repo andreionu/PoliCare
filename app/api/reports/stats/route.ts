@@ -88,7 +88,7 @@ export async function GET() {
       by: ['gender'],
       _count: { id: true }
     });
-    
+
     const demographics = demographicsData.map(item => {
       const g = item.gender ? String(item.gender).toUpperCase() : "";
       return {
@@ -97,6 +97,35 @@ export async function GET() {
       };
     });
 
+    // 4. Doctor Performance (this month)
+    const doctorAppointments = await prisma.appointment.findMany({
+      where: { date: { gte: startOfThisMonth, lt: startOfNextMonth } },
+      select: {
+        status: true,
+        doctor: { select: { id: true, name: true } },
+        service: { select: { price: true } },
+      },
+    });
+
+    const doctorMap: Record<string, { name: string; total: number; completed: number; cancelled: number; revenue: number }> = {};
+    for (const appt of doctorAppointments) {
+      const id = appt.doctor.id;
+      if (!doctorMap[id]) doctorMap[id] = { name: appt.doctor.name, total: 0, completed: 0, cancelled: 0, revenue: 0 };
+      doctorMap[id].total++;
+      if (appt.status === "FINALIZAT") {
+        doctorMap[id].completed++;
+        doctorMap[id].revenue += appt.service?.price ? Number(appt.service.price) : 0;
+      }
+      if (appt.status === "ANULAT" || appt.status === "NEPREZENTARE") doctorMap[id].cancelled++;
+    }
+
+    const doctorPerformance = Object.values(doctorMap)
+      .map(d => ({ ...d, completionRate: d.total > 0 ? Math.round((d.completed / d.total) * 100) : 0 }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 10);
+
+    const totalRevenue = doctorPerformance.reduce((sum, d) => sum + d.revenue, 0);
+
     return NextResponse.json({
       patientsThisMonth,
       appointmentsThisMonth,
@@ -104,7 +133,9 @@ export async function GET() {
       monthlyTrend,
       servicePopularity,
       peakHours,
-      demographics
+      demographics,
+      doctorPerformance,
+      totalRevenue,
     })
   } catch (error) {
     console.error("Error fetching report stats:", error)

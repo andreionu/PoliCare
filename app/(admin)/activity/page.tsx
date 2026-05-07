@@ -1,10 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { Users, Calendar, FileText, Settings, UserPlus, Trash2, Clock, Loader2, Activity } from "lucide-react"
+import { Users, Calendar, FileText, Settings, UserPlus, Clock, Loader2, Activity, Filter, X } from "lucide-react"
 
 interface ActivityLog {
   id: string
@@ -64,14 +67,38 @@ function formatRelativeTime(dateStr: string) {
 export default function ActivityPage() {
   const [data, setData] = useState<ActivityData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [actionFilter, setActionFilter] = useState("all")
+  const [fromDate, setFromDate] = useState("")
+  const [toDate, setToDate] = useState("")
+
+  const fetchActivity = useCallback(async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (actionFilter !== "all") params.set("action", actionFilter)
+      if (fromDate) params.set("from", fromDate)
+      if (toDate) params.set("to", toDate)
+      const res = await fetch(`/api/activity${params.size ? `?${params}` : ""}`)
+      const json = await res.json()
+      setData(json)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }, [actionFilter, fromDate, toDate])
 
   useEffect(() => {
-    fetch("/api/activity")
-      .then((r) => r.json())
-      .then(setData)
-      .catch(console.error)
-      .finally(() => setLoading(false))
-  }, [])
+    fetchActivity()
+  }, [fetchActivity])
+
+  const hasFilters = actionFilter !== "all" || fromDate || toDate
+
+  const clearFilters = () => {
+    setActionFilter("all")
+    setFromDate("")
+    setToDate("")
+  }
 
   const activities = data?.activities ?? []
 
@@ -123,7 +150,7 @@ export default function ActivityPage() {
                   <Calendar className="w-7 h-7" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 mb-1">Luna Aceasta</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 mb-1">Săptămâna Aceasta</p>
                   <div className="flex items-baseline gap-2">
                     {loading ? (
                       <div className="h-8 w-16 bg-muted animate-pulse rounded-lg" />
@@ -157,11 +184,48 @@ export default function ActivityPage() {
 
           {/* Activity Feed */}
           <Card className="border-none shadow-sm overflow-hidden bg-white dark:bg-card/50 backdrop-blur-sm">
-            <div className="p-6 border-b border-muted/30 flex items-center justify-between">
-              <h2 className="text-xl font-bold tracking-tight text-foreground/90">Feed Activitate</h2>
-              <Badge variant="outline" className="rounded-lg text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-2 py-1">
-                Real-time
-              </Badge>
+            <div className="p-6 border-b border-muted/30 flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-bold tracking-tight text-foreground/90">Feed Activitate</h2>
+                <Badge variant="outline" className="rounded-lg text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-2 py-1">
+                  Real-time
+                </Badge>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <Select value={actionFilter} onValueChange={setActionFilter}>
+                  <SelectTrigger className="h-9 w-36 text-xs rounded-xl border-border/50">
+                    <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                    <SelectValue placeholder="Acțiune" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toate acțiunile</SelectItem>
+                    <SelectItem value="CREATE">Creare</SelectItem>
+                    <SelectItem value="UPDATE">Actualizare</SelectItem>
+                    <SelectItem value="DELETE">Ștergere</SelectItem>
+                    <SelectItem value="LOGIN">Autentificare</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="h-9 w-36 text-xs rounded-xl border-border/50"
+                  placeholder="De la"
+                />
+                <Input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="h-9 w-36 text-xs rounded-xl border-border/50"
+                  placeholder="Până la"
+                />
+                {hasFilters && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 px-3 rounded-xl text-muted-foreground hover:text-foreground">
+                    <X className="h-3.5 w-3.5 mr-1" />
+                    Resetează
+                  </Button>
+                )}
+              </div>
             </div>
 
             {loading ? (
@@ -174,8 +238,11 @@ export default function ActivityPage() {
                 <div className="w-20 h-20 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-6 text-muted-foreground/30">
                   <Activity className="w-10 h-10" />
                 </div>
-                <p className="text-lg font-bold text-foreground/70">Nu există activitate înregistrată.</p>
+                <p className="text-lg font-bold text-foreground/70">Nu există activitate pentru filtrele selectate.</p>
                 <p className="text-sm font-medium text-muted-foreground mt-2">Toate acțiunile vor fi listate aici cronologic.</p>
+                {hasFilters && (
+                  <Button variant="outline" onClick={clearFilters} className="mt-6 rounded-xl">Resetează filtrele</Button>
+                )}
               </div>
             ) : (
               <div className="divide-y divide-muted/30">

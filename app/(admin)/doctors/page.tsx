@@ -8,22 +8,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { 
-  Search, 
-  UserPlus, 
-  Stethoscope, 
-  Clock, 
-  Users, 
-  Star, 
-  Loader2, 
-  Plus, 
-  UserX, 
-  MoreHorizontal, 
-  ArrowRight,
-  TrendingUp,
+import {
+  Search,
+  Stethoscope,
+  Star,
+  Loader2,
+  Plus,
+  UserX,
   Activity,
   Award,
-  ChevronRight,
   Mail,
   Phone
 } from "lucide-react"
@@ -49,6 +42,7 @@ interface Doctor {
   email: string
   phone: string
   avatar: string | null
+  gender: string | null
   specialty: string
   experience: string
   rating: number
@@ -76,6 +70,9 @@ export default function DoctorsPage() {
 
   const [searchQuery, setSearchQuery] = useState("")
   const debouncedSearch = useDebounce(searchQuery, 300)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
   const [isAddDoctorOpen, setIsAddDoctorOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -90,21 +87,25 @@ export default function DoctorsPage() {
     bio: "",
     experience: "",
     departmentId: "",
+    gender: "",
   })
   const [errors, setErrors] = useState<Record<string, boolean>>({})
   const { toast } = useToast()
 
   // Fetch doctors from API
-  const fetchDoctors = async (search?: string) => {
+  const fetchDoctors = async (search?: string, currentPage = 1) => {
     setLoading(true)
     try {
-      const params = new URLSearchParams()
+      const params = new URLSearchParams({ page: String(currentPage), limit: "20" })
       if (search) params.set("search", search)
       if (departmentIdFilter) params.set("departmentId", departmentIdFilter)
-      const response = await fetch(`/api/doctors${params.size ? `?${params}` : ""}`)
+      const response = await fetch(`/api/doctors?${params}`)
       if (!response.ok) throw new Error("Failed to fetch")
-      const data = await response.json()
-      setDoctors(data)
+      const json = await response.json()
+      const shuffled = [...json.data].sort(() => Math.random() - 0.5)
+      setDoctors(shuffled)
+      setTotalPages(json.totalPages)
+      setTotalCount(json.total)
     } catch (error) {
       console.error("Error fetching doctors:", error)
       toast({
@@ -130,8 +131,12 @@ export default function DoctorsPage() {
   }
 
   useEffect(() => {
-    fetchDoctors(debouncedSearch)
+    setPage(1)
   }, [debouncedSearch, departmentIdFilter])
+
+  useEffect(() => {
+    fetchDoctors(debouncedSearch, page)
+  }, [debouncedSearch, departmentIdFilter, page])
 
   useEffect(() => {
     fetchDepartments()
@@ -173,8 +178,9 @@ export default function DoctorsPage() {
         bio: "",
         experience: "",
         departmentId: "",
+        gender: "",
       })
-      fetchDoctors()
+      fetchDoctors(debouncedSearch, page)
     } catch (error) {
       toast({
         title: "Eroare",
@@ -184,6 +190,37 @@ export default function DoctorsPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const formatName = (name: string) => name.replace(/^(Dr\.\s+)+/i, "Dr. ")
+
+  const getInitials = (name: string) =>
+    name.replace(/^Dr\.\s*/i, "").split(" ").filter(Boolean).map(n => n[0]).join("").substring(0, 2).toUpperCase()
+
+  const getAvatarSrc = (doctor: Doctor) => {
+    const generic = ["/male-doctor.png", "/female-doctor.png", "/placeholder.svg", ""]
+    if (!doctor.avatar || generic.includes(doctor.avatar)) {
+      const maleDoctors = [
+        "https://images.unsplash.com/photo-1659353885824-1199aeeebfc6?w=200&h=200&fit=crop&auto=format",
+        "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=200&h=200&fit=crop&auto=format",
+        "https://images.unsplash.com/photo-1631558555818-ff6889981468?w=200&h=200&fit=crop&auto=format",
+        "https://images.unsplash.com/photo-1666886573553-453e9cdbd967?w=200&h=200&fit=crop&auto=format",
+        "https://images.pexels.com/photos/4021801/pexels-photo-4021801.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop",
+        "https://images.pexels.com/photos/14438788/pexels-photo-14438788.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop",
+      ]
+      const femaleDoctors = [
+        "https://images.unsplash.com/photo-1758691462848-ba1e929da259?w=200&h=200&fit=crop&auto=format",
+        "https://images.pexels.com/photos/5327584/pexels-photo-5327584.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop",
+        "https://images.pexels.com/photos/7088524/pexels-photo-7088524.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop",
+        "https://images.pexels.com/photos/5452291/pexels-photo-5452291.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop",
+      ]
+      const isFemale = doctor.gender === "FEMININ"
+        || (!doctor.gender && /[ae]$/i.test(doctor.name.replace(/^Dr\.\s*/i, "").split(" ")[0] || ""))
+      const pool = isFemale ? femaleDoctors : maleDoctors
+      const hash = doctor.id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0)
+      return pool[hash % pool.length]
+    }
+    return doctor.avatar
   }
 
   const getStatusDisplay = (status: string) => {
@@ -296,73 +333,63 @@ export default function DoctorsPage() {
               </div>
             ) : (
               doctors.map((doctor) => (
-                <Card 
-                  key={doctor.id} 
-                  className="group relative bg-white dark:bg-card/50 rounded-2xl border border-border/50 p-6 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 transition-all duration-300 flex flex-col"
+                <Card
+                  key={doctor.id}
+                  className="group relative bg-white dark:bg-card/50 rounded-2xl border border-border/50 overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all duration-300 flex flex-col"
                 >
-                  <div className="flex items-start justify-between mb-6">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-tr from-primary to-primary/80 rounded-2xl blur-sm opacity-20 group-hover:opacity-40 transition-opacity" />
-                      <Avatar className="h-16 w-16 rounded-2xl border-2 border-white shadow-sm relative z-10">
-                        <AvatarImage src={doctor.avatar || "/placeholder.svg"} className="object-cover" />
-                        <AvatarFallback className="bg-slate-100 text-primary font-bold text-lg uppercase">
-                          {doctor.name.split(" ").map((n) => n[0]).join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
+                  {/* Status badge */}
+                  <div className="absolute top-3 right-3">
                     <Badge className={cn(
-                      "rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider border shadow-sm",
-                      doctor.status === "ACTIV" 
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
+                      "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider border shadow-sm",
+                      doctor.status === "ACTIV"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-100"
                         : "bg-amber-50 text-amber-700 border-amber-100"
                     )}>
                       {getStatusDisplay(doctor.status)}
                     </Badge>
                   </div>
 
-                  <div className="space-y-4 flex-1">
-                    <div>
-                      <h3 className="font-bold text-lg text-foreground tracking-tight group-hover:text-primary transition-colors leading-none uppercase mb-2">{doctor.name}</h3>
-                      <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-lg">
-                        <Stethoscope className="w-3 h-3 text-primary" />
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{doctor.specialty}</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 py-4 border-y border-slate-100/60">
-                      <div className="space-y-0.5">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Pacienți</p>
-                        <p className="text-lg font-bold text-foreground">{doctor._count?.patients || 0}</p>
-                      </div>
-                      <div className="space-y-0.5">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Experiență</p>
-                        <p className="text-lg font-bold text-foreground">{doctor.experience}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 rounded-xl border border-amber-100">
-                        <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                        <span className="text-[11px] font-bold text-amber-700">{doctor.rating}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-500 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                           <Award className="w-4 h-4" />
-                        </div>
-                      </div>
+                  {/* Avatar — overlaps the header band */}
+                  <div className="flex flex-col items-center text-center px-5 pt-5 pb-4">
+                    <Avatar className="h-14 w-14 rounded-full ring-4 ring-white shadow-md mb-3">
+                      <AvatarImage src={getAvatarSrc(doctor)} className="object-cover" />
+                      <AvatarFallback className="bg-primary/10 text-primary font-bold text-base">
+                        {getInitials(doctor.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <h3 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors leading-tight mb-1">{formatName(doctor.name)}</h3>
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Stethoscope className="w-3 h-3 shrink-0" />
+                      <p className="text-[11px] leading-tight">{doctor.specialty}</p>
                     </div>
                   </div>
 
-                  <div className="mt-6 flex gap-3 pt-6 border-t border-slate-100/60">
-                    <Button 
-                      variant="outline" 
-                      className="flex-1 h-10 rounded-xl font-bold text-xs uppercase tracking-widest text-[#206070] border-[#206070]/10 hover:bg-slate-50"
+                  {/* Stats */}
+                  <div className="grid grid-cols-2 text-center border-y border-border/40 flex-1">
+                    <div className="py-3 px-2 border-r border-border/40">
+                      <p className="text-sm font-bold text-foreground">{doctor._count?.patients || 0}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">Pacienți</p>
+                    </div>
+                    <div className="py-3 px-2">
+                      <div className="flex items-center justify-center gap-0.5">
+                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                        <p className="text-sm font-bold text-foreground">{doctor.rating}</p>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">Rating</p>
+                    </div>
+                  </div>
+
+                  {/* Buttons */}
+                  <div className="flex gap-2 p-3">
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-8 rounded-lg text-xs font-semibold text-primary border-primary/15 hover:bg-primary/5 hover:border-primary/30"
                       asChild
                     >
                       <Link href={`/doctors/${doctor.id}`}>Profil</Link>
                     </Button>
                     <Button
-                      className="flex-1 h-10 bg-white text-slate-900 border border-slate-200 shadow-sm hover:shadow-md hover:border-primary/20 rounded-xl font-bold text-xs uppercase tracking-widest transition-all"
+                      className="flex-1 h-8 rounded-lg text-xs font-semibold bg-primary text-white hover:bg-primary/90 shadow-sm shadow-primary/20"
                       onClick={() => router.push(`/appointments?doctorId=${doctor.id}`)}
                     >
                       Calendar
@@ -372,6 +399,31 @@ export default function DoctorsPage() {
               ))
             )}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between bg-white dark:bg-card/50 px-6 py-4 rounded-2xl border border-border/50">
+              <p className="text-sm font-medium text-muted-foreground">
+                Pagina <span className="font-bold text-foreground">{page}</span> din <span className="font-bold text-foreground">{totalPages}</span> — {totalCount} medici total
+              </p>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" className="rounded-xl" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                  ← Anterior
+                </Button>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const p = Math.max(1, Math.min(totalPages - 4, page - 2)) + i
+                  return (
+                    <Button key={p} variant={p === page ? "default" : "outline"} size="sm" className="rounded-xl w-9" onClick={() => setPage(p)}>
+                      {p}
+                    </Button>
+                  )
+                })}
+                <Button variant="outline" size="sm" className="rounded-xl" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                  Următor →
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </main>
 
@@ -426,7 +478,23 @@ export default function DoctorsPage() {
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Gen</Label>
+                  <Select
+                    value={formData.gender}
+                    onValueChange={(value) => setFormData({ ...formData, gender: value })}
+                  >
+                    <SelectTrigger className="h-12 rounded-xl bg-muted/50 border-none px-4 font-medium">
+                      <SelectValue placeholder="Selectează genul" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-none shadow-xl">
+                      <SelectItem value="MASCULIN" className="rounded-lg my-1 mx-1">Masculin</SelectItem>
+                      <SelectItem value="FEMININ" className="rounded-lg my-1 mx-1">Feminin</SelectItem>
+                      <SelectItem value="ALTUL" className="rounded-lg my-1 mx-1">Altul</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 ml-1">Specialitate</Label>
                   <Input

@@ -45,6 +45,7 @@ interface Department {
 export default function ServicesPage() {
   const { toast } = useToast()
   const [searchQuery, setSearchQuery] = useState("")
+  const [deptFilter, setDeptFilter] = useState("all")
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [role, setRole] = useState<string | null>(null)
@@ -94,8 +95,9 @@ export default function ServicesPage() {
 
   const filteredServices = services.filter(
     (s) =>
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.department.name.toLowerCase().includes(searchQuery.toLowerCase())
+      (deptFilter === "all" || s.department.id === deptFilter) &&
+      (s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+       s.department.name.toLowerCase().includes(searchQuery.toLowerCase()))
   )
 
   const handleAdd = async () => {
@@ -284,8 +286,19 @@ export default function ServicesPage() {
                   className="pl-12 h-12 bg-muted/50 border-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-xl transition-all"
                 />
               </div>
+              <Select value={deptFilter} onValueChange={setDeptFilter}>
+                <SelectTrigger className="h-12 w-full sm:w-52 bg-muted/50 border-none rounded-xl focus:ring-2 focus:ring-primary">
+                  <SelectValue placeholder="Toate departamentele" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toate departamentele</SelectItem>
+                  {departments.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            
+
             <div className="flex items-center gap-3 w-full sm:w-auto self-start xl:self-center">
               <div className="h-10 w-[1px] bg-border mx-2 hidden xl:block" />
               <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">
@@ -383,7 +396,7 @@ export default function ServicesPage() {
                         </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground rounded-xl">
+                            <Button variant="ghost" size="icon" aria-label="Mai multe opțiuni" className="h-10 w-10 text-muted-foreground rounded-xl">
                               <MoreHorizontal className="h-5 w-5" />
                             </Button>
                           </DropdownMenuTrigger>

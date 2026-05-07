@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { X, Heart, Users, Baby, Eye, Ear, ChevronRight, Check, Loader2, Clock, AlertCircle, CalendarX } from "lucide-react"
+import { X, Heart, Users, Baby, Eye, Ear, ChevronRight, Check, Loader2, Clock, CalendarX, Brain, Bone, Flower2, SmilePlus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 
@@ -34,6 +34,7 @@ interface Service {
   id: string
   name: string
   duration: number
+  price: number | null
   departmentId: string
 }
 
@@ -48,6 +49,10 @@ const departmentIcons: Record<string, any> = {
   ORL: Ear,
   Oftalmologie: Eye,
   Dermatologie: Users,
+  Neurologie: Brain,
+  Ortopedie: Bone,
+  Ginecologie: Flower2,
+  Stomatologie: SmilePlus,
   default: Heart,
 }
 
@@ -85,7 +90,7 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
   useEffect(() => {
     Promise.all([
       fetch("/api/departments").then(r => r.json()),
-      fetch("/api/doctors").then(r => r.json()),
+      fetch("/api/doctors?status=ACTIV").then(r => r.json()),
       fetch("/api/services").then(r => r.json()),
       fetch("/api/settings").then(r => r.json()),
     ])
@@ -244,8 +249,8 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 sm:p-4">
-      <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl h-[90vh] sm:h-[640px] flex flex-col animate-in fade-in slide-in-from-bottom-4 sm:zoom-in duration-300">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 sm:p-4 lg:p-8">
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl lg:max-w-4xl h-[90vh] sm:h-[680px] lg:h-[780px] flex flex-col animate-in fade-in slide-in-from-bottom-4 sm:zoom-in duration-300">
 
         {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b border-slate-100 shrink-0">
@@ -254,7 +259,7 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
               <p className="text-[10px] font-semibold uppercase tracking-widest text-[#206070] mb-0.5">Rezervare Online</p>
               <h2 className="text-xl font-black text-slate-900 leading-tight">Programare PoliCare</h2>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-xl h-9 w-9 hover:bg-slate-100">
+            <Button variant="ghost" size="icon" aria-label="Închide" onClick={onClose} className="rounded-xl h-9 w-9 hover:bg-slate-100">
               <X className="w-4 h-4" />
             </Button>
           </div>
@@ -291,7 +296,7 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
                   <div key={i} className="h-14 rounded-xl bg-slate-100 animate-pulse" />
                 ))
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   {departments.map((dept) => {
                     const Icon = departmentIcons[dept.name] || departmentIcons.default
                     return (
@@ -300,14 +305,14 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
                         type="button"
                         onClick={() => { setSelectedDepartment(dept.id); setSelectedServiceId(null); setSelectedDoctor(null) }}
                         className={cn(
-                          "p-5 rounded-xl border-2 flex flex-col items-center gap-2.5 transition-all duration-150 hover:-translate-y-0.5",
+                          "py-7 px-3 rounded-xl border-2 flex flex-col items-center gap-3 transition-all duration-150 hover:-translate-y-0.5",
                           selectedDepartment === dept.id
                             ? "border-[#206070] bg-[#206070]/5 text-[#206070] shadow-sm"
                             : "border-slate-100 bg-slate-50/50 hover:border-slate-200 text-slate-500"
                         )}
                       >
-                        <Icon className="w-6 h-6" />
-                        <span className="text-xs font-bold tracking-tight text-center leading-tight">{dept.name}</span>
+                        <Icon className="w-8 h-8" />
+                        <span className="text-sm font-bold tracking-tight text-center leading-tight">{dept.name}</span>
                       </button>
                     )
                   })}
@@ -320,6 +325,7 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
           {step === 2 && (
             <div className="space-y-2">
               <p className="text-sm font-semibold text-slate-500 mb-3">Alege serviciul necesar:</p>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
               {filteredServices.map((service) => (
                 <button
                   key={service.id}
@@ -333,7 +339,7 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
                 >
                   <div className="text-left">
                     <p className="text-sm font-bold text-slate-800">{service.name}</p>
-                    <p className="text-xs text-slate-400">{service.duration} min</p>
+                    <p className="text-xs text-slate-400">{service.duration} min{service.price != null ? ` · ${service.price} lei` : ""}</p>
                   </div>
                   {selectedServiceId === service.id && <Check className="w-4 h-4 text-[#206070] shrink-0" />}
                 </button>
@@ -349,6 +355,7 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
               >
                 <p className="text-sm font-bold text-slate-500">Alt serviciu / Specific</p>
               </button>
+              </div>
               {selectedServiceId === "other" && (
                 <Textarea
                   placeholder="Descrieți motivul consultației..."
@@ -363,18 +370,20 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
 
           {/* Step 3 — Doctor */}
           {step === 3 && (
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-slate-500 mb-3">
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-slate-500">
                 Echipa din {departments.find(d => d.id === selectedDepartment)?.name}:
               </p>
               {filteredDoctors.length === 0 ? (
                 <p className="text-sm text-slate-400 text-center py-6">Niciun medic disponibil în acest departament.</p>
-              ) : filteredDoctors.map((doc) => (
+              ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+              {filteredDoctors.map((doc) => (
                 <button
                   key={doc.id}
                   onClick={() => setSelectedDoctor(doc.id)}
                   className={cn(
-                    "w-full px-4 py-3 rounded-xl border-2 flex items-center gap-3 transition-colors duration-150",
+                    "w-full px-4 py-3 rounded-xl border-2 flex items-center gap-3 transition-all duration-150",
                     selectedDoctor === doc.id
                       ? "border-[#206070] bg-[#206070]/5"
                       : "border-slate-100 bg-white hover:border-slate-200"
@@ -398,12 +407,60 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
                   {selectedDoctor === doc.id && <Check className="w-4 h-4 text-[#206070] ml-auto shrink-0" />}
                 </button>
               ))}
+              </div>
+              )}
+
+              {/* No preference option */}
+              {filteredDoctors.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedDoctor(filteredDoctors[0].id)}
+                  className={cn(
+                    "w-full px-4 py-2.5 rounded-xl border-2 text-left transition-all duration-150 flex items-center gap-2",
+                    !selectedDoctor
+                      ? "border-slate-200 bg-slate-50 hover:border-slate-300"
+                      : "border-transparent bg-transparent"
+                  )}
+                >
+                  <span className="text-xs text-slate-400 font-medium">Nu am preferință — atribuiți primul medic disponibil</span>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 ml-auto shrink-0" />
+                </button>
+              )}
+
+              {/* Selected doctor expanded info */}
+              {selectedDoctor && (() => {
+                const doc = doctors.find(d => d.id === selectedDoctor)
+                if (!doc) return null
+                return (
+                  <div className="mt-1 p-4 rounded-2xl bg-[#206070]/5 border border-[#206070]/15 space-y-3">
+                    <div className="flex items-center gap-3">
+                      {doc.avatar ? (
+                        <img src={doc.avatar} alt={doc.name} className="w-12 h-12 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-[#206070]/20 flex items-center justify-center text-[#206070] font-bold text-sm">
+                          {doc.name.split(" ").map(n => n[0]).join("").substring(0, 2)}
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">{doc.name}</p>
+                        <p className="text-xs text-slate-500">{doc.specialty}</p>
+                      </div>
+                      <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span className="text-[10px] font-bold text-emerald-700">Disponibil</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-400">Selectați data și ora în pasul următor pentru a verifica disponibilitatea completă.</p>
+                  </div>
+                )
+              })()}
             </div>
           )}
 
           {/* Step 4 — Date & Time */}
           {step === 4 && (
-            <div className="space-y-4">
+            <div className="space-y-5">
+              {/* Date picker */}
               <div>
                 <Label className="text-xs font-bold text-slate-500 mb-1.5 block">Data programării</Label>
                 <Input
@@ -421,113 +478,135 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
                     setSelectedTime("")
                   }}
                   min={new Date().toISOString().split("T")[0]}
-                  className="h-10 rounded-xl bg-slate-50 border-slate-200 text-sm"
+                  className="h-11 rounded-xl bg-slate-50 border-slate-200 text-sm font-medium w-full"
                 />
+                {selectedDate && (
+                  <p className="text-xs text-slate-400 mt-1.5 ml-1 capitalize">
+                    {new Date(selectedDate + "T12:00:00").toLocaleDateString("ro-RO", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                  </p>
+                )}
               </div>
 
+              {/* Time slots */}
               {selectedDate && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-bold text-slate-500">Interval orar</Label>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">
-                        {settings?.workdayStart} - {settings?.workdayEnd}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <Label className="text-xs font-bold text-slate-500">Alege ora</Label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] bg-[#206070]/10 text-[#206070] px-2 py-0.5 rounded-full font-bold">
+                        {settings?.workdayStart} – {settings?.workdayEnd}
                       </span>
                       <span className="text-xs text-slate-400 flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> {getServiceDuration()} min
+                        <Clock className="w-3 h-3" />{getServiceDuration()} min
                       </span>
                     </div>
                   </div>
+
                   {checkingAvailability ? (
-                    <div className="flex justify-center py-8">
+                    <div className="flex justify-center py-10">
                       <Loader2 className="w-6 h-6 text-[#206070] animate-spin" />
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                      {(() => {
-                        const slots = []
-                        if (settings) {
-                          let curr = settings.workdayStart
-                          const end = settings.workdayEnd
-                          while (curr < end) {
-                            slots.push(curr)
-                            const [h, m] = curr.split(":").map(Number)
-                            const nextM = m + 15
-                            const nextH = h + Math.floor(nextM / 60)
-                            curr = `${String(nextH).padStart(2, "0")}:${String(nextM % 60).padStart(2, "0")}`
-                          }
-                        } else {
-                          // Fallback to defaults while loading
-                          return ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"].map(time => {
-                            const occupied = isSlotOccupied(time)
-                            return (
-                              <button key={time} type="button" disabled className="h-10 rounded-xl text-xs font-semibold bg-slate-50 text-slate-200">{time}</button>
-                            )
-                          })
-                        }
-                        
-                        const availableSlotsCount = slots.filter(time => !isSlotOccupied(time)).length
-                        
-                        if (slots.length > 0 && availableSlotsCount === 0) {
-                          return (
-                            <div className="col-span-4 sm:col-span-6 flex flex-col items-center justify-center py-6 text-center">
-                              <CalendarX className="w-8 h-8 text-slate-300 mb-2" />
-                              <p className="text-sm font-semibold text-slate-600">Nu mai sunt locuri disponibile.</p>
-                              <p className="text-xs text-slate-400 mt-1">Te rugăm să alegi o altă zi pentru programare.</p>
-                            </div>
-                          )
-                        }
+                  ) : (() => {
+                    const slots: string[] = []
+                    if (settings) {
+                      let curr = settings.workdayStart
+                      while (curr < settings.workdayEnd) {
+                        slots.push(curr)
+                        const [h, m] = curr.split(":").map(Number)
+                        const nextM = m + 15
+                        curr = `${String(h + Math.floor(nextM / 60)).padStart(2, "0")}:${String(nextM % 60).padStart(2, "0")}`
+                      }
+                    }
 
-                        return slots.map((time) => {
-                          const occupied = isSlotOccupied(time)
-                          return (
-                            <button
-                              key={time}
-                              type="button"
-                              disabled={occupied}
-                              onClick={() => setSelectedTime(time)}
-                              className={cn(
-                                "h-10 rounded-xl text-xs font-semibold transition-all duration-150",
-                                occupied
-                                  ? "bg-slate-50 text-slate-200 cursor-not-allowed"
-                                  : selectedTime === time
-                                    ? "bg-[#206070] text-white shadow-sm"
-                                    : "bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-800"
-                              )}
-                            >
-                              {time}
-                            </button>
-                          )
-                        })
-                      })()}
-                    </div>
-                  )}
-                  <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50">
-                    <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-                    <p className="text-xs text-amber-700">Intervalele gri sunt deja ocupate.</p>
-                  </div>
+                    const available = slots.filter(t => !isSlotOccupied(t))
+                    if (slots.length > 0 && available.length === 0) {
+                      return (
+                        <div className="flex flex-col items-center justify-center py-8 text-center">
+                          <CalendarX className="w-8 h-8 text-slate-300 mb-2" />
+                          <p className="text-sm font-semibold text-slate-600">Nu mai sunt locuri disponibile.</p>
+                          <p className="text-xs text-slate-400 mt-1">Te rugăm să alegi o altă zi.</p>
+                        </div>
+                      )
+                    }
+
+                    // Group by hour
+                    const byHour = new Map<string, string[]>()
+                    slots.forEach(t => {
+                      const h = t.split(":")[0]
+                      if (!byHour.has(h)) byHour.set(h, [])
+                      byHour.get(h)!.push(t)
+                    })
+
+                    return (
+                      <div className="space-y-1.5">
+                        {[...byHour.entries()].map(([hour, hourSlots]) => (
+                          <div key={hour} className="flex items-center gap-3">
+                            <span className="text-xs font-bold text-slate-300 w-7 text-right shrink-0">{hour}</span>
+                            <div className="flex-1 grid grid-cols-4 gap-1.5">
+                              {hourSlots.map(time => {
+                                const occupied = isSlotOccupied(time)
+                                const selected = selectedTime === time
+                                return (
+                                  <button
+                                    key={time}
+                                    type="button"
+                                    disabled={occupied}
+                                    onClick={() => setSelectedTime(time)}
+                                    className={cn(
+                                      "h-9 rounded-lg text-xs font-semibold transition-all duration-150",
+                                      occupied
+                                        ? "bg-slate-50 text-slate-200 cursor-not-allowed"
+                                        : selected
+                                          ? "bg-[#206070] text-white shadow-md scale-105"
+                                          : "bg-slate-50 border border-slate-100 text-slate-600 hover:border-[#206070]/30 hover:bg-[#206070]/5 hover:text-[#206070]"
+                                    )}
+                                  >
+                                    {time}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
+
+              {/* Selected time confirmation */}
+              {selectedTime && (
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[#206070]/5 border border-[#206070]/15">
+                  <Check className="w-4 h-4 text-[#206070] shrink-0" />
+                  <p className="text-sm font-semibold text-[#206070]">
+                    Ora selectată: <span className="font-black">{selectedTime}</span>
+                    <span className="text-xs font-normal ml-2 text-[#206070]/70">· {getServiceDuration()} min</span>
+                  </p>
                 </div>
               )}
             </div>
           )}
 
           {step === 5 && (
-            <div className="space-y-4">
-              {/* Summary card */}
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Rezumat programare</p>
-                <div className="grid grid-cols-3 gap-3">
-                  <div><p className="text-[10px] text-slate-400 mb-0.5">Data</p><p className="text-xs font-bold text-slate-800">{selectedDate}</p></div>
-                  <div><p className="text-[10px] text-slate-400 mb-0.5">Ora</p><p className="text-xs font-bold text-slate-800">{selectedTime}</p></div>
-                  <div><p className="text-[10px] text-slate-400 mb-0.5">Durată</p><p className="text-xs font-bold text-slate-800">{getServiceDuration()} min</p></div>
-                </div>
-                <div className="mt-2 pt-2 border-t border-slate-100">
-                  <p className="text-[10px] text-slate-400 mb-0.5">Medic</p>
-                  <p className="text-xs font-bold text-slate-800">{doctors.find(d => d.id === selectedDoctor)?.name}</p>
+            <div className="space-y-5">
+              {/* Summary strip */}
+              <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3">
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Rezumat programare</p>
+                <div className="flex flex-wrap gap-x-6 gap-y-2 items-end">
+                  <div><p className="text-[10px] text-slate-400">Data</p><p className="text-sm font-bold text-slate-800">{selectedDate}</p></div>
+                  <div><p className="text-[10px] text-slate-400">Ora</p><p className="text-sm font-bold text-slate-800">{selectedTime}</p></div>
+                  <div><p className="text-[10px] text-slate-400">Durată</p><p className="text-sm font-bold text-slate-800">{getServiceDuration()} min</p></div>
+                  <div><p className="text-[10px] text-slate-400">Medic</p><p className="text-sm font-bold text-slate-800">{doctors.find(d => d.id === selectedDoctor)?.name}</p></div>
+                  {(() => {
+                    const svc = selectedServiceId && selectedServiceId !== "other" ? services.find(s => s.id === selectedServiceId) : null
+                    return svc?.price != null ? (
+                      <div className="ml-auto"><p className="text-[10px] text-slate-400">Preț estimat</p><p className="text-base font-black text-[#206070]">{svc.price} lei</p></div>
+                    ) : null
+                  })()}
                 </div>
               </div>
 
-              {/* Form fields — 2 cols on sm+ */}
+              {/* Form fields */}
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
                   <Label className="text-xs font-bold text-slate-500 mb-1.5 block">Nume complet *</Label>
@@ -562,36 +641,36 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
                 </div>
               </div>
 
-              {/* Notification Preferences */}
-              <div className="pt-2">
-                <p className="text-xs font-bold text-slate-500 mb-3">Opțiuni de confirmare</p>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-white">
-                    <button
-                      type="button"
-                      onClick={() => setPreferences({ ...preferences, email: !preferences.email })}
-                      className={cn("w-5 h-5 rounded flex items-center justify-center shrink-0 transition-colors", preferences.email ? "bg-[#206070] text-white" : "border-2 border-slate-200 bg-white")}
-                    >
+              {/* Notification Preferences — side by side */}
+              <div>
+                <p className="text-xs font-bold text-slate-500 mb-2">Opțiuni de confirmare</p>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPreferences({ ...preferences, email: !preferences.email })}
+                    className={cn("flex items-center gap-3 p-3 rounded-xl border text-left transition-colors", preferences.email ? "border-[#206070]/40 bg-[#206070]/5" : "border-slate-100 bg-white hover:border-slate-200")}
+                  >
+                    <div className={cn("w-5 h-5 rounded flex items-center justify-center shrink-0 transition-colors", preferences.email ? "bg-[#206070] text-white" : "border-2 border-slate-200 bg-white")}>
                       {preferences.email && <Check className="w-3.5 h-3.5" />}
-                    </button>
-                    <div className="flex-1 cursor-pointer" onClick={() => setPreferences({ ...preferences, email: !preferences.email })}>
-                      <p className="text-sm font-semibold text-slate-700">Doresc confirmare pe Email</p>
-                      <p className="text-xs text-slate-400">Vei primi detaliile programării pe email.</p>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-white">
-                    <button
-                      type="button"
-                      onClick={() => setPreferences({ ...preferences, sms: !preferences.sms })}
-                      className={cn("w-5 h-5 rounded flex items-center justify-center shrink-0 transition-colors", preferences.sms ? "bg-[#206070] text-white" : "border-2 border-slate-200 bg-white")}
-                    >
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">Confirmare Email</p>
+                      <p className="text-xs text-slate-400">Detalii programare pe email.</p>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreferences({ ...preferences, sms: !preferences.sms })}
+                    className={cn("flex items-center gap-3 p-3 rounded-xl border text-left transition-colors", preferences.sms ? "border-[#206070]/40 bg-[#206070]/5" : "border-slate-100 bg-white hover:border-slate-200")}
+                  >
+                    <div className={cn("w-5 h-5 rounded flex items-center justify-center shrink-0 transition-colors", preferences.sms ? "bg-[#206070] text-white" : "border-2 border-slate-200 bg-white")}>
                       {preferences.sms && <Check className="w-3.5 h-3.5" />}
-                    </button>
-                    <div className="flex-1 cursor-pointer" onClick={() => setPreferences({ ...preferences, sms: !preferences.sms })}>
-                      <p className="text-sm font-semibold text-slate-700">Doresc SMS cu remindere</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">Remindere SMS</p>
                       <p className="text-xs text-slate-400">Notificare imediată și cu 24h înainte.</p>
                     </div>
-                  </div>
+                  </button>
                 </div>
               </div>
             </div>

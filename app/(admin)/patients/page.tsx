@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -27,6 +27,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 // Type for patient from API
 interface Patient {
@@ -68,6 +69,10 @@ export default function PatientsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get("search") ?? "")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
   const [role, setRole] = useState<"super-admin" | "front-desk" | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -92,21 +97,31 @@ export default function PatientsPage() {
   const [patients, setPatients] = useState<Patient[]>([])
   const debouncedSearch = useDebounce(searchQuery, 300)
 
-  // Stats calculation
-  const totalPatients = patients.length
-  const activePatients = patients.filter((p) => p.status === "ACTIV").length
-  const scheduledPatients = patients.filter((p) => p.status === "PROGRAMAT").length
-  const totalMedicalRecords = patients.reduce((sum, p) => sum + (p._count?.medicalRecords || 0), 0)
+  // Stats from API total count (not paginated slice)
+  const totalPatients = totalCount
+  const { activePatients, scheduledPatients, totalMedicalRecords } = useMemo(() => ({
+    activePatients: patients.filter((p) => p.status === "ACTIV").length,
+    scheduledPatients: patients.filter((p) => p.status === "PROGRAMAT").length,
+    totalMedicalRecords: patients.reduce((sum, p) => sum + (p._count?.medicalRecords || 0), 0),
+  }), [patients])
+
+  const displayedPatients = useMemo(
+    () => statusFilter === "all" ? patients : patients.filter((p) => p.status === statusFilter),
+    [patients, statusFilter]
+  )
 
   useEffect(() => {
     const storedRole = localStorage.getItem("userRole") as "super-admin" | "front-desk" | null
     setRole(storedRole)
-    fetchPatients()
   }, [])
 
   useEffect(() => {
-    fetchPatients(debouncedSearch || undefined)
+    setPage(1)
   }, [debouncedSearch])
+
+  useEffect(() => {
+    fetchPatients(debouncedSearch || undefined, page)
+  }, [debouncedSearch, page])
 
   const handleAddPatient = async () => {
     // Basic validation
@@ -147,7 +162,7 @@ export default function PatientsPage() {
       if (!response.ok) throw new Error("Failed to create patient")
 
       // Refresh the list
-      await fetchPatients()
+      await fetchPatients(debouncedSearch || undefined, page)
 
       setShowAddPatient(false)
       setNewPatient({
@@ -218,7 +233,7 @@ export default function PatientsPage() {
         body: JSON.stringify({ cnp: newPatient.cnp })
       })
 
-      await fetchPatients()
+      await fetchPatients(debouncedSearch || undefined, page)
       setShowMergeDialog(false)
       setShowAddPatient(false)
       setNewPatient({ name: "", cnp: "", age: "", gender: "", email: "", phone: "" })
@@ -240,14 +255,17 @@ export default function PatientsPage() {
   }
 
   // Fetch patients from API
-  const fetchPatients = async (search?: string) => {
+  const fetchPatients = async (search?: string, currentPage = 1) => {
     setLoading(true)
     try {
-      const url = search ? `/api/patients?search=${encodeURIComponent(search)}` : "/api/patients"
-      const response = await fetch(url)
+      const params = new URLSearchParams({ page: String(currentPage), limit: "20" })
+      if (search) params.set("search", search)
+      const response = await fetch(`/api/patients?${params}`)
       if (!response.ok) throw new Error("Failed to fetch")
-      const data = await response.json()
-      setPatients(data)
+      const json = await response.json()
+      setPatients(json.data)
+      setTotalPages(json.totalPages)
+      setTotalCount(json.total)
     } catch (error) {
       console.error("Error fetching patients:", error)
       toast({
@@ -269,7 +287,7 @@ export default function PatientsPage() {
 
       if (!response.ok) throw new Error("Failed to delete patient")
 
-      await fetchPatients()
+      await fetchPatients(debouncedSearch || undefined, page)
 
       toast({
         title: "Succes",
@@ -374,12 +392,24 @@ export default function PatientsPage() {
                   className="pl-12 h-12 bg-muted/50 border-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl transition-all"
                 />
               </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-12 w-full sm:w-44 bg-muted/50 border-none rounded-xl focus:ring-2 focus:ring-primary">
+                  <SelectValue placeholder="Toți pacienții" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toți pacienții</SelectItem>
+                  <SelectItem value="NOU">Nou</SelectItem>
+                  <SelectItem value="ACTIV">Activ</SelectItem>
+                  <SelectItem value="PROGRAMAT">Programat</SelectItem>
+                  <SelectItem value="INACTIV">Inactiv</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="flex items-center gap-3 w-full sm:w-auto self-start xl:self-center">
               <div className="h-10 w-[1px] bg-border mx-2 hidden xl:block" />
               <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-                Afișare: <span className="text-foreground">{totalPatients} pacienți</span>
+                Afișare: <span className="text-foreground">{displayedPatients.length} pacienți</span>
               </p>
             </div>
           </div>
@@ -415,13 +445,18 @@ export default function PatientsPage() {
                   Resetează căutarea
                 </Button>
               </div>
+            ) : displayedPatients.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 px-6 text-center bg-white dark:bg-card/50 rounded-2xl border border-border/50">
+                <h3 className="text-xl font-bold text-foreground mb-2">Niciun pacient cu statusul selectat</h3>
+                <Button variant="outline" className="mt-4 h-11 px-6 rounded-xl" onClick={() => setStatusFilter("all")}>Resetează filtrul</Button>
+              </div>
             ) : (
-              patients.map((patient) => (
+              displayedPatients.map((patient) => (
                 <Card key={patient.id} className="group relative bg-white dark:bg-card/50 rounded-2xl border border-border/50 p-6 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 transition-all duration-300">
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                     <div className="flex items-center gap-6">
                       <div className="relative h-16 w-16 border-2 border-background shadow-sm ring-2 ring-muted/50 group-hover:ring-primary/20 transition-all rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10 text-primary font-bold text-xl">
-                        {patient.name.charAt(0)}
+                        {(patient.name || "?").charAt(0)}
                       </div>
                       <div className="space-y-1">
                         <Link href={`/patients/${patient.id}`} className="text-xl font-bold text-foreground tracking-tight hover:text-primary transition-colors uppercase leading-none block">{patient.name}</Link>
@@ -484,8 +519,8 @@ export default function PatientsPage() {
                         </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground rounded-xl">
-                              <MoreHorizontal className="h-5 h-5" />
+                            <Button variant="ghost" size="icon" aria-label="Mai multe opțiuni" className="h-10 w-10 text-muted-foreground rounded-xl">
+                              <MoreHorizontal className="h-5 w-5" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="rounded-xl p-2 w-48">
@@ -518,6 +553,31 @@ export default function PatientsPage() {
               ))
             )}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between bg-white dark:bg-card/50 px-6 py-4 rounded-2xl border border-border/50">
+              <p className="text-sm font-medium text-muted-foreground">
+                Pagina <span className="font-bold text-foreground">{page}</span> din <span className="font-bold text-foreground">{totalPages}</span> — {totalCount} pacienți total
+              </p>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" className="rounded-xl" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                  ← Anterior
+                </Button>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const p = Math.max(1, Math.min(totalPages - 4, page - 2)) + i
+                  return (
+                    <Button key={p} variant={p === page ? "default" : "outline"} size="sm" className="rounded-xl w-9" onClick={() => setPage(p)}>
+                      {p}
+                    </Button>
+                  )
+                })}
+                <Button variant="outline" size="sm" className="rounded-xl" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                  Următor →
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </main>
 

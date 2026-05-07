@@ -48,44 +48,38 @@ export async function POST(request: Request) {
       },
     })
 
-    let sent = 0
-    for (const appt of appointments) {
-      // Don't send reminders for past appointments
-      const aptDate = new Date(appt.date);
-      const [hours, minutes] = appt.startTime.split(":").map(Number);
-      aptDate.setHours(hours, minutes, 0, 0);
-      if (aptDate < now) {
-        continue;
-      }
+    const emailOpt = body.sendEmail !== undefined ? body.sendEmail : settings.emailNotifications
+    const smsOpt = body.sendSMS !== undefined ? body.sendSMS : settings.smsNotifications
 
-      const emailOpt = body.sendEmail !== undefined ? body.sendEmail : settings.emailNotifications;
-      const smsOpt = body.sendSMS !== undefined ? body.sendSMS : settings.smsNotifications;
+    const eligible = appointments.filter((appt) => {
+      const aptDate = new Date(appt.date)
+      const [hours, minutes] = appt.startTime.split(":").map(Number)
+      aptDate.setHours(hours, minutes, 0, 0)
+      return aptDate >= now
+    })
 
-      // Ensure at least one method is selected before attempting to send
-      if (!emailOpt && !smsOpt) continue;
-
-      await sendAppointmentNotification(
-        {
-          id: appt.id,
-          date: appt.date,
-          startTime: appt.startTime,
-          patient: {
-            name: appt.patient.name,
-            email: appt.patient.email ?? null,
-            phone: appt.patient.phone,
-          },
-          doctor: { name: appt.doctor.name },
-          department: appt.department ? { name: appt.department.name } : null,
-        },
-        "REMINDER",
-        {
-          sendEmail: emailOpt,
-          sendSMS: smsOpt,
-        }
-      )
-      sent++
+    if (!emailOpt && !smsOpt) {
+      return NextResponse.json({ message: "0 reminder(e) trimise", sent: 0 })
     }
 
+    const results = await Promise.all(
+      eligible.map((appt) =>
+        sendAppointmentNotification(
+          {
+            id: appt.id,
+            date: appt.date,
+            startTime: appt.startTime,
+            patient: { name: appt.patient.name, email: appt.patient.email ?? null, phone: appt.patient.phone },
+            doctor: { name: appt.doctor.name },
+            department: appt.department ? { name: appt.department.name } : null,
+          },
+          "REMINDER",
+          { sendEmail: emailOpt, sendSMS: smsOpt }
+        ).then(() => true).catch(() => false)
+      )
+    )
+
+    const sent = results.filter(Boolean).length
     return NextResponse.json({ message: `${sent} reminder(e) trimise`, sent })
   } catch (error) {
     console.error("Error sending reminders:", error)

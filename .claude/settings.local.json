@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npm install --save-dev vitest @vitest/coverage-v8)",
-      "Bash(npx prisma migrate dev --name add_performance_indexes)"
+      "Bash(npx prisma migrate dev --name add_performance_indexes)",
+      "Bash(npx ts-node *)"
     ]
   }
 }

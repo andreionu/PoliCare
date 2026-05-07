@@ -357,9 +357,10 @@ export default function PatientDetailPage() {
           {/* Header Section */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-6">
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Înapoi la pacienți"
                 onClick={() => router.push("/patients")}
                 className="h-12 w-12 rounded-2xl bg-white shadow-sm border hover:bg-white hover:scale-105 transition-all"
               >
@@ -470,7 +471,7 @@ export default function PatientDetailPage() {
             <div className="lg:col-span-1 space-y-6">
               <Card className="p-8 border-none shadow-sm bg-white dark:bg-card/50 backdrop-blur-sm rounded-3xl overflow-hidden relative">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-600 opacity-80" />
-                <h3 className="text-[10px] font-black font-mono uppercase tracking-[0.3em] text-blue-500 mb-6 flex items-center gap-2">
+                <h3 className="text-[12px] font-black font-mono uppercase tracking-[0.3em] text-blue-500 mb-6 flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                   Date Personale
                 </h3>
@@ -538,7 +539,7 @@ export default function PatientDetailPage() {
                     Note Dosar
                   </h3>
                   {!isEditingNotes ? (
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-amber-50 text-amber-600" onClick={() => { setNotesEditValue(patient.notes || ""); setIsEditingNotes(true); }}>
+                    <Button variant="ghost" size="icon" aria-label="Editează note" className="h-8 w-8 rounded-lg hover:bg-amber-50 text-amber-600" onClick={() => { setNotesEditValue(patient.notes || ""); setIsEditingNotes(true); }}>
                       <Edit className="h-4 w-4" />
                     </Button>
                   ) : null}
@@ -729,7 +730,7 @@ export default function PatientDetailPage() {
                               <span>{new Date(doc.createdAt).toLocaleDateString("ro-RO")}</span>
                             </div>
                           </div>
-                          <Button variant="ghost" size="icon" className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" asChild>
+                          <Button variant="ghost" size="icon" aria-label="Descarcă document" className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" asChild>
                             <a href={doc.url} target="_blank" rel="noopener noreferrer">
                               <Download className="h-5 w-5 text-muted-foreground hover:text-foreground" />
                             </a>

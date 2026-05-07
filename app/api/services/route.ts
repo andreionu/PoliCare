@@ -31,6 +31,10 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
 
+    if (!body.name?.trim() || !body.departmentId || body.duration == null || body.price == null) {
+      return NextResponse.json({ error: "Name, departmentId, duration, and price are required" }, { status: 400 })
+    }
+
     const service = await prisma.service.create({
       data: {
         name: body.name,

@@ -43,15 +43,16 @@ export async function PUT(
     const { id } = await params
     const body = await request.json()
 
+    const data: Record<string, unknown> = {}
+    if (body.name !== undefined) data.name = body.name
+    if (body.description !== undefined) data.description = body.description
+    if (body.color !== undefined) data.color = body.color
+    if (body.icon !== undefined) data.icon = body.icon
+    if (body.status !== undefined) data.status = body.status
+
     const department = await prisma.department.update({
       where: { id },
-      data: {
-        name: body.name,
-        description: body.description,
-        color: body.color,
-        icon: body.icon,
-        status: body.status,
-      },
+      data,
     })
 
     return NextResponse.json(department)

@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     const email = searchParams.get("email")
     const search = searchParams.get("search")
 
-    const where: any = {}
+    const where: Record<string, unknown> = {}
     
     // Support OR matching for smart booking
     if (phone && email) {
@@ -36,7 +36,12 @@ export async function GET(request: Request) {
       }
     }
 
-    const patients = await prisma.patient.findMany({
+    const pageParam = searchParams.get("page")
+    const paginated = pageParam !== null
+    const page = Math.max(1, parseInt(pageParam ?? "1"))
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "20")))
+
+    const query = {
       where,
       include: {
         primaryDoctor: {
@@ -53,10 +58,20 @@ export async function GET(request: Request) {
           },
         },
       },
-      orderBy: { createdAt: "desc" },
-    })
+      orderBy: { createdAt: "desc" } as const,
+    }
 
-    return NextResponse.json(patients)
+    if (!paginated) {
+      const patients = await prisma.patient.findMany(query)
+      return NextResponse.json(patients)
+    }
+
+    const [patients, total] = await Promise.all([
+      prisma.patient.findMany({ ...query, skip: (page - 1) * limit, take: limit }),
+      prisma.patient.count({ where }),
+    ])
+
+    return NextResponse.json({ data: patients, total, page, totalPages: Math.ceil(total / limit) })
   } catch (error) {
     console.error("Error fetching patients:", error)
     return NextResponse.json(

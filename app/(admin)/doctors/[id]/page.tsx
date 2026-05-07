@@ -47,6 +47,8 @@ interface DoctorDetail {
   name: string
   email: string
   phone: string
+  avatar: string | null
+  gender: string | null
   specialty: string
   experience: string
   rating: number
@@ -87,6 +89,34 @@ const doctorStatusColors: Record<string, string> = {
   INDISPONIBIL: "bg-red-100 text-red-700",
 }
 
+const MALE_DOCTOR_PHOTOS = [
+  "https://images.unsplash.com/photo-1659353885824-1199aeeebfc6?w=200&h=200&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=200&h=200&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1631558555818-ff6889981468?w=200&h=200&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1666886573553-453e9cdbd967?w=200&h=200&fit=crop&auto=format",
+  "https://images.pexels.com/photos/4021801/pexels-photo-4021801.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop",
+  "https://images.pexels.com/photos/14438788/pexels-photo-14438788.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop",
+]
+
+const FEMALE_DOCTOR_PHOTOS = [
+  "https://images.unsplash.com/photo-1758691462848-ba1e929da259?w=200&h=200&fit=crop&auto=format",
+  "https://images.pexels.com/photos/5327584/pexels-photo-5327584.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop",
+  "https://images.pexels.com/photos/7088524/pexels-photo-7088524.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop",
+  "https://images.pexels.com/photos/5452291/pexels-photo-5452291.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop",
+]
+
+function getAvatarSrc(doctor: DoctorDetail) {
+  const generic = ["/male-doctor.png", "/female-doctor.png", "/placeholder.svg", ""]
+  if (!doctor.avatar || generic.includes(doctor.avatar)) {
+    const isFemale = doctor.gender === "FEMININ"
+      || (!doctor.gender && /[ae]$/i.test(doctor.name.replace(/^Dr\.\s*/i, "").split(" ")[0] || ""))
+    const pool = isFemale ? FEMALE_DOCTOR_PHOTOS : MALE_DOCTOR_PHOTOS
+    const hash = doctor.id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0)
+    return pool[hash % pool.length]
+  }
+  return doctor.avatar
+}
+
 const aptStatusLabels: Record<string, string> = {
   IN_ASTEPTARE: "În așteptare",
   CONFIRMAT: "Confirmat",
@@ -105,7 +135,7 @@ export default function DoctorDetailPage() {
   const [doctor, setDoctor] = useState<DoctorDetail | null>(null)
   const [patients, setPatients] = useState<Patient[]>([])
   const [loading, setLoading] = useState(true)
-  const [role, setRole] = useState<string | null>(null)
+
 
   // Schedule state (7 days)
   const defaultSchedules = WEEK_DAYS.map((day) => ({
@@ -165,8 +195,6 @@ export default function DoctorDetailPage() {
   }, [doctorId, toast])
 
   useEffect(() => {
-    const storedRole = localStorage.getItem("userRole") as string | null
-    setRole(storedRole)
     fetchDoctor()
   }, [fetchDoctor])
 
@@ -269,18 +297,21 @@ export default function DoctorDetailPage() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-2">
             <div className="flex items-center gap-5">
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Înapoi la medici"
                 onClick={() => router.push("/doctors")}
                 className="rounded-xl h-10 w-10 hover:bg-slate-100 shrink-0 border border-slate-200"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div className="flex items-center gap-5">
-                <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-primary flex items-center justify-center text-white font-black text-3xl shadow-lg shadow-primary/20 ring-4 ring-white">
-                  {doctor.name.charAt(0)}
-                </div>
+                <img
+                  src={getAvatarSrc(doctor)}
+                  alt={doctor.name}
+                  className="h-20 w-20 rounded-2xl object-cover shadow-lg shadow-primary/20 ring-4 ring-white"
+                />
                 <div className="space-y-1">
                   <div className="flex items-center gap-3">
                     <h1 className="text-3xl font-black text-slate-900 tracking-tight">{doctor.name}</h1>

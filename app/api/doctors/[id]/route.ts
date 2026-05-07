@@ -53,19 +53,21 @@ export async function PUT(
     const { id } = await params
     const body = await request.json()
 
+    const data: Record<string, unknown> = {}
+    if (body.name !== undefined) data.name = body.name
+    if (body.email !== undefined) data.email = body.email
+    if (body.phone !== undefined) data.phone = body.phone
+    if (body.specialty !== undefined) data.specialty = body.specialty
+    if (body.experience !== undefined) data.experience = body.experience
+    if (body.bio !== undefined) data.bio = body.bio
+    if (body.avatar !== undefined) data.avatar = body.avatar
+    if (body.gender !== undefined) data.gender = body.gender
+    if (body.status !== undefined) data.status = body.status
+    if (body.departmentId !== undefined) data.departmentId = body.departmentId
+
     const doctor = await prisma.doctor.update({
       where: { id },
-      data: {
-        name: body.name,
-        email: body.email,
-        phone: body.phone,
-        specialty: body.specialty,
-        experience: body.experience,
-        bio: body.bio,
-        avatar: body.avatar,
-        status: body.status,
-        departmentId: body.departmentId,
-      },
+      data,
       include: {
         department: true,
       },

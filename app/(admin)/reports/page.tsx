@@ -13,13 +13,10 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { FileText, TrendingUp, Download, Calendar, Users, Activity, Loader2 } from "lucide-react"
+import { FileText, TrendingUp, Download, Calendar, Users, Activity, Loader2, Coins } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid, Legend } from "recharts"
-import * as XLSX from "xlsx"
-import jsPDF from "jspdf"
-import autoTable from "jspdf-autotable"
 
 interface MonthStat {
   month: string
@@ -27,6 +24,15 @@ interface MonthStat {
   appointments: number
   completionRate: number
   appointmentsPerPatient: string
+}
+
+interface DoctorPerf {
+  name: string
+  total: number
+  completed: number
+  cancelled: number
+  revenue: number
+  completionRate: number
 }
 
 interface StatsData {
@@ -37,6 +43,8 @@ interface StatsData {
   servicePopularity: Array<{ name: string; value: number }>
   peakHours: Array<{ hour: string; count: number }>
   demographics: Array<{ name: string; value: number }>
+  doctorPerformance: DoctorPerf[]
+  totalRevenue: number
 }
 
 interface GeneratedReport {
@@ -132,11 +140,16 @@ export default function ReportsPage() {
         const rows = data.rows.map((row: string[]) => row.map(cleanStr))
 
         if (reportFormData.format === "excel") {
+          const XLSX = await import("xlsx")
           const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
           const wb = XLSX.utils.book_new()
           XLSX.utils.book_append_sheet(wb, ws, "Raport")
           XLSX.writeFile(wb, `raport-${reportFormData.type}-${dateStr}.xlsx`)
         } else if (reportFormData.format === "pdf") {
+          const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+            import("jspdf"),
+            import("jspdf-autotable"),
+          ])
           const doc = new jsPDF()
           
           // PDF Template styling
@@ -227,7 +240,7 @@ export default function ReportsPage() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
             <Card className="relative overflow-hidden group border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 transition-all duration-500 bg-white dark:bg-card/80 backdrop-blur-xl p-6 rounded-[24px]">
               <div className="absolute top-0 right-0 w-48 h-48 -mr-12 -mt-12 opacity-[0.03] group-hover:opacity-10 rounded-full blur-3xl transition-opacity bg-gradient-to-br from-primary to-primary/80" />
               <div className="flex items-center gap-5 relative z-10">
@@ -285,6 +298,27 @@ export default function ReportsPage() {
                       <div className="h-10 w-24 bg-muted animate-pulse rounded-xl" />
                     ) : (
                       <span className="text-4xl font-black tracking-tight text-slate-800">{statsData ? `${statsData.completionRate}%` : "—"}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="relative overflow-hidden group border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 transition-all duration-500 bg-white dark:bg-card/80 backdrop-blur-xl p-6 rounded-[24px]">
+              <div className="absolute top-0 right-0 w-48 h-48 -mr-12 -mt-12 opacity-[0.03] group-hover:opacity-10 rounded-full blur-3xl transition-opacity bg-gradient-to-br from-emerald-500 to-teal-600" />
+              <div className="flex items-center gap-5 relative z-10">
+                <div className="w-16 h-16 rounded-[20px] bg-gradient-to-br from-emerald-500/10 to-teal-600/5 border border-emerald-500/10 text-emerald-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform duration-500">
+                  <Coins className="w-7 h-7" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1">Venituri Luna Aceasta</p>
+                  <div className="flex items-baseline gap-3">
+                    {loadingStats ? (
+                      <div className="h-10 w-24 bg-muted animate-pulse rounded-xl" />
+                    ) : (
+                      <span className="text-4xl font-black tracking-tight text-slate-800">
+                        {statsData ? `${statsData.totalRevenue.toLocaleString("ro-RO")} lei` : "—"}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -483,6 +517,58 @@ export default function ReportsPage() {
             </div>
           </Card>
 
+          {/* Doctor Performance Table */}
+          <Card className="mb-8 border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-500 overflow-hidden bg-white dark:bg-card/80 backdrop-blur-xl rounded-[24px]">
+            <div className="p-8 border-b border-slate-100/80 bg-slate-50/50">
+              <h2 className="text-2xl font-black tracking-tight text-slate-800">Performanță Medici — Luna Curentă</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-50/80 border-b border-slate-100/80">
+                    <th className="text-left py-5 px-8 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Medic</th>
+                    <th className="text-right py-5 px-8 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Total Prog.</th>
+                    <th className="text-right py-5 px-8 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Finalizate</th>
+                    <th className="text-right py-5 px-8 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Anulate</th>
+                    <th className="text-right py-5 px-8 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Rata Finalizare</th>
+                    <th className="text-right py-5 px-8 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Venituri</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100/80">
+                  {loadingStats ? (
+                    <tr>
+                      <td colSpan={6} className="py-16 text-center">
+                        <div className="flex items-center justify-center gap-3">
+                          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                          <span className="font-bold text-xs uppercase tracking-widest text-primary">Se încarcă...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : statsData?.doctorPerformance?.length ? (
+                    statsData.doctorPerformance.map((doc, i) => (
+                      <tr key={i} className="group hover:bg-slate-50/80 transition-colors">
+                        <td className="py-5 px-8 text-sm font-extrabold text-slate-800">{doc.name}</td>
+                        <td className="py-5 px-8 text-right text-sm font-bold tabular-nums text-slate-600">{doc.total}</td>
+                        <td className="py-5 px-8 text-right text-sm font-bold tabular-nums text-emerald-600">{doc.completed}</td>
+                        <td className="py-5 px-8 text-right text-sm font-bold tabular-nums text-rose-500">{doc.cancelled}</td>
+                        <td className="py-5 px-8 text-right">
+                          <Badge variant="outline" className="rounded-lg border-primary/20 bg-primary/5 text-primary font-black tabular-nums">
+                            {doc.completionRate}%
+                          </Badge>
+                        </td>
+                        <td className="py-5 px-8 text-right text-sm font-black tabular-nums text-primary">{doc.revenue.toLocaleString("ro-RO")} lei</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="py-16 text-center text-slate-500 font-medium">Nu există programări înregistrate luna aceasta.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
           <Card className="border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-500 overflow-hidden bg-white dark:bg-card/80 backdrop-blur-xl rounded-[24px]">
             <div className="p-8 border-b border-slate-100/80 bg-slate-50/50">
               <h2 className="text-2xl font-black tracking-tight text-slate-800">Rapoarte Generate</h2>
@@ -520,7 +606,7 @@ export default function ReportsPage() {
                           </div>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="rounded-[16px] w-12 h-12 hover:bg-primary/10 hover:text-primary transition-all bg-slate-50">
+                      <Button variant="ghost" size="icon" aria-label="Descarcă" className="rounded-[16px] w-12 h-12 hover:bg-primary/10 hover:text-primary transition-all bg-slate-50">
                         <Download className="w-5 h-5" />
                       </Button>
                     </div>

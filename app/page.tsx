@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { BookingWizard } from "@/components/booking-wizard"
 import {
@@ -172,7 +173,7 @@ export default function LandingPage() {
             </div>
             <div className="relative h-full">
               <div className="absolute inset-y-8 left-4 right-0 rounded-3xl overflow-hidden shadow-2xl shadow-slate-300/40">
-                <img src="/modern-medical-clinic-reception-with-friendly-staf.jpg" alt="PoliCare" className="w-full h-full object-cover" />
+                <Image src="/modern-medical-clinic-reception-with-friendly-staf.jpg" alt="PoliCare" fill className="object-cover" priority />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 to-transparent" />
               </div>
               <div className="absolute top-12 right-0 z-10 bg-white shadow-lg border border-slate-100 px-3 py-2.5 rounded-2xl flex items-center gap-2.5">
@@ -200,7 +201,7 @@ export default function LandingPage() {
             <HeroText stats={stats} loading={loading} onBook={() => openBooking()} />
             {/* Mobile image */}
             <div className="relative rounded-2xl overflow-hidden aspect-[4/3] shadow-xl shadow-slate-200/60">
-              <img src="/modern-medical-clinic-reception-with-friendly-staf.jpg" alt="PoliCare" className="w-full h-full object-cover" />
+              <Image src="/modern-medical-clinic-reception-with-friendly-staf.jpg" alt="PoliCare" fill className="object-cover" priority />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 to-transparent" />
               {/* Mobile badges */}
               <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm shadow-md px-2.5 py-2 rounded-xl flex items-center gap-2">
@@ -280,7 +281,7 @@ export default function LandingPage() {
           <div className="hidden lg:grid lg:grid-cols-2 lg:min-h-[70vh] lg:items-center lg:gap-10">
             <div className="relative h-full">
               <div className="absolute inset-y-8 left-0 right-4 rounded-3xl overflow-hidden shadow-2xl shadow-slate-300/40">
-                <img src="/happy-patient-consultation-with-doctor.jpg" alt="Consultație PoliCare" className="w-full h-full object-cover" />
+                <Image src="/happy-patient-consultation-with-doctor.jpg" alt="Consultație PoliCare" fill className="object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/15 to-transparent" />
               </div>
               <div className="absolute bottom-12 right-8 z-10 bg-[#206070] text-white px-5 py-3.5 rounded-2xl shadow-xl">
@@ -297,7 +298,7 @@ export default function LandingPage() {
           <div className="lg:hidden py-10 space-y-8">
             {/* Image first on mobile */}
             <div className="relative rounded-2xl overflow-hidden aspect-[4/3] shadow-xl shadow-slate-200/60">
-              <img src="/happy-patient-consultation-with-doctor.jpg" alt="Consultație PoliCare" className="w-full h-full object-cover" />
+              <Image src="/happy-patient-consultation-with-doctor.jpg" alt="Consultație PoliCare" fill className="object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 to-transparent" />
               <div className="absolute bottom-3 right-3 bg-[#206070] text-white px-4 py-2.5 rounded-xl shadow-lg">
                 <p className="text-xl font-black leading-none">99%</p>

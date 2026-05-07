@@ -92,6 +92,7 @@ interface Service {
   id: string
   name: string
   duration: number
+  price: number | null
   departmentId: string
 }
 
@@ -162,6 +163,18 @@ const getStatusTextColor = (status: string) => {
     case "FINALIZAT": return "text-blue-700 dark:text-blue-400"
     case "NEPREZENTARE": return "text-slate-600 dark:text-slate-400"
     default: return "text-slate-600"
+  }
+}
+
+const getStatusBorderColor = (status: string) => {
+  switch (status) {
+    case "CONFIRMAT": return "border-l-emerald-500"
+    case "IN_ASTEPTARE": return "border-l-amber-500"
+    case "IN_DESFASURARE": return "border-l-indigo-500"
+    case "ANULAT": return "border-l-rose-500"
+    case "FINALIZAT": return "border-l-blue-400"
+    case "NEPREZENTARE": return "border-l-slate-400"
+    default: return "border-l-border"
   }
 }
 
@@ -817,6 +830,38 @@ export default function AppointmentsPage() {
     [appointments, debouncedSearchTerm, statusFilter, searchParams],
   )
 
+  const groupedAppointments = useMemo(() => {
+    const today = new Date(); today.setHours(0,0,0,0)
+    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1)
+
+    const now = today.getTime()
+    const sorted = [...filteredAppointments].sort((a, b) => {
+      const da = new Date(a.date); da.setHours(0,0,0,0)
+      const db = new Date(b.date); db.setHours(0,0,0,0)
+      const aUpcoming = da.getTime() >= now
+      const bUpcoming = db.getTime() >= now
+      if (aUpcoming !== bUpcoming) return aUpcoming ? -1 : 1
+      const d = da.getTime() - db.getTime()
+      const dateOrder = aUpcoming ? d : -d
+      return dateOrder !== 0 ? dateOrder : a.startTime.localeCompare(b.startTime)
+    })
+
+    const map = new Map<string, { label: string; isToday: boolean; appointments: Appointment[] }>()
+    sorted.forEach(apt => {
+      const d = new Date(apt.date); d.setHours(0,0,0,0)
+      const key = d.toISOString()
+      if (!map.has(key)) {
+        let label: string; let isToday = false
+        if (d.getTime() === today.getTime()) { label = "Azi"; isToday = true }
+        else if (d.getTime() === tomorrow.getTime()) label = "Mâine"
+        else label = d.toLocaleDateString("ro-RO", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+        map.set(key, { label, isToday, appointments: [] })
+      }
+      map.get(key)!.appointments.push(apt)
+    })
+    return [...map.values()]
+  }, [filteredAppointments])
+
   // Pre-index calendar slots for O(1) lookup instead of O(n) per cell
   const calendarIndex = useMemo(() => {
     const index = new Map<string, Appointment[]>()
@@ -859,6 +904,7 @@ export default function AppointmentsPage() {
       confirmed: appointments.filter((a) => a.status === "CONFIRMAT").length,
       waiting: appointments.filter((a) => a.status === "IN_ASTEPTARE").length,
       inProgress: appointments.filter((a) => a.status === "IN_DESFASURARE").length,
+      finished: appointments.filter((a) => a.status === "FINALIZAT").length,
     }),
     [appointments],
   )
@@ -900,7 +946,7 @@ export default function AppointmentsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
             <Card className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm">
               <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors" />
               <div className="flex items-center gap-4 relative z-10">
@@ -949,6 +995,19 @@ export default function AppointmentsPage() {
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">În Desfășurare</p>
                   <p className="text-3xl font-bold tracking-tight">{stats.inProgress}</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm">
+              <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors" />
+              <div className="flex items-center gap-4 relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center shadow-lg shadow-blue-200">
+                  <CheckCircle className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Finalizate</p>
+                  <p className="text-3xl font-bold tracking-tight">{stats.finished}</p>
                 </div>
               </div>
             </Card>
@@ -1097,158 +1156,155 @@ export default function AppointmentsPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="divide-y">
-                  <div className="grid grid-cols-1 gap-4">
-                    {filteredAppointments.map((appointment) => (
-                      <div key={appointment.id} className="group relative bg-white dark:bg-card/50 rounded-2xl border border-border/50 p-5 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 transition-all duration-300">
-                        <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+                <div className="space-y-4 p-3">
+                {groupedAppointments.map(group => (
+                  <div key={group.label}>
+                    <div className="flex items-center gap-3 mb-2 px-1">
+                      <span className={`text-sm font-bold ${group.isToday ? "text-primary" : "text-muted-foreground"}`}>{group.label}</span>
+                      <div className="h-px flex-1 bg-border/40" />
+                      <span className="text-xs text-muted-foreground">{group.appointments.length} programăr{group.appointments.length === 1 ? "e" : "i"}</span>
+                    </div>
+                    <div className="space-y-3">
+                    {group.appointments.map((appointment) => (
+                      <div key={appointment.id} className={`group relative bg-white dark:bg-card/50 rounded-2xl border border-border/50 border-l-4 ${getStatusBorderColor(appointment.status)} py-4 px-4 hover:shadow-lg hover:shadow-primary/5 hover:border-r-primary/30 transition-all duration-200`}>
+                        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                           {/* Patient info with Avatar */}
-                          <div className="flex items-center gap-4 w-full lg:w-[320px] shrink-0">
-                            <Avatar className="h-14 w-14 border-2 border-background shadow-sm ring-2 ring-muted/50">
-                              <AvatarFallback className="bg-gradient-to-br from-primary/5 to-primary/10 text-primary font-bold text-lg">
+                          <div className="flex items-center gap-3 w-full lg:w-[280px] shrink-0">
+                            <Avatar className="h-9 w-9 border border-background shadow-sm ring-1 ring-muted/50 shrink-0">
+                              <AvatarFallback className="bg-gradient-to-br from-primary/5 to-primary/10 text-primary font-bold text-xs">
                                 {appointment.patient.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
                               </AvatarFallback>
                             </Avatar>
-                            <div className="space-y-1">
+                            <div className="min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="font-bold text-foreground text-lg tracking-tight group-hover:text-primary transition-colors truncate max-w-[160px]">{appointment.patient.name}</span>
-                                  <Badge variant={getStatusColor(appointment.status)} className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getStatusBgColor(appointment.status)} ${getStatusTextColor(appointment.status)} border-none shadow-sm shrink-0`}>
+                                  <span className="font-semibold text-foreground text-sm tracking-tight group-hover:text-primary transition-colors truncate max-w-[150px]">{appointment.patient.name}</span>
+                                  <Badge variant={getStatusColor(appointment.status)} className={`rounded-full px-2 py-0 text-[10px] font-bold uppercase tracking-wider ${getStatusBgColor(appointment.status)} ${getStatusTextColor(appointment.status)} border-none shadow-sm shrink-0`}>
                                     {getStatusDisplay(appointment.status)}
                                   </Badge>
                                 </div>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
                                 {appointment.type && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-muted text-[11px] font-medium uppercase tracking-tight">
+                                  <span className="inline-flex items-center px-1.5 py-0 rounded bg-muted text-[10px] font-medium uppercase tracking-tight">
                                     {appointment.type}
                                   </span>
                                 )}
                                 <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                                <span className="font-medium text-xs text-muted-foreground/70">#{appointment.id.substring(0,6)}</span>
+                                <span className="font-medium text-muted-foreground/60">#{appointment.id.substring(0,6)}</span>
                               </div>
                             </div>
                           </div>
 
-                          {/* Middle section: Doctor & Time */}
-                          <div className="flex flex-col sm:flex-row flex-1 gap-4 lg:gap-8 py-4 lg:py-0 border-y lg:border-none border-border/50">
-                            <div className="flex flex-col gap-1 w-full sm:w-[200px] shrink-0">
-                              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
-                                <User className="w-3 h-3" />
-                                Medic
-                              </span>
-                              <span className="text-sm font-semibold text-foreground/90">{appointment.doctor.name}</span>
+                          <div className="flex-1 flex items-center gap-12 lg:gap-30 min-w-0">
+                            {/* Doctor + Specialty */}
+                            <div className="flex flex-col w-[170px] shrink-0">
+                              <span className="text-sm font-semibold text-foreground/90 leading-tight truncate">{appointment.doctor.name}</span>
                               <span className="text-xs text-muted-foreground">{appointment.department?.name || "General"}</span>
                             </div>
 
-                            <div className="flex flex-col gap-1 w-full sm:w-[150px] shrink-0">
-                              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
-                                <CalendarIcon className="w-3 h-3" />
-                                Dată
+                            {/* Price */}
+                            <div className="flex flex-col w-[80px] shrink-0">
+                              <span className="text-sm font-semibold text-foreground/90 leading-tight">
+                                {appointment.service?.price != null ? `${appointment.service.price} lei` : "—"}
                               </span>
-                              <span className="text-sm font-semibold text-foreground/90">{new Date(appointment.date).toLocaleDateString("ro-RO", { weekday: 'short', day: 'numeric', month: 'short' })}</span>
-                              <span className="text-xs text-muted-foreground">{new Date(appointment.date).getFullYear()}</span>
+                              <span className="text-xs text-muted-foreground">Preț</span>
                             </div>
 
-                            <div className="flex flex-col gap-1 w-full sm:w-[150px] shrink-0">
-                              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
-                                <Clock className="w-3 h-3" />
-                                Programare
-                              </span>
-                              <div className="flex items-baseline gap-1.5">
-                                <span className="text-sm font-bold text-foreground">{appointment.startTime}</span>
-                                <span className="text-[10px] font-medium text-muted-foreground">({appointment.duration} min)</span>
+                            {/* Date + Time */}
+                            <div className="flex flex-col w-[130px] shrink-0">
+                              <span className="text-sm font-semibold text-foreground/90 leading-tight">{new Date(appointment.date).toLocaleDateString("ro-RO", { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <span className="font-medium text-foreground/70">{appointment.startTime}</span>
+                                <span>·</span>
+                                <span>{appointment.duration} min</span>
+                                {appointment.notifications && appointment.notifications.length > 0 && (
+                                  <>
+                                    {appointment.notifications.find(n => n.type === "EMAIL") && (
+                                      <Mail className={`w-3 h-3 ml-0.5 ${appointment.notifications.find(n => n.type === "EMAIL")?.status === "SENT" ? "text-green-500" : "text-red-400"}`} />
+                                    )}
+                                    {appointment.notifications.find(n => n.type === "SMS") && (
+                                      <Phone className={`w-3 h-3 ${appointment.notifications.find(n => n.type === "SMS")?.status === "SENT" ? "text-green-500" : "text-red-400"}`} />
+                                    )}
+                                  </>
+                                )}
                               </div>
-                              {/* Notification Indicators */}
-                              {appointment.notifications && appointment.notifications.length > 0 && (
-                                <div className="flex items-center gap-1.5 mt-1">
-                                  {appointment.notifications.find(n => n.type === "EMAIL") && (
-                                    <div className={`p-1 rounded bg-muted/50 ${appointment.notifications.find(n => n.type === "EMAIL")?.status === "SENT" ? "text-green-600" : "text-red-500"}`} title="Email Status">
-                                      <Mail className="w-3 h-3" />
-                                    </div>
-                                  )}
-                                  {appointment.notifications.find(n => n.type === "SMS") && (
-                                    <div className={`p-1 rounded bg-muted/50 ${appointment.notifications.find(n => n.type === "SMS")?.status === "SENT" ? "text-green-600" : "text-red-500"}`} title="SMS Status">
-                                      <Phone className="w-3 h-3" />
-                                    </div>
-                                  )}
-                                </div>
-                              )}
                             </div>
-                          </div>
 
-                          {/* Actions */}
-                          <div className="flex items-center gap-2 self-end lg:self-center w-full lg:w-[220px] shrink-0 justify-end">
+                            {/* Spacer */}
+                            <div className="flex-1" />
+
+                            {/* Actions — always at far right */}
+                            <div className="flex items-center gap-1.5 shrink-0">
                             {appointment.status === "IN_ASTEPTARE" && (
-                              <div className="flex gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="h-10 px-4 border-emerald-100 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-xl font-bold transition-all" 
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 px-3 border-emerald-100 text-emerald-700 hover:bg-emerald-50 rounded-lg text-xs font-semibold transition-all"
                                   onClick={() => handleConfirmClick(appointment)}
                                 >
-                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  <CheckCircle className="w-3.5 h-3.5 mr-1" />
                                   Confirmă
                                 </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="h-10 px-4 border-destructive/30 text-destructive hover:bg-destructive/5 hover:border-destructive/50 rounded-xl font-bold transition-all" 
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 px-3 border-destructive/30 text-destructive hover:bg-destructive/5 rounded-lg text-xs font-semibold transition-all"
                                   onClick={() => handleDeclineClick(appointment)}
                                 >
-                                  <XCircle className="w-4 h-4 mr-2" />
+                                  <XCircle className="w-3.5 h-3.5 mr-1" />
                                   Respinge
                                 </Button>
-                              </div>
+                              </>
                             )}
-                            
                             {appointment.status === "CONFIRMAT" && (
-                              <div className="flex gap-2">
-                                <Button 
-                                  className="h-10 px-5 bg-indigo-600 hover:bg-indigo-700 rounded-xl font-bold shadow-md shadow-indigo-100 transition-all" 
-                                  onClick={() => handleStartAppointment(appointment)} 
+                              <>
+                                <Button
+                                  size="sm"
+                                  className="h-8 px-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-xs font-semibold transition-all"
+                                  onClick={() => handleStartAppointment(appointment)}
                                   disabled={saving}
                                 >
-                                  <ArrowRight className="w-4 h-4 mr-2" />
+                                  <ArrowRight className="w-3.5 h-3.5 mr-1" />
                                   Începe
                                 </Button>
                                 <Button
                                   variant="outline"
                                   size="icon"
-                                  className="h-10 w-10 rounded-xl border-primary/10 text-primary hover:bg-primary/5 transition-all"
+                                  className="h-8 w-8 rounded-lg border-primary/10 text-primary hover:bg-primary/5 transition-all"
                                   onClick={() => handleSendReminderClick(appointment)}
                                   disabled={sendingReminder === appointment.id}
-                                  title="Trimite reminder"
+                                  aria-label="Trimite reminder"
                                 >
-                                  {sendingReminder === appointment.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+                                  {sendingReminder === appointment.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Bell className="w-3.5 h-3.5" />}
                                 </Button>
-                              </div>
+                              </>
                             )}
-
                             {appointment.status === "IN_DESFASURARE" && (
-                              <Button 
-                                className="h-10 px-6 bg-emerald-600 hover:bg-emerald-700 rounded-xl font-bold shadow-md shadow-emerald-100 transition-all" 
-                                onClick={() => handleFinishAppointment(appointment)} 
+                              <Button
+                                size="sm"
+                                className="h-8 px-3 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-xs font-semibold transition-all"
+                                onClick={() => handleFinishAppointment(appointment)}
                                 disabled={saving}
                               >
-                                <CheckCircle className="w-4 h-4 mr-2" />
+                                <CheckCircle className="w-3.5 h-3.5 mr-1" />
                                 Finalizează
                               </Button>
                             )}
-
                             {!["FINALIZAT", "ANULAT", "NEPREZENTARE"].includes(appointment.status) && (
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-10 w-10 rounded-xl hover:bg-muted transition-all"
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-lg hover:bg-muted transition-all"
                                 onClick={() => handleEditClick(appointment)}
-                                title="Reprogramează"
+                                aria-label="Reprogramează"
                               >
-                                <CalendarIcon className="w-4 h-4 text-muted-foreground" />
+                                <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
                               </Button>
                             )}
                             
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-muted transition-all">
+                                <Button variant="ghost" size="icon" aria-label="Mai multe opțiuni" className="h-10 w-10 rounded-xl hover:bg-muted transition-all">
                                   <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -1368,11 +1424,14 @@ export default function AppointmentsPage() {
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
+                          </div>
                         </div>
                       </div>
                     ))}
+                    </div>
                   </div>
-                </div>
+                ))}
+              </div>
               )}
             </Card>
           ) : (

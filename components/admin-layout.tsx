@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
+import { usePathname } from "next/navigation"
 
 import { Logo } from "@/components/logo"
 import { SidebarNav } from "@/components/sidebar-nav"
@@ -13,11 +14,15 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [userRole, setUserRole] = useState<string | null>(null)
+  const pathname = usePathname()
 
   useEffect(() => {
-    // Only access localStorage strictly on client side to prevent hydration mismatches
     setUserRole(localStorage.getItem("userRole"))
   }, [])
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" })
+  }, [pathname])
 
   return (
     <div className="flex min-h-screen bg-background">

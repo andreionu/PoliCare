@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Bell, Clock, Search, User, Settings, LogOut } from "lucide-react"
+import { Bell, Clock, Search, User, Settings, LogOut, Sun, Moon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -21,6 +21,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useNotifications } from "@/hooks/use-notifications"
 import { formatDistanceToNow } from "date-fns"
 import { ro } from "date-fns/locale"
+import { useTheme } from "next-themes"
 
 export function Header() {
   const [userName, setUserName] = useState("Admin")
@@ -36,6 +37,7 @@ export function Header() {
 
   const { appointments, unreadCount, markAllSeen } = useNotifications()
   const [popoverOpen, setPopoverOpen] = useState(false)
+  const { theme, setTheme } = useTheme()
 
   const handleLogout = () => {
     localStorage.removeItem("userRole")
@@ -72,9 +74,19 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Comută tema"
+            className="h-10 w-10 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/10 hover:text-blue-600 transition-all"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          >
+            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          </Button>
           <Popover open={popoverOpen} onOpenChange={(open) => { setPopoverOpen(open); if (open) markAllSeen() }}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/10 hover:text-blue-600 transition-all focus-visible:ring-0">
+              <Button variant="ghost" size="icon" aria-label="Notificări" className="relative h-10 w-10 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/10 hover:text-blue-600 transition-all focus-visible:ring-0">
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
                   <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-card animate-in zoom-in">

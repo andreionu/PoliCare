@@ -10,6 +10,8 @@ export async function GET(request: Request) {
     const doctorId = searchParams.get("doctorId")
     const patientId = searchParams.get("patientId")
     const date = searchParams.get("date")
+    const from = searchParams.get("from")
+    const to = searchParams.get("to")
 
     // Build filter
     const where: Record<string, unknown> = {}
@@ -21,10 +23,17 @@ export async function GET(request: Request) {
       startOfDay.setHours(0, 0, 0, 0)
       const endOfDay = new Date(date)
       endOfDay.setHours(23, 59, 59, 999)
-      where.date = {
-        gte: startOfDay,
-        lte: endOfDay,
-      }
+      where.date = { gte: startOfDay, lte: endOfDay }
+    } else if (from || to) {
+      const dateFilter: Record<string, Date> = {}
+      if (from) { const d = new Date(from); d.setHours(0, 0, 0, 0); dateFilter.gte = d }
+      if (to) { const d = new Date(to); d.setHours(23, 59, 59, 999); dateFilter.lte = d }
+      where.date = dateFilter
+    } else if (!patientId && !doctorId) {
+      // Default: load 60 days back + 60 days forward to avoid dumping entire table
+      const past = new Date(); past.setDate(past.getDate() - 60); past.setHours(0, 0, 0, 0)
+      const future = new Date(); future.setDate(future.getDate() + 60); future.setHours(23, 59, 59, 999)
+      where.date = { gte: past, lte: future }
     }
 
     const appointments = await prisma.appointment.findMany({

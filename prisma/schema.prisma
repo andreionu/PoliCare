@@ -64,6 +64,7 @@ model Doctor {
   email      String       @unique
   phone      String
   avatar     String?
+  gender     Gender?
   specialty  String
   experience String
   rating     Float        @default(5.0)
