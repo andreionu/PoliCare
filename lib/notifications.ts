@@ -56,7 +56,7 @@ function buildEmailHtml(event: NotificationEvent, data: AppointmentData, customM
     <ul style="color:#374151;line-height:1.8">
       <li><strong>Data:</strong> ${dateStr}</li>
       <li><strong>Ora:</strong> ${data.startTime}</li>
-      <li><strong>Medic:</strong> Dr. ${data.doctor.name}</li>
+      <li><strong>Medic:</strong> ${data.doctor.name}</li>
       <li><strong>Departament:</strong> ${data.department?.name ?? "—"}</li>
     </ul>
   `
@@ -72,7 +72,7 @@ function buildEmailHtml(event: NotificationEvent, data: AppointmentData, customM
     case "CANCELLATION":
       return wrap(
         "Programare Anulată",
-        `<p style="color:#374151">Ne pare rău să vă informăm că programarea din <strong>${dateStr}</strong> la ora <strong>${data.startTime}</strong> cu Dr. ${data.doctor.name} a fost <strong style="color:#dc2626">anulată</strong>.</p>
+        `<p style="color:#374151">Ne pare rău să vă informăm că programarea din <strong>${dateStr}</strong> la ora <strong>${data.startTime}</strong> cu ${data.doctor.name} a fost <strong style="color:#dc2626">anulată</strong>.</p>
         <p style="color:#374151">Vă rugăm să ne contactați pentru a stabili o nouă programare.</p>`
       )
     case "REMINDER":
@@ -109,7 +109,7 @@ function buildSMSBody(event: NotificationEvent, data: AppointmentData, customMes
     case "CUSTOM":
       return customMessage ?? "Mesaj de la clinica."
     case "BOOKING_RECEIVED":
-      return `Cererea de programare la Dr. ${data.doctor.name} pe ${dateStr} la ora ${data.startTime} a fost primita. Va vom confirma curand.`
+      return `Cererea de programare la ${data.doctor.name} pe ${dateStr} la ora ${data.startTime} a fost primita. Va vom confirma curand.`
   }
 }
 
