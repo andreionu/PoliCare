@@ -34,7 +34,7 @@ export async function GET(
       )
     }
 
-    return NextResponse.json(doctor)
+    return NextResponse.json({ ...doctor, hasAccount: !!doctor.userId, userId: undefined })
   } catch (error) {
     console.error("Error fetching doctor:", error)
     return NextResponse.json(

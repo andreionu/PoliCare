@@ -1,13 +1,19 @@
 import { NextResponse } from "next/server"
 import { BlobServiceClient } from "@azure/storage-blob"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { v4 as uuidv4 } from "uuid"
 
-// Initialize Azure Blob Client
 const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING || ""
 const containerName = process.env.AZURE_STORAGE_CONTAINER_NAME || "documents"
 
 export async function POST(req: Request) {
+  const session = await getServerSession(authOptions)
+  if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+  if (!["SUPER_ADMIN", "FRONT_DESK"].includes(session.user.role)) {
+    return NextResponse.json({ message: "Forbidden" }, { status: 403 })
+  }
   try {
     const formData = await req.formData()
     const file = formData.get("file") as File | null

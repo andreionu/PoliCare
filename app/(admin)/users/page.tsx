@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -37,7 +38,8 @@ export default function UsersPage() {
   const [showAddUser, setShowAddUser] = useState(false)
   const [showEditUser, setShowEditUser] = useState(false)
   const [editingUser, setEditingUser] = useState<AppUser | null>(null)
-  const [role, setRole] = useState<string | null>(null)
+  const { data: session } = useSession()
+  const role = session?.user?.role ?? null
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [users, setUsers] = useState<AppUser[]>([])
@@ -78,8 +80,8 @@ export default function UsersPage() {
   }
 
   useEffect(() => {
-    const storedRole = localStorage.getItem("userRole")
-    if (storedRole !== "super-admin") {
+    if (!session) return
+    if (role !== "SUPER_ADMIN") {
       toast({
         title: "Acces interzis",
         description: "Această pagină este dedicată doar administratorilor.",
@@ -88,9 +90,8 @@ export default function UsersPage() {
       router.push("/admin")
       return
     }
-    setRole(storedRole)
     fetchUsers()
-  }, [router, toast])
+  }, [session, role, router, toast])
 
   const filteredUsers = users.filter(
     (user) =>
@@ -253,7 +254,7 @@ export default function UsersPage() {
     )
   }
 
-  if (role !== "super-admin") return null
+  if (role !== "SUPER_ADMIN") return null
 
   return (
     <>

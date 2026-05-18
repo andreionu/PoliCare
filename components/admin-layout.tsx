@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
 import { usePathname } from "next/navigation"
 
 import { Logo } from "@/components/logo"
@@ -10,15 +10,12 @@ import { Header } from "@/components/header"
 
 interface AdminLayoutProps {
   children: React.ReactNode
+  userName: string
+  userRole: string
 }
 
-export function AdminLayout({ children }: AdminLayoutProps) {
-  const [userRole, setUserRole] = useState<string | null>(null)
+export function AdminLayout({ children, userName, userRole }: AdminLayoutProps) {
   const pathname = usePathname()
-
-  useEffect(() => {
-    setUserRole(localStorage.getItem("userRole"))
-  }, [])
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" })
@@ -31,13 +28,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           <Logo size="sm" />
         </div>
         <div className="flex-1 overflow-y-auto py-6">
-          <SidebarNav userRole={userRole as any} />
+          <SidebarNav userRole={userRole as "SUPER_ADMIN" | "FRONT_DESK"} />
         </div>
       </aside>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen">
-        <Header />
+        <Header userName={userName} userRole={userRole} />
         {children}
       </div>
     </div>

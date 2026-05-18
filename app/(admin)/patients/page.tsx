@@ -73,7 +73,6 @@ export default function PatientsPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
-  const [role, setRole] = useState<"super-admin" | "front-desk" | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Modal state
@@ -110,10 +109,6 @@ export default function PatientsPage() {
     [patients, statusFilter]
   )
 
-  useEffect(() => {
-    const storedRole = localStorage.getItem("userRole") as "super-admin" | "front-desk" | null
-    setRole(storedRole)
-  }, [])
 
   useEffect(() => {
     setPage(1)

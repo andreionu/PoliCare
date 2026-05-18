@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { sendAppointmentNotification } from "@/lib/notifications"
 
@@ -46,6 +48,45 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
+
+    const session = await getServerSession(authOptions)
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    // Patients: can only cancel their own appointments
+    if (session.user.role === "PATIENT") {
+      const appt = await prisma.appointment.findUnique({ where: { id }, select: { patientId: true, status: true } })
+      if (!appt || appt.patientId !== session.user.patientId) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      }
+      const cancellable = ["IN_ASTEPTARE", "CONFIRMAT"]
+      if (body.status !== "ANULAT" || !cancellable.includes(appt.status)) {
+        return NextResponse.json({ error: "Invalid status transition" }, { status: 400 })
+      }
+      const updated = await prisma.appointment.update({
+        where: { id },
+        data: { status: "ANULAT" },
+        include: { patient: true, doctor: true, department: true },
+      })
+      return NextResponse.json(updated)
+    }
+
+    // Doctors: status-only update restricted to their own appointments
+    if (session.user.role === "DOCTOR") {
+      const appt = await prisma.appointment.findUnique({ where: { id }, select: { doctorId: true } })
+      if (!appt || appt.doctorId !== session.user.doctorId) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      }
+      const allowed = ["CONFIRMAT", "IN_DESFASURARE", "FINALIZAT", "NEPREZENTARE"]
+      if (!body.status || !allowed.includes(body.status)) {
+        return NextResponse.json({ error: "Invalid status" }, { status: 400 })
+      }
+      const updated = await prisma.appointment.update({
+        where: { id },
+        data: { status: body.status },
+        include: { patient: true, doctor: true, department: true },
+      })
+      return NextResponse.json(updated)
+    }
 
     // Conflict check only when time/date/doctor is changing
     if (body.date || body.startTime || body.endTime || body.doctorId) {

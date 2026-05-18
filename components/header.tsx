@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { signOut } from "next-auth/react"
 import { Bell, Clock, Search, User, Settings, LogOut, Sun, Moon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,26 +24,21 @@ import { formatDistanceToNow } from "date-fns"
 import { ro } from "date-fns/locale"
 import { useTheme } from "next-themes"
 
-export function Header() {
-  const [userName, setUserName] = useState("Admin")
-  const [userRole, setUserRole] = useState<string | null>(null)
+interface HeaderProps {
+  userName: string
+  userRole: string
+}
+
+export function Header({ userName, userRole }: HeaderProps) {
   const [searchValue, setSearchValue] = useState("")
   const router = useRouter()
-
-  useEffect(() => {
-    setUserRole(localStorage.getItem("userRole"))
-    const name = localStorage.getItem("userName")
-    if (name) setUserName(name)
-  }, [])
 
   const { appointments, unreadCount, markAllSeen } = useNotifications()
   const [popoverOpen, setPopoverOpen] = useState(false)
   const { theme, setTheme } = useTheme()
 
   const handleLogout = () => {
-    localStorage.removeItem("userRole")
-    localStorage.removeItem("userName")
-    window.location.href = "/login"
+    signOut({ callbackUrl: "/login" })
   }
 
   const initials = userName
@@ -178,7 +174,7 @@ export function Header() {
                 <div className="hidden md:flex flex-col items-start text-left leading-none">
                   <span className="text-sm font-bold text-foreground tracking-tight">{userName}</span>
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">
-                    {userRole === "super-admin" ? "Super Admin" : "Recepție"}
+                    {userRole === "SUPER_ADMIN" ? "Super Admin" : "Recepție"}
                   </span>
                 </div>
               </Button>
@@ -187,7 +183,7 @@ export function Header() {
               <DropdownMenuLabel className="px-4 py-3">
                 <p className="text-sm font-bold text-foreground leading-none">{userName}</p>
                 <p className="text-xs text-muted-foreground mt-1.5 font-medium">
-                  {userRole === "super-admin" ? "Administrator Sistem" : "Personal Recepție"}
+                  {userRole === "SUPER_ADMIN" ? "Administrator Sistem" : "Personal Recepție"}
                 </p>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />

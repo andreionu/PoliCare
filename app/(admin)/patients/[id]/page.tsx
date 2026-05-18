@@ -35,6 +35,7 @@ import {
   Upload,
   File,
   Download,
+  Trash2,
   Image as ImageIcon
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
@@ -120,8 +121,6 @@ export default function PatientDetailPage() {
 
   const [patient, setPatient] = useState<PatientDetail | null>(null)
   const [loading, setLoading] = useState(true)
-  const [role, setRole] = useState<string | null>(null)
-
   // Edit patient modal
   const [showEditPatient, setShowEditPatient] = useState(false)
   const [editForm, setEditForm] = useState({ name: "", cnp: "", gender: "NONE", phone: "", email: "", address: "", status: "", notes: "", primaryDoctorId: "NONE" })
@@ -177,6 +176,34 @@ export default function PatientDetailPage() {
     }
   }
 
+  const handleDeleteDocument = async (docId: string) => {
+    if (!confirm("Ștergeți acest document?")) return
+    try {
+      const res = await fetch(`/api/documents/${docId}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Eroare la ștergere")
+      await fetchPatient()
+      toast({ title: "Succes", description: "Documentul a fost șters." })
+    } catch (error: any) {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" })
+    }
+  }
+
+  const handleDownloadDocument = async (docId: string, docName: string) => {
+    try {
+      const res = await fetch(`/api/documents/${docId}/url`)
+      const data = await res.json()
+      if (data.url) {
+        const a = document.createElement("a")
+        a.href = data.url
+        a.download = docName
+        a.target = "_blank"
+        a.click()
+      }
+    } catch (error: any) {
+      toast({ title: "Eroare", description: "Nu s-a putut genera link-ul.", variant: "destructive" })
+    }
+  }
+
   const fetchPatient = useCallback(async () => {
     try {
       const response = await fetch(`/api/patients/${patientId}`)
@@ -192,8 +219,6 @@ export default function PatientDetailPage() {
   }, [patientId, toast])
 
   useEffect(() => {
-    const storedRole = localStorage.getItem("userRole") as string | null
-    setRole(storedRole)
     fetchPatient()
     
     const fetchDoctors = async () => {
@@ -730,10 +755,23 @@ export default function PatientDetailPage() {
                               <span>{new Date(doc.createdAt).toLocaleDateString("ro-RO")}</span>
                             </div>
                           </div>
-                          <Button variant="ghost" size="icon" aria-label="Descarcă document" className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" asChild>
-                            <a href={doc.url} target="_blank" rel="noopener noreferrer">
-                              <Download className="h-5 w-5 text-muted-foreground hover:text-foreground" />
-                            </a>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Descarcă document"
+                            className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => handleDownloadDocument(doc.id, doc.name)}
+                          >
+                            <Download className="h-5 w-5 text-muted-foreground hover:text-foreground" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Șterge document"
+                            className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteDocument(doc.id)}
+                          >
+                            <Trash2 className="h-5 w-5" />
                           </Button>
                         </Card>
                       ))}

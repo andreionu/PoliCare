@@ -1201,12 +1201,22 @@ export default function AppointmentsPage() {
                               <span className="text-xs text-muted-foreground">{appointment.department?.name || "General"}</span>
                             </div>
 
-                            {/* Price */}
-                            <div className="flex flex-col w-[80px] shrink-0">
+                            {/* Price + Payment */}
+                            <div className="flex flex-col w-[110px] shrink-0">
                               <span className="text-sm font-semibold text-foreground/90 leading-tight">
                                 {appointment.service?.price != null ? `${appointment.service.price} lei` : "—"}
                               </span>
-                              <span className="text-xs text-muted-foreground">Preț</span>
+                              <span className={`text-xs font-semibold ${
+                                appointment.paymentStatus === "PAID" ? "text-emerald-600" :
+                                appointment.paymentStatus === "PENDING" ? "text-amber-600" :
+                                appointment.paymentStatus === "REFUNDED" ? "text-purple-600" :
+                                "text-muted-foreground"
+                              }`}>
+                                {appointment.paymentStatus === "PAID" ? "✓ Plătit" :
+                                 appointment.paymentStatus === "PENDING" ? "În procesare" :
+                                 appointment.paymentStatus === "REFUNDED" ? "Rambursat" :
+                                 "Neachitat"}
+                              </span>
                             </div>
 
                             {/* Date + Time */}

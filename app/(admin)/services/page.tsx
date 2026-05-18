@@ -48,7 +48,6 @@ export default function ServicesPage() {
   const [deptFilter, setDeptFilter] = useState("all")
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [role, setRole] = useState<string | null>(null)
   const [services, setServices] = useState<Service[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
 
@@ -87,8 +86,6 @@ export default function ServicesPage() {
   }
 
   useEffect(() => {
-    const storedRole = localStorage.getItem("userRole") as string | null
-    setRole(storedRole)
     fetchServices()
     fetchDepartments()
   }, [])

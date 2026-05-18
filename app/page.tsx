@@ -27,6 +27,8 @@ import {
   Menu,
   X,
 } from "lucide-react"
+import Link from "next/link"
+import { AuthModal } from "@/components/auth-modal"
 import { Preloader } from "@/components/preloader"
 import { Logo } from "@/components/logo"
 import { cn } from "@/lib/utils"
@@ -72,6 +74,12 @@ export default function LandingPage() {
   const [settings, setSettings]             = useState<any>(null)
   const [loading, setLoading]               = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [authModal, setAuthModal] = useState<{ open: boolean; tab: "login" | "register" }>({ open: false, tab: "login" })
+
+  const openAuth = (tab: "login" | "register") => {
+    setMobileMenuOpen(false)
+    setAuthModal({ open: true, tab })
+  }
 
   const openBooking = (deptId?: string) => {
     setPreselectedDept(deptId ?? null)
@@ -103,7 +111,7 @@ export default function LandingPage() {
   useEffect(() => {
     document.body.style.overflow = (showBooking || mobileMenuOpen) ? "hidden" : "unset"
     return () => { document.body.style.overflow = "unset" }
-  }, [showBooking, mobileMenuOpen])
+  }, [showBooking, mobileMenuOpen, authModal.open])
 
   return (
     <div className="min-h-screen bg-white">
@@ -121,6 +129,20 @@ export default function LandingPage() {
               <a href="#about"    className="text-sm font-medium text-slate-500 hover:text-[#206070] transition-colors">Despre Noi</a>
               <a href="#contact"  className="text-sm font-medium text-slate-500 hover:text-[#206070] transition-colors">Contact</a>
             </nav>
+            <div className="w-px h-5 bg-slate-200" />
+            <button
+              onClick={() => openAuth("login")}
+              className="text-sm font-semibold text-slate-600 hover:text-[#206070] transition-colors"
+            >
+              Autentificare
+            </button>
+            <Button
+              variant="outline"
+              onClick={() => openAuth("register")}
+              className="rounded-xl px-4 h-9 font-semibold text-sm border-[#206070] text-[#206070] hover:bg-[#206070] hover:text-white transition-all"
+            >
+              Cont Nou
+            </Button>
             <div className="w-px h-5 bg-slate-200" />
             <Button className="bg-[#206070] hover:bg-[#1a4d5a] rounded-xl px-5 h-9 font-semibold text-sm shadow-sm" onClick={() => openBooking()}>
               <Calendar className="mr-1.5 h-3.5 w-3.5" />Programare
@@ -150,7 +172,23 @@ export default function LandingPage() {
                 {label}
               </a>
             ))}
-            <div className="pt-3">
+            <div className="pt-3 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => openAuth("login")}
+                  className="rounded-xl h-10 font-semibold text-sm border-[#206070] text-[#206070] hover:bg-[#206070] hover:text-white transition-all"
+                >
+                  Autentificare
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => openAuth("register")}
+                  className="rounded-xl h-10 font-semibold text-sm border-slate-300 text-slate-600 hover:bg-slate-50 transition-all"
+                >
+                  Cont Nou
+                </Button>
+              </div>
               <Button className="w-full bg-[#206070] hover:bg-[#1a4d5a] rounded-xl h-11 font-semibold text-sm" onClick={() => openBooking()}>
                 <Calendar className="mr-2 h-4 w-4" />Programare Rapidă
               </Button>
@@ -416,6 +454,12 @@ export default function LandingPage() {
       {showBooking && (
         <BookingWizard onClose={() => { setShowBooking(false); setPreselectedDept(null) }} initialDepartmentId={preselectedDept} />
       )}
+
+      <AuthModal
+        open={authModal.open}
+        defaultTab={authModal.tab}
+        onOpenChange={(open) => setAuthModal((prev) => ({ ...prev, open }))}
+      />
     </div>
   )
 }

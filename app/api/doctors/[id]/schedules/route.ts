@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
 // GET /api/doctors/[id]/schedules
@@ -17,10 +19,20 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 }
 
 // PUT /api/doctors/[id]/schedules
-// Expects: { schedules: Array<{ dayOfWeek: number, startTime: string, endTime: string, isActive: boolean }> }
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
     const { id } = await params
+
+    const adminRoles = ["SUPER_ADMIN", "FRONT_DESK"]
+    if (!adminRoles.includes(session.user.role)) {
+      if (session.user.role !== "DOCTOR" || session.user.doctorId !== id) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      }
+    }
+
     const body = await request.json()
     const { schedules } = body as {
       schedules: Array<{ dayOfWeek: number; startTime: string; endTime: string; isActive: boolean }>
@@ -30,7 +42,6 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "schedules array is required" }, { status: 400 })
     }
 
-    // Upsert each day using the unique constraint [doctorId, dayOfWeek]
     const results = await Promise.all(
       schedules.map((s) =>
         prisma.doctorSchedule.upsert({

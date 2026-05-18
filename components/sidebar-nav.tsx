@@ -17,7 +17,7 @@ import {
 } from "lucide-react"
 
 interface SidebarNavProps {
-  userRole?: "super-admin" | "front-desk" | null
+  userRole?: "SUPER_ADMIN" | "FRONT_DESK" | null
 }
 
 const navItems = [
@@ -109,7 +109,7 @@ export function SidebarNav({ userRole }: SidebarNavProps) {
         </div>
       </div>
 
-      {userRole === "super-admin" && (
+      {userRole === "SUPER_ADMIN" && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
           <p className="px-3 mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50">Administrare</p>
           <div className="space-y-1.5">

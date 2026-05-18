@@ -1,36 +1,20 @@
-"use client"
-
-import { useEffect, useState } from "react"
-import { useRouter, usePathname } from "next/navigation"
+import type React from "react"
+import { getServerSession } from "next-auth"
+import { redirect } from "next/navigation"
+import { authOptions } from "@/lib/auth"
 import { AdminLayout } from "@/components/admin-layout"
-import { Preloader } from "@/components/preloader"
-import { AnimatePresence } from "framer-motion"
 
-interface LayoutProps {
-  children: React.ReactNode
-}
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const session = await getServerSession(authOptions)
 
-export default function AppLayout({ children }: LayoutProps) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const [isAuthorized, setIsAuthorized] = useState(false)
+  if (!session) redirect("/login")
 
-  useEffect(() => {
-    const role = localStorage.getItem("userRole")
-    if (!role) {
-      router.push("/login")
-    } else {
-      setIsAuthorized(true)
-    }
-  }, [router, pathname])
+  const adminRoles = ["SUPER_ADMIN", "FRONT_DESK"]
+  if (!adminRoles.includes(session.user.role)) redirect("/login")
 
-  if (!isAuthorized) {
-    return (
-      <AnimatePresence>
-        <Preloader />
-      </AnimatePresence>
-    )
-  }
-
-  return <AdminLayout>{children}</AdminLayout>
+  return (
+    <AdminLayout userName={session.user.name ?? "Admin"} userRole={session.user.role}>
+      {children}
+    </AdminLayout>
+  )
 }

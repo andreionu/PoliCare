@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
 // GET /api/medical-records?patientId=xxx
@@ -33,10 +35,26 @@ export async function GET(request: Request) {
 // POST /api/medical-records
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
     const body = await request.json()
 
     if (!body.patientId) {
       return NextResponse.json({ error: "patientId is required" }, { status: 400 })
+    }
+
+    if (session.user.role === "DOCTOR") {
+      const doctorId = session.user.doctorId
+      if (!doctorId) return NextResponse.json({ error: "Doctor profile not found" }, { status: 404 })
+      const patient = await prisma.patient.findFirst({
+        where: {
+          id: body.patientId,
+          OR: [{ primaryDoctorId: doctorId }, { appointments: { some: { doctorId } } }],
+        },
+        select: { id: true },
+      })
+      if (!patient) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     const record = await prisma.medicalRecord.create({

@@ -34,6 +34,10 @@ export const authOptions: NextAuthOptions = {
         // 2. Find the user in the database
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
+          include: {
+            doctorProfile: { select: { id: true } },
+            patientProfile: { select: { id: true } },
+          },
         })
 
         // 3. If no user found, reject
@@ -62,6 +66,8 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           role: user.role,
+          doctorId: user.doctorProfile?.id ?? null,
+          patientId: user.patientProfile?.id ?? null,
         }
       },
     }),
@@ -69,20 +75,22 @@ export const authOptions: NextAuthOptions = {
 
   // Callbacks let us customize the JWT and session
   callbacks: {
-    // Add role to the JWT token
     async jwt({ token, user }) {
       if (user) {
         token.role = user.role
         token.id = user.id
+        token.doctorId = (user as any).doctorId ?? null
+        token.patientId = (user as any).patientId ?? null
       }
       return token
     },
 
-    // Add role to the session (accessible in React components)
     async session({ session, token }) {
       if (session.user) {
         session.user.role = token.role as string
         session.user.id = token.id as string
+        session.user.doctorId = (token.doctorId as string | null) ?? null
+        session.user.patientId = (token.patientId as string | null) ?? null
       }
       return session
     },

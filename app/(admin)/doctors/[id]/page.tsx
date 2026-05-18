@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -20,6 +21,7 @@ import { Switch } from "@/components/ui/switch"
 import {
   ArrowLeft,
   Edit,
+  KeyRound,
   Loader2,
   Phone,
   Mail,
@@ -64,6 +66,7 @@ interface DoctorDetail {
     patient: { id: string; name: string }
     department: { id: string; name: string } | null
   }>
+  hasAccount: boolean
 }
 
 interface Patient {
@@ -132,9 +135,17 @@ export default function DoctorDetailPage() {
   const { toast } = useToast()
   const doctorId = params.id as string
 
+  const { data: session } = useSession()
+  const isSuperAdmin = session?.user?.role === "SUPER_ADMIN"
+
   const [doctor, setDoctor] = useState<DoctorDetail | null>(null)
   const [patients, setPatients] = useState<Patient[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Create account modal
+  const [showCreateAccount, setShowCreateAccount] = useState(false)
+  const [accountForm, setAccountForm] = useState({ email: "", temporaryPassword: "" })
+  const [creatingAccount, setCreatingAccount] = useState(false)
 
 
   // Schedule state (7 days)
@@ -244,6 +255,39 @@ export default function DoctorDetailPage() {
     }
   }
 
+  const handleOpenCreateAccount = () => {
+    if (!doctor) return
+    setAccountForm({ email: doctor.email, temporaryPassword: "" })
+    setShowCreateAccount(true)
+  }
+
+  const handleCreateAccount = async () => {
+    if (!accountForm.email || !accountForm.temporaryPassword) {
+      toast({ title: "Eroare", description: "Completați toate câmpurile.", variant: "destructive" })
+      return
+    }
+    setCreatingAccount(true)
+    try {
+      const response = await fetch(`/api/doctors/${doctorId}/account`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(accountForm),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message || "Eroare")
+      await fetchDoctor()
+      setShowCreateAccount(false)
+      toast({
+        title: "Cont creat",
+        description: `Email: ${data.email} | Parola temporară: ${accountForm.temporaryPassword}`,
+      })
+    } catch (error: any) {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" })
+    } finally {
+      setCreatingAccount(false)
+    }
+  }
+
   const handleSaveSchedule = async () => {
     setSavingSchedule(true)
     try {
@@ -329,8 +373,23 @@ export default function DoctorDetailPage() {
             </div>
             
             <div className="flex items-center gap-3 w-full sm:w-auto">
-              <Button 
-                variant="outline" 
+              {isSuperAdmin && !doctor?.hasAccount && (
+                <Button
+                  variant="outline"
+                  onClick={handleOpenCreateAccount}
+                  className="rounded-xl h-11 px-6 font-bold border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition-all flex-1 sm:flex-none"
+                >
+                  <KeyRound className="h-4 w-4 mr-2" />
+                  Creare Cont
+                </Button>
+              )}
+              {isSuperAdmin && doctor?.hasAccount && (
+                <Badge className="bg-emerald-100 text-emerald-700 font-bold px-3 py-1.5 rounded-xl">
+                  Cont activ
+                </Badge>
+              )}
+              <Button
+                variant="outline"
                 onClick={handleOpenEdit}
                 className="rounded-xl h-11 px-6 font-bold border-slate-200 hover:bg-slate-50 transition-all flex-1 sm:flex-none"
               >
@@ -723,6 +782,43 @@ export default function DoctorDetailPage() {
             <Button variant="outline" onClick={() => setShowEditDoctor(false)} disabled={savingDoctor}>Anulează</Button>
             <Button onClick={handleSaveDoctor} disabled={savingDoctor}>
               {savingDoctor ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Se salvează...</> : "Salvează"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Account Modal */}
+      <Dialog open={showCreateAccount} onOpenChange={setShowCreateAccount}>
+        <DialogContent className="sm:max-w-md rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Creare Cont Medic</DialogTitle>
+            <DialogDescription>Setați credențialele de autentificare pentru {doctor?.name}.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={accountForm.email}
+                onChange={(e) => setAccountForm({ ...accountForm, email: e.target.value })}
+                placeholder="email@policare.ro"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Parolă temporară</Label>
+              <Input
+                type="text"
+                value={accountForm.temporaryPassword}
+                onChange={(e) => setAccountForm({ ...accountForm, temporaryPassword: e.target.value })}
+                placeholder="Minim 6 caractere"
+              />
+              <p className="text-xs text-muted-foreground">Comunicați această parolă medicului. El o va putea schimba după autentificare.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateAccount(false)} disabled={creatingAccount}>Anulează</Button>
+            <Button onClick={handleCreateAccount} disabled={creatingAccount}>
+              {creatingAccount ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Se creează...</> : "Creare Cont"}
             </Button>
           </DialogFooter>
         </DialogContent>

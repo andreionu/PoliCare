@@ -2,6 +2,9 @@
 
 import type React from "react"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { signIn, getSession } from "next-auth/react"
 import { Eye, EyeOff, Loader2, ShieldCheck, Mail, Lock, ArrowRight } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
@@ -10,12 +13,9 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 
-interface LoginScreenProps {
-  onLogin: (role: "super-admin" | "front-desk") => void
-}
-
-export function LoginScreen({ onLogin }: LoginScreenProps) {
+export function LoginScreen() {
   const { toast } = useToast()
+  const router = useRouter()
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -36,39 +36,39 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     }
 
     const sanitizedEmail = email.trim().toLowerCase()
-    
     setIsLoading(true)
 
-    // Simulating API call
-    setTimeout(() => {
-      if (sanitizedEmail === "admin@policare.ro" && password === "admin123") {
-        toast({
-          title: "Autentificare reușită",
-          description: "Bine ai venit în panoul de administrare PoliCare!",
-        })
-        localStorage.setItem("userRole", "super-admin")
-        onLogin("super-admin")
-      } else if (sanitizedEmail === "receptie@policare.ro" && password === "receptie123") {
-        toast({
-          title: "Autentificare reușită",
-          description: "Bine ai venit la recepție!",
-        })
-        localStorage.setItem("userRole", "front-desk")
-        onLogin("front-desk")
-      } else {
-        const newAttempts = loginAttempts + 1
-        setLoginAttempts(newAttempts)
+    const result = await signIn("credentials", {
+      email: sanitizedEmail,
+      password,
+      redirect: false,
+    })
 
-        if (newAttempts >= 5) {
-          const lockout = Date.now() + 5 * 60 * 1000
-          setLockoutTime(lockout)
-          setError("Cont blocat temporar. Prea multe încercări eșuate.")
-        } else {
-          setError(`Date de acces invalide. ${5 - newAttempts} încercări rămase.`)
-        }
-        setIsLoading(false)
+    if (result?.error) {
+      const newAttempts = loginAttempts + 1
+      setLoginAttempts(newAttempts)
+
+      if (newAttempts >= 5) {
+        const lockout = Date.now() + 5 * 60 * 1000
+        setLockoutTime(lockout)
+        setError("Cont blocat temporar. Prea multe încercări eșuate.")
+      } else {
+        setError(result.error === "CredentialsSignin" ? `Date de acces invalide. ${5 - newAttempts} încercări rămase.` : result.error)
       }
-    }, 1500)
+      setIsLoading(false)
+    } else {
+      const session = await getSession()
+      const role = session?.user?.role
+
+      toast({
+        title: "Autentificare reușită",
+        description: "Bine ai venit în PoliCare!",
+      })
+
+      if (role === "DOCTOR") router.push("/doctor/dashboard")
+      else if (role === "PATIENT") router.push("/patient/dashboard")
+      else router.push("/admin")
+    }
   }
 
   const isLocked = !!(lockoutTime && Date.now() < lockoutTime)
@@ -175,9 +175,16 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
               </div>
             )}
 
-            <Button 
-              type="submit" 
-              className="w-full h-14 bg-[#206070] hover:bg-[#1a4d5a] text-white font-black rounded-[20px] shadow-xl shadow-[#206070]/20 transition-all hover:scale-[1.02] active:scale-[0.98] group" 
+            <p className="text-center text-sm text-slate-500">
+              Pacient nou?{" "}
+              <Link href="/register" className="text-[#206070] font-bold hover:underline">
+                Creați un cont
+              </Link>
+            </p>
+
+            <Button
+              type="submit"
+              className="w-full h-14 bg-[#206070] hover:bg-[#1a4d5a] text-white font-black rounded-[20px] shadow-xl shadow-[#206070]/20 transition-all hover:scale-[1.02] active:scale-[0.98] group"
               disabled={isLoading || isLocked}
             >
               {isLoading ? (
