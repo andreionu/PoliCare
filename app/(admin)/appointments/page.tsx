@@ -53,6 +53,8 @@ import {
   UserX,
   ExternalLink,
   Play,
+  CreditCard,
+  RotateCcw,
 } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { useDebounce } from "@/hooks/use-debounce"
@@ -112,6 +114,7 @@ interface Appointment {
   department: Department | null
   service?: Service | null
   notifications?: Notification[]
+  paymentStatus?: string
 }
 
 const getMonday = (date: Date) => {
@@ -237,6 +240,10 @@ export default function AppointmentsPage() {
   const [sendingBulkReminders, setSendingBulkReminders] = useState(false)
   const [reminderModalState, setReminderModalState] = useState<{ open: boolean; type: "bulk" | "single"; appointmentId?: string }>({ open: false, type: "bulk" })
   const [reminderOptions, setReminderOptions] = useState({ sendEmail: true, sendSMS: false })
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkLoading, setBulkLoading] = useState(false)
+  const [bulkCancelConfirmOpen, setBulkCancelConfirmOpen] = useState(false)
+  const [payingId, setPayingId] = useState<string | null>(null)
 
   const [appointmentFormData, setAppointmentFormData] = useState({
     patientName: "",
@@ -666,6 +673,87 @@ export default function AppointmentsPage() {
       if (isBulk) setSendingBulkReminders(false)
       else setSendingReminder(null)
     }
+  }
+
+  const toggleSelect = (id: string) =>
+    setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+
+  const toggleSelectAll = () =>
+    setSelectedIds(prev => prev.size === filteredAppointments.length ? new Set() : new Set(filteredAppointments.map(a => a.id)))
+
+  const handleBulkConfirm = async () => {
+    setBulkLoading(true)
+    try {
+      const targets = appointments.filter(a => selectedIds.has(a.id) && a.status === "IN_ASTEPTARE")
+      await Promise.all(targets.map(a => fetch(`/api/appointments/${a.id}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "CONFIRMAT" }),
+      })))
+      await fetchData(); setSelectedIds(new Set())
+      toast({ title: "Confirmate", description: `${targets.length} programări confirmate.` })
+    } catch {
+      toast({ title: "Eroare", description: "Nu s-au putut confirma.", variant: "destructive" })
+    } finally { setBulkLoading(false) }
+  }
+
+  const handleBulkCancel = async () => {
+    setBulkLoading(true); setBulkCancelConfirmOpen(false)
+    try {
+      const targets = appointments.filter(a => selectedIds.has(a.id) && !["ANULAT","NEPREZENTARE","FINALIZAT"].includes(a.status))
+      await Promise.all(targets.map(a => fetch(`/api/appointments/${a.id}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "ANULAT" }),
+      })))
+      await fetchData(); setSelectedIds(new Set())
+      toast({ title: "Anulate", description: `${targets.length} programări anulate.` })
+    } catch {
+      toast({ title: "Eroare", description: "Nu s-au putut anula.", variant: "destructive" })
+    } finally { setBulkLoading(false) }
+  }
+
+  const handleBulkRemindersSelected = async () => {
+    setBulkLoading(true)
+    try {
+      const targets = appointments.filter(a => selectedIds.has(a.id) && a.status === "CONFIRMAT")
+      await Promise.all(targets.map(a => fetch("/api/notifications/reminders", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appointmentId: a.id, sendEmail: true, sendSMS: false }),
+      })))
+      await fetchData(); setSelectedIds(new Set())
+      toast({ title: "Remindere trimise", description: `${targets.length} remindere trimise.` })
+    } catch {
+      toast({ title: "Eroare", description: "Nu s-au putut trimite reminderele.", variant: "destructive" })
+    } finally { setBulkLoading(false) }
+  }
+
+  const handleMarkPaid = async (apptId: string) => {
+    setPayingId(apptId)
+    try {
+      const res = await fetch("/api/payments", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appointmentId: apptId, paymentStatus: "PAID" }),
+      })
+      if (!res.ok) throw new Error()
+      setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, paymentStatus: "PAID" } : a))
+      toast({ title: "Marcat ca Plătit" })
+    } catch {
+      toast({ title: "Eroare", description: "Nu s-a putut actualiza plata.", variant: "destructive" })
+    } finally { setPayingId(null) }
+  }
+
+  const handleRefund = async (apptId: string) => {
+    setPayingId(apptId)
+    try {
+      const res = await fetch("/api/payments", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appointmentId: apptId, paymentStatus: "REFUNDED" }),
+      })
+      if (!res.ok) throw new Error()
+      setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, paymentStatus: "REFUNDED" } : a))
+      toast({ title: "Rambursat" })
+    } catch {
+      toast({ title: "Eroare", description: "Nu s-a putut efectua rambursarea.", variant: "destructive" })
+    } finally { setPayingId(null) }
   }
 
   // Filter patients for search (memoized + debounced to avoid re-filtering on unrelated state changes)
@@ -1160,6 +1248,16 @@ export default function AppointmentsPage() {
                 </div>
               ) : (
                 <div className="space-y-4 p-3">
+                <div className="flex items-center gap-3 px-1 pb-2 border-b border-border/40">
+                  <Checkbox
+                    checked={filteredAppointments.length > 0 && selectedIds.size === filteredAppointments.length}
+                    onCheckedChange={toggleSelectAll}
+                    className="shrink-0"
+                  />
+                  <span className="text-xs text-muted-foreground font-medium">
+                    {selectedIds.size > 0 ? `${selectedIds.size} selectate` : "Selectează toate"}
+                  </span>
+                </div>
                 {groupedAppointments.map(group => (
                   <div key={group.label}>
                     <div className="flex items-center gap-3 mb-2 px-1">
@@ -1171,6 +1269,12 @@ export default function AppointmentsPage() {
                     {group.appointments.map((appointment) => (
                       <div key={appointment.id} className={`group relative bg-white dark:bg-card/50 rounded-2xl border border-border/50 border-l-4 ${getStatusBorderColor(appointment.status)} py-4 px-4 hover:shadow-lg hover:shadow-primary/5 hover:border-r-primary/30 transition-all duration-200`}>
                         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                          <Checkbox
+                            checked={selectedIds.has(appointment.id)}
+                            onCheckedChange={() => toggleSelect(appointment.id)}
+                            className="shrink-0 self-center"
+                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                          />
                           {/* Patient info with Avatar */}
                           <div className="flex items-center gap-3 w-full lg:w-[280px] shrink-0">
                             <Avatar className="h-9 w-9 border border-background shadow-sm ring-1 ring-muted/50 shrink-0">
@@ -1315,6 +1419,30 @@ export default function AppointmentsPage() {
                               </Button>
                             )}
                             
+                            {(appointment.service?.price ?? 0) > 0 && appointment.paymentStatus === "UNPAID" && !["ANULAT","NEPREZENTARE"].includes(appointment.status) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2.5 rounded-lg text-xs font-semibold text-emerald-700 hover:bg-emerald-50 gap-1"
+                                onClick={() => handleMarkPaid(appointment.id)}
+                                disabled={payingId === appointment.id}
+                              >
+                                {payingId === appointment.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CreditCard className="w-3.5 h-3.5" />}
+                                Plătit
+                              </Button>
+                            )}
+                            {appointment.paymentStatus === "PAID" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2.5 rounded-lg text-xs font-semibold text-purple-700 hover:bg-purple-50 gap-1"
+                                onClick={() => handleRefund(appointment.id)}
+                                disabled={payingId === appointment.id}
+                              >
+                                {payingId === appointment.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                                Ramburs.
+                              </Button>
+                            )}
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" aria-label="Mai multe opțiuni" className="h-10 w-10 rounded-xl hover:bg-muted transition-all">
@@ -2239,6 +2367,47 @@ export default function AppointmentsPage() {
       </Dialog>
         </div>
       </main>
+
+      {/* Bulk action floating bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-white dark:bg-card border border-border shadow-2xl rounded-2xl px-4 py-3 animate-in slide-in-from-bottom-4 duration-200">
+          {bulkLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />}
+          <span className="text-sm font-bold text-foreground mr-1 shrink-0">{selectedIds.size} selectate</span>
+          <div className="h-5 w-px bg-border mx-1" />
+          <Button size="sm" variant="outline" className="rounded-xl text-emerald-700 border-emerald-200 hover:bg-emerald-50 gap-1 font-semibold" onClick={handleBulkConfirm} disabled={bulkLoading}>
+            <CheckCircle className="h-3.5 w-3.5" />
+            Confirmă
+          </Button>
+          <Button size="sm" variant="outline" className="rounded-xl text-destructive border-destructive/20 hover:bg-destructive/5 gap-1 font-semibold" onClick={() => setBulkCancelConfirmOpen(true)} disabled={bulkLoading}>
+            <XCircle className="h-3.5 w-3.5" />
+            Anulează
+          </Button>
+          <Button size="sm" variant="outline" className="rounded-xl gap-1 font-semibold" onClick={handleBulkRemindersSelected} disabled={bulkLoading}>
+            <Bell className="h-3.5 w-3.5" />
+            Remindere
+          </Button>
+          <div className="h-5 w-px bg-border mx-1" />
+          <Button size="sm" variant="ghost" className="rounded-xl text-muted-foreground font-semibold" onClick={() => setSelectedIds(new Set())} disabled={bulkLoading}>
+            Deselectează
+          </Button>
+        </div>
+      )}
+
+      {/* Bulk cancel confirm dialog */}
+      <Dialog open={bulkCancelConfirmOpen} onOpenChange={setBulkCancelConfirmOpen}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Anulezi {selectedIds.size} programări?</DialogTitle>
+            <DialogDescription>Programările selectate vor fi marcate ca Anulate. Această acțiune nu poate fi anulată.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="pt-4">
+            <Button variant="ghost" className="rounded-xl" onClick={() => setBulkCancelConfirmOpen(false)}>Înapoi</Button>
+            <Button variant="destructive" className="rounded-xl" onClick={handleBulkCancel}>
+              Anulează {selectedIds.size} programări
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

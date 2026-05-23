@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Calendar, Bell, ChevronRight, Loader2, Clock, Plus } from "lucide-react"
+import { Calendar, Bell, ChevronRight, Loader2, Clock, Plus, CreditCard, ArrowRight } from "lucide-react"
 import { format } from "date-fns"
 import { ro } from "date-fns/locale"
 import { PatientBookingDialog } from "@/components/patient-booking-dialog"
@@ -66,6 +66,32 @@ export default function PatientDashboardPage() {
           Programare Nouă
         </Button>
       </div>
+
+      {data?.unpaidSummary?.count > 0 && (
+        <Card className="rounded-2xl border-amber-200 bg-amber-50 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-4 p-5">
+            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+              <CreditCard className="h-5 w-5 text-amber-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-sm text-amber-900">
+                {data.unpaidSummary.count === 1
+                  ? "1 programare neachitată"
+                  : `${data.unpaidSummary.count} programări neachitate`}
+              </p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                Total de plată: <strong>{data.unpaidSummary.total.toLocaleString("ro-RO")} lei</strong>
+              </p>
+            </div>
+            <Link href="/patient/appointments">
+              <Button size="sm" className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white gap-1.5 shrink-0">
+                Plătește acum
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          </div>
+        </Card>
+      )}
 
       <Card className="rounded-2xl border-slate-100 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between p-6 border-b">

@@ -13,7 +13,7 @@ export async function GET() {
 
   const now = new Date()
 
-  const [upcomingAppointments, recentNotifications] = await Promise.all([
+  const [upcomingAppointments, recentNotifications, unpaidAppointments] = await Promise.all([
     prisma.appointment.findMany({
       where: {
         patientId,
@@ -23,6 +23,7 @@ export async function GET() {
       include: {
         doctor: { select: { name: true, specialty: true } },
         department: { select: { name: true } },
+        service: { select: { name: true, price: true } },
       },
       orderBy: { date: "asc" },
       take: 5,
@@ -37,7 +38,22 @@ export async function GET() {
       orderBy: { sentAt: "desc" },
       take: 5,
     }),
+    prisma.appointment.findMany({
+      where: {
+        patientId,
+        paymentStatus: "UNPAID",
+        status: { notIn: ["ANULAT", "NEPREZENTARE"] },
+        service: { price: { gt: 0 } },
+      },
+      select: { service: { select: { price: true } } },
+    }),
   ])
 
-  return NextResponse.json({ upcomingAppointments, recentNotifications })
+  const unpaidTotal = unpaidAppointments.reduce((sum, a) => sum + (a.service?.price ?? 0), 0)
+
+  return NextResponse.json({
+    upcomingAppointments,
+    recentNotifications,
+    unpaidSummary: { count: unpaidAppointments.length, total: unpaidTotal },
+  })
 }

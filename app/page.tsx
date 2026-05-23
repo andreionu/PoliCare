@@ -29,10 +29,8 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { AuthModal } from "@/components/auth-modal"
-import { Preloader } from "@/components/preloader"
 import { Logo } from "@/components/logo"
 import { cn } from "@/lib/utils"
-import { AnimatePresence } from "framer-motion"
 import { AnimatedCounter } from "@/components/animated-counter"
 import {
   Carousel,
@@ -115,8 +113,6 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <AnimatePresence>{loading && <Preloader />}</AnimatePresence>
-
       {/* ── Navigation ── */}
       <header className="border-b border-slate-100 bg-white/95 backdrop-blur-xl sticky top-0 z-50">
         <div className="container mx-auto px-5 h-16 flex items-center justify-between">

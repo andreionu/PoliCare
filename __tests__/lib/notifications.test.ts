@@ -8,10 +8,10 @@ vi.mock("@/lib/sms", () => ({
   sendSMS: vi.fn().mockResolvedValue({ success: true }),
 }))
 
-const mockPrisma = {
+const mockPrisma = vi.hoisted(() => ({
   settings: { findUnique: vi.fn() },
   notification: { create: vi.fn() },
-}
+}))
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }))
 
 import { sendAppointmentNotification } from "@/lib/notifications"

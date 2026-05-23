@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { X, Heart, Users, Baby, Eye, Ear, ChevronRight, Check, Loader2, Clock, CalendarX, Brain, Bone, Flower2, SmilePlus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
+import { Calendar } from "@/components/ui/calendar"
+import { ro as roLocale } from "date-fns/locale"
 
 interface BookingWizardProps {
   onClose: () => void
@@ -463,25 +465,37 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
               {/* Date picker */}
               <div>
                 <Label className="text-xs font-bold text-slate-500 mb-1.5 block">Data programării</Label>
-                <Input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => {
-                    const date = new Date(e.target.value)
-                    const jsDay = date.getDay()
-                    const adminDay = (jsDay + 6) % 7
-                    if (settings && !settings.workingDays.split(",").includes(String(adminDay))) {
-                      toast({ title: "Zi nelucrătoare", description: "Clinica este închisă în această zi.", variant: "destructive" })
-                      return
-                    }
-                    setSelectedDate(e.target.value)
-                    setSelectedTime("")
-                  }}
-                  min={new Date().toISOString().split("T")[0]}
-                  className="h-11 rounded-xl bg-slate-50 border-slate-200 text-sm font-medium w-full"
-                />
+                <div className="flex justify-center">
+                  <Calendar
+                    mode="single"
+                    locale={roLocale}
+                    selected={selectedDate ? new Date(selectedDate + "T12:00:00") : undefined}
+                    onSelect={(date) => {
+                      if (!date) return
+                      const jsDay = date.getDay()
+                      const adminDay = (jsDay + 6) % 7
+                      if (settings && !settings.workingDays.split(",").includes(String(adminDay))) {
+                        toast({ title: "Zi nelucrătoare", description: "Clinica este închisă în această zi.", variant: "destructive" })
+                        return
+                      }
+                      const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+                      setSelectedDate(iso)
+                      setSelectedTime("")
+                    }}
+                    disabled={[
+                      { before: new Date() },
+                      ...(settings?.workingDays
+                        ? [(date: Date) => {
+                            const adminDay = (date.getDay() + 6) % 7
+                            return !settings.workingDays.split(",").includes(String(adminDay))
+                          }]
+                        : []),
+                    ]}
+                    className="rounded-2xl border border-slate-200 bg-slate-50 shadow-sm"
+                  />
+                </div>
                 {selectedDate && (
-                  <p className="text-xs text-slate-400 mt-1.5 ml-1 capitalize">
+                  <p className="text-xs text-slate-400 mt-1.5 ml-1 text-center capitalize">
                     {new Date(selectedDate + "T12:00:00").toLocaleDateString("ro-RO", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
                   </p>
                 )}
@@ -679,15 +693,18 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between shrink-0 bg-white rounded-b-3xl sm:rounded-b-2xl">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setStep(s => s - 1)}
-            disabled={step === 1}
-            className="h-10 px-5 rounded-xl text-sm font-semibold text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-          >
-            Înapoi
-          </Button>
+          {step > 1 ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setStep(s => s - 1)}
+              className="h-10 px-5 rounded-xl text-sm font-semibold border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50"
+            >
+              Înapoi
+            </Button>
+          ) : (
+            <div />
+          )}
 
           {step < 5 ? (
             <Button

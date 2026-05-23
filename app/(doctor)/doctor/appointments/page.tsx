@@ -5,8 +5,10 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Loader2, CheckCircle, PlayCircle, XCircle, Flag } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Calendar, Loader2, CheckCircle, PlayCircle, XCircle, Flag, ClipboardList } from "lucide-react"
 import { format } from "date-fns"
 import { ro } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
@@ -21,6 +23,21 @@ interface Appointment {
   patient: { id: string; name: string; phone: string }
   department: { name: string } | null
   service: { name: string } | null
+}
+
+interface ConsultForm {
+  symptoms: string
+  diagnosis: string
+  treatment: string
+  prescription: string
+  notes: string
+  followUpRequired: boolean
+  followUpDate: string
+}
+
+const emptyForm: ConsultForm = {
+  symptoms: "", diagnosis: "", treatment: "",
+  prescription: "", notes: "", followUpRequired: false, followUpDate: "",
 }
 
 const statusLabels: Record<string, string> = {
@@ -66,6 +83,13 @@ export default function DoctorAppointmentsPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [dateFilter, setDateFilter] = useState("")
 
+  // Consultation dialog state
+  const [consultAppt, setConsultAppt] = useState<Appointment | null>(null)
+  const [consultForm, setConsultForm] = useState<ConsultForm>(emptyForm)
+  const [existingRecordId, setExistingRecordId] = useState<string | null>(null)
+  const [consultLoading, setConsultLoading] = useState(false)
+  const [consultSaving, setConsultSaving] = useState(false)
+
   const fetchAppointments = useCallback(async () => {
     setLoading(true)
     try {
@@ -105,6 +129,83 @@ export default function DoctorAppointmentsPage() {
       setUpdating(null)
     }
   }
+
+  const openConsultDialog = async (appt: Appointment) => {
+    setConsultAppt(appt)
+    setConsultForm(emptyForm)
+    setExistingRecordId(null)
+    setConsultLoading(true)
+    try {
+      const res = await fetch(`/api/medical-records?patientId=${appt.patient.id}`)
+      if (res.ok) {
+        const records = await res.json()
+        const existing = records.find((r: any) => r.appointmentId === appt.id)
+        if (existing) {
+          setExistingRecordId(existing.id)
+          setConsultForm({
+            symptoms: existing.symptoms ?? "",
+            diagnosis: existing.diagnosis ?? "",
+            treatment: existing.treatment ?? "",
+            prescription: existing.prescription ?? "",
+            notes: existing.notes ?? "",
+            followUpRequired: existing.followUpRequired ?? false,
+            followUpDate: existing.followUpDate
+              ? format(new Date(existing.followUpDate), "yyyy-MM-dd")
+              : "",
+          })
+        }
+      }
+    } catch { /* ignore */ } finally {
+      setConsultLoading(false)
+    }
+  }
+
+  const handleConsultSave = async () => {
+    if (!consultAppt) return
+    setConsultSaving(true)
+    try {
+      const payload = {
+        patientId: consultAppt.patient.id,
+        appointmentId: consultAppt.id,
+        visitDate: consultAppt.date,
+        symptoms: consultForm.symptoms || null,
+        diagnosis: consultForm.diagnosis || null,
+        treatment: consultForm.treatment || null,
+        prescription: consultForm.prescription || null,
+        notes: consultForm.notes || null,
+        followUpRequired: consultForm.followUpRequired,
+        followUpDate: consultForm.followUpRequired && consultForm.followUpDate
+          ? consultForm.followUpDate : null,
+      }
+
+      const url = existingRecordId
+        ? `/api/medical-records/${existingRecordId}`
+        : "/api/medical-records"
+      const method = existingRecordId ? "PUT" : "POST"
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error()
+
+      toast({ title: "Consultație salvată" })
+      setConsultAppt(null)
+
+      // Offer to finalize if still in progress
+      if (["CONFIRMAT", "IN_DESFASURARE"].includes(consultAppt.status)) {
+        handleStatusChange(consultAppt.id, "FINALIZAT")
+      }
+    } catch {
+      toast({ title: "Eroare", description: "Nu s-a putut salva consultația.", variant: "destructive" })
+    } finally {
+      setConsultSaving(false)
+    }
+  }
+
+  const f = (field: keyof ConsultForm) => (e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) =>
+    setConsultForm((prev) => ({ ...prev, [field]: e.target.value }))
 
   return (
     <main className="flex-1 p-4 sm:p-6 space-y-4 sm:space-y-6">
@@ -148,6 +249,7 @@ export default function DoctorAppointmentsPage() {
             {appointments.map((appt) => {
               const actions = nextActions[appt.status] ?? []
               const isUpdating = updating === appt.id
+              const canConsult = ["CONFIRMAT", "IN_DESFASURARE", "FINALIZAT"].includes(appt.status)
               return (
                 <div key={appt.id} className="p-4 hover:bg-muted/30 transition-colors">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -162,12 +264,12 @@ export default function DoctorAppointmentsPage() {
                     {appt.department && ` · ${appt.department.name}`}
                     {appt.service && ` · ${appt.service.name}`}
                   </p>
-                  {(actions.length > 0 || isUpdating) && (
-                    <div className="flex flex-wrap items-center gap-1">
-                      {isUpdating ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                      ) : (
-                        actions.map((action) => {
+                  <div className="flex flex-wrap items-center gap-1">
+                    {isUpdating ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    ) : (
+                      <>
+                        {actions.map((action) => {
                           const Icon = action.icon
                           return (
                             <Button
@@ -181,16 +283,131 @@ export default function DoctorAppointmentsPage() {
                               <span className="hidden xs:inline">{action.label}</span>
                             </Button>
                           )
-                        })
-                      )}
-                    </div>
-                  )}
+                        })}
+                        {canConsult && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2.5 rounded-lg text-xs font-bold gap-1 text-teal-600 hover:bg-teal-50"
+                            onClick={() => openConsultDialog(appt)}
+                          >
+                            <ClipboardList className="h-3.5 w-3.5" />
+                            <span className="hidden xs:inline">Consultație</span>
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               )
             })}
           </div>
         )}
       </Card>
+
+      {/* Consultation Dialog */}
+      <Dialog open={!!consultAppt} onOpenChange={(open) => { if (!open) setConsultAppt(null) }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Fișă consultație — {consultAppt?.patient.name}
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              {consultAppt && format(new Date(consultAppt.date), "d MMMM yyyy", { locale: ro })} · {consultAppt?.startTime}
+              {consultAppt?.service && ` · ${consultAppt.service.name}`}
+            </p>
+          </DialogHeader>
+
+          {consultLoading ? (
+            <div className="flex items-center justify-center h-32">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground">Simptome</label>
+                <Textarea
+                  value={consultForm.symptoms}
+                  onChange={f("symptoms")}
+                  placeholder="Descrieți simptomele pacientului..."
+                  className="rounded-xl resize-none min-h-[72px]"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground">Diagnostic</label>
+                <Textarea
+                  value={consultForm.diagnosis}
+                  onChange={f("diagnosis")}
+                  placeholder="Diagnostic stabilit..."
+                  className="rounded-xl resize-none min-h-[72px]"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground">Tratament</label>
+                <Textarea
+                  value={consultForm.treatment}
+                  onChange={f("treatment")}
+                  placeholder="Schema de tratament recomandată..."
+                  className="rounded-xl resize-none min-h-[72px]"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground">Prescripție</label>
+                <Textarea
+                  value={consultForm.prescription}
+                  onChange={f("prescription")}
+                  placeholder="Medicamente prescrise, doze..."
+                  className="rounded-xl resize-none min-h-[60px]"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground">Notițe suplimentare</label>
+                <Textarea
+                  value={consultForm.notes}
+                  onChange={f("notes")}
+                  placeholder="Observații, recomandări de stil de viață..."
+                  className="rounded-xl resize-none min-h-[60px]"
+                />
+              </div>
+              <div className="flex items-center gap-3 pt-1">
+                <input
+                  type="checkbox"
+                  id="followUp"
+                  checked={consultForm.followUpRequired}
+                  onChange={(e) => setConsultForm((p) => ({ ...p, followUpRequired: e.target.checked }))}
+                  className="h-4 w-4 rounded accent-teal-600"
+                />
+                <label htmlFor="followUp" className="text-sm font-medium">Necesită control ulterior</label>
+              </div>
+              {consultForm.followUpRequired && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-foreground">Dată control</label>
+                  <Input
+                    type="date"
+                    value={consultForm.followUpDate}
+                    onChange={f("followUpDate")}
+                    className="rounded-xl h-10"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 pt-2">
+            <Button variant="outline" className="rounded-xl" onClick={() => setConsultAppt(null)}>
+              Anulează
+            </Button>
+            <Button
+              className="rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
+              onClick={handleConsultSave}
+              disabled={consultSaving || consultLoading}
+            >
+              {consultSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {existingRecordId ? "Actualizează" : "Salvează consultația"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark .admin-dark *));
 
 :root {
   /* Modern, clean medical theme with subtle colors and excellent contrast */
@@ -44,7 +44,7 @@
   --sidebar-ring: oklch(0.45 0.12 250);
 }
 
-.dark {
+.dark .admin-dark {
   --background: oklch(0.1 0.01 250);
   --foreground: oklch(0.98 0.005 250);
   --card: oklch(0.13 0.01 250);

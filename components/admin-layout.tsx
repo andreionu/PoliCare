@@ -22,7 +22,7 @@ export function AdminLayout({ children, userName, userRole }: AdminLayoutProps) 
   }, [pathname])
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="admin-dark flex min-h-screen bg-background">
       <aside className="hidden lg:flex w-64 flex-col border-r bg-card sticky top-0 h-screen shadow-sm">
         <div className="flex h-16 items-center border-b px-6">
           <Logo size="sm" />

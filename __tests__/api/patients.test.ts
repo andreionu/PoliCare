@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
 // ─── Mock Prisma ──────────────────────────────────────────────────────────────
-const mockPrisma = {
+const mockPrisma = vi.hoisted(() => ({
   patient: {
     findMany: vi.fn(),
     findUnique: vi.fn(),
@@ -9,7 +9,7 @@ const mockPrisma = {
     update: vi.fn(),
     delete: vi.fn(),
   },
-}
+}))
 
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }))
 
@@ -111,12 +111,12 @@ describe("POST /api/patients", () => {
     )
   })
 
-  it("returns 500 on duplicate cnp (Prisma unique constraint)", async () => {
+  it("returns 409 on duplicate cnp (Prisma unique constraint)", async () => {
     const uniqueError = Object.assign(new Error("Unique constraint"), { code: "P2002" })
     mockPrisma.patient.create.mockRejectedValue(uniqueError)
 
     const res = await POST(makeRequest("POST", validBody))
-    expect(res.status).toBe(500)
+    expect(res.status).toBe(409)
   })
 
   it("converts birthDate string to Date object", async () => {

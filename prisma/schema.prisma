@@ -211,8 +211,9 @@ model Appointment {
   medicalRecord MedicalRecord?
   notifications Notification[]
 
-  paymentStatus    PaymentStatus @default(UNPAID)
-  stripeSessionId  String?
+  paymentStatus         PaymentStatus @default(UNPAID)
+  stripeSessionId       String?
+  stripePaymentIntentId String?
 
   createdBy   User?   @relation("AppointmentCreatedBy", fields: [createdById], references: [id])
   createdById String?

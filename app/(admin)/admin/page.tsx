@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react"
 import { DashboardStats } from "@/components/dashboard-stats"
 import { RecentAppointments } from "@/components/recent-appointments"
 import { DepartmentsOverview } from "@/components/departments-overview"
-import { Preloader } from "@/components/preloader"
 import { Badge } from "@/components/ui/badge"
 import { useRealtimeEvent } from "@/hooks/use-realtime"
 
@@ -32,7 +31,6 @@ interface DashboardData {
 }
 
 export default function DashboardPage() {
-  const [isLoading, setIsLoading] = useState(false)
   const [statsData, setStatsData] = useState<DashboardData | null>(null)
   const [loadingStats, setLoadingStats] = useState(false)
 
@@ -57,10 +55,6 @@ export default function DashboardPage() {
     else if (hour < 18) setGreeting("Bună ziua")
     else setGreeting("Bună seara")
   }, [])
-
-  if (isLoading) {
-    return <Preloader />
-  }
 
   return (
     <>

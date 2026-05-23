@@ -1,10 +1,19 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
+import { useSearchParams } from "next/navigation"
 import { useRealtimeEvent } from "@/hooks/use-realtime"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   DropdownMenu,
@@ -12,7 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { CreditCard, TrendingUp, Clock, Loader2, MoreHorizontal, CheckCircle2, RotateCcw, Ban, ChevronLeft, ChevronRight } from "lucide-react"
+import { CreditCard, TrendingUp, Clock, Loader2, MoreHorizontal, CheckCircle2, RotateCcw, Ban, ChevronLeft, ChevronRight, ExternalLink, Mail } from "lucide-react"
 import { format } from "date-fns"
 import { ro } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
@@ -23,6 +32,7 @@ interface PaymentAppointment {
   startTime: string
   paymentStatus: "UNPAID" | "PENDING" | "PAID" | "REFUNDED"
   stripeSessionId: string | null
+  stripePaymentIntentId: string | null
   status: string
   patient: { id: string; name: string; email: string | null }
   doctor: { name: string }
@@ -53,6 +63,7 @@ const paymentLabels: Record<string, string> = {
 
 export default function BillingPage() {
   const { toast } = useToast()
+  const searchParams = useSearchParams()
   const PAGE_SIZE = 20
 
   const [appointments, setAppointments] = useState<PaymentAppointment[]>([])
@@ -64,6 +75,10 @@ export default function BillingPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [periodFilter, setPeriodFilter] = useState("current-month")
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [checkoutLoadingId, setCheckoutLoadingId] = useState<string | null>(null)
+  const [sendLinkLoadingId, setSendLinkLoadingId] = useState<string | null>(null)
+  const [refundConfirm, setRefundConfirm] = useState<PaymentAppointment | null>(null)
+  const redirectHandled = useRef(false)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -89,8 +104,62 @@ export default function BillingPage() {
   useEffect(() => { fetchData() }, [fetchData])
   useRealtimeEvent("payment_updated", fetchData)
 
+  // Handle Stripe redirect params (show once per navigation)
+  useEffect(() => {
+    if (redirectHandled.current) return
+    const payment = searchParams.get("payment")
+    if (payment === "success") {
+      redirectHandled.current = true
+      toast({ title: "Plată reușită!", description: "Programarea a fost marcată ca plătită." })
+    } else if (payment === "cancelled") {
+      redirectHandled.current = true
+      toast({ title: "Plată anulată", description: "Sesiunea de plată a fost închisă.", variant: "destructive" })
+    }
+  }, [searchParams, toast])
+
   // Reset to page 1 whenever filters change
   useEffect(() => { setPage(1) }, [statusFilter, periodFilter])
+
+  const sendPaymentLink = async (appointmentId: string) => {
+    setSendLinkLoadingId(appointmentId)
+    try {
+      const res = await fetch("/api/checkout/send-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appointmentId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Eroare la trimiterea link-ului")
+      toast({ title: "Link trimis", description: "Email-ul cu link de plată a fost trimis pacientului." })
+      fetchData()
+    } catch (err) {
+      toast({ title: "Eroare", description: err instanceof Error ? err.message : "Nu s-a putut trimite email-ul.", variant: "destructive" })
+    } finally {
+      setSendLinkLoadingId(null)
+    }
+  }
+
+  const confirmRefund = async (appt: PaymentAppointment) => {
+    setRefundConfirm(null)
+    await updatePaymentStatus(appt.id, "REFUNDED")
+  }
+
+  const initiateCheckout = async (appointmentId: string) => {
+    setCheckoutLoadingId(appointmentId)
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appointmentId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Eroare la crearea sesiunii de plată")
+      window.location.href = data.url
+    } catch (err) {
+      toast({ title: "Eroare", description: err instanceof Error ? err.message : "Nu s-a putut iniția plata.", variant: "destructive" })
+      setCheckoutLoadingId(null)
+    }
+  }
 
   const updatePaymentStatus = async (appointmentId: string, paymentStatus: string) => {
     setUpdatingId(appointmentId)
@@ -270,7 +339,7 @@ export default function BillingPage() {
                         </Badge>
                       </td>
                       <td className="py-4 px-6">
-                        {updatingId === appt.id ? (
+                        {updatingId === appt.id || checkoutLoadingId === appt.id || sendLinkLoadingId === appt.id ? (
                           <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                         ) : (
                           <DropdownMenu>
@@ -280,6 +349,24 @@ export default function BillingPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="rounded-xl">
+                              {appt.paymentStatus === "UNPAID" && appt.service?.price != null && (
+                                <DropdownMenuItem
+                                  className="gap-2 text-primary focus:text-primary"
+                                  onClick={() => initiateCheckout(appt.id)}
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                  Plătește Online
+                                </DropdownMenuItem>
+                              )}
+                              {appt.paymentStatus === "UNPAID" && appt.service?.price != null && appt.patient.email && (
+                                <DropdownMenuItem
+                                  className="gap-2 text-blue-600 focus:text-blue-600"
+                                  onClick={() => sendPaymentLink(appt.id)}
+                                >
+                                  <Mail className="h-4 w-4" />
+                                  Trimite link plată
+                                </DropdownMenuItem>
+                              )}
                               {appt.paymentStatus !== "PAID" && (
                                 <DropdownMenuItem
                                   className="gap-2 text-emerald-600 focus:text-emerald-600"
@@ -292,10 +379,10 @@ export default function BillingPage() {
                               {appt.paymentStatus === "PAID" && (
                                 <DropdownMenuItem
                                   className="gap-2 text-purple-600 focus:text-purple-600"
-                                  onClick={() => updatePaymentStatus(appt.id, "REFUNDED")}
+                                  onClick={() => setRefundConfirm(appt)}
                                 >
                                   <RotateCcw className="h-4 w-4" />
-                                  Marchează ca Rambursat
+                                  Rambursează
                                 </DropdownMenuItem>
                               )}
                               {appt.paymentStatus !== "UNPAID" && (
@@ -389,6 +476,33 @@ export default function BillingPage() {
           )}
         </Card>
       </div>
+
+      {/* Refund confirmation dialog */}
+      <Dialog open={!!refundConfirm} onOpenChange={(o) => { if (!o) setRefundConfirm(null) }}>
+        <DialogContent className="rounded-2xl max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirmare rambursare</DialogTitle>
+            <DialogDescription>
+              {refundConfirm?.stripePaymentIntentId
+                ? `Această acțiune va rambursa ${refundConfirm.service?.price?.toLocaleString("ro-RO")} lei pe cardul pacientului ${refundConfirm.patient.name}. Operațiunea nu poate fi anulată.`
+                : `Marchezi plata de la ${refundConfirm?.patient.name} ca rambursată? (plată în numerar — rambursarea fizică trebuie efectuată separat)`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" className="rounded-xl" onClick={() => setRefundConfirm(null)}>
+              Anulare
+            </Button>
+            <Button
+              variant="destructive"
+              className="rounded-xl"
+              onClick={() => refundConfirm && confirmRefund(refundConfirm)}
+            >
+              <RotateCcw className="h-4 w-4 mr-1.5" />
+              {refundConfirm?.stripePaymentIntentId ? "Rambursează prin Stripe" : "Marchează Rambursat"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

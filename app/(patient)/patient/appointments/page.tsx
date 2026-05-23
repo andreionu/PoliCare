@@ -161,7 +161,10 @@ export default function PatientAppointmentsPage() {
           <div className="divide-y divide-border/50">
             {appointments.map((appt: any) => {
               const cancellable = ["IN_ASTEPTARE", "CONFIRMAT"].includes(appt.status)
-              const payable = cancellable && appt.paymentStatus === "UNPAID" && appt.service?.price > 0
+              const payable = !["ANULAT", "NEPREZENTARE"].includes(appt.status)
+                && appt.paymentStatus === "UNPAID"
+                && appt.service?.price != null
+                && appt.service.price > 0
               const isCancelling = cancelling === appt.id
               const isPaying = paying === appt.id
               const awaitingConfirm = confirmCancel === appt.id
@@ -174,7 +177,7 @@ export default function PatientAppointmentsPage() {
                       <Badge className={statusColors[appt.status] ?? "bg-gray-100 text-gray-700"}>
                         {statusLabels[appt.status] ?? appt.status}
                       </Badge>
-                      {appt.paymentStatus && appt.paymentStatus !== "UNPAID" && (
+                      {appt.paymentStatus && (appt.paymentStatus !== "UNPAID" || (appt.service?.price != null && appt.service.price > 0)) && (
                         <Badge className={paymentColors[appt.paymentStatus] ?? "bg-slate-100 text-slate-600"}>
                           {appt.paymentStatus === "PAID" && <CheckCircle2 className="h-3 w-3 mr-1" />}
                           {paymentLabels[appt.paymentStatus] ?? appt.paymentStatus}

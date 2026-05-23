@@ -16,11 +16,11 @@ const DEFAULT = {
   updatedAt: new Date(),
 }
 
-const mockPrisma = {
+const mockPrisma = vi.hoisted(() => ({
   settings: {
     upsert: vi.fn(),
   },
-}
+}))
 
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }))
 
