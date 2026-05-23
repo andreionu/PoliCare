@@ -13,6 +13,10 @@ interface PendingAppointment {
 
 const SEEN_KEY = "notifications_seen_at"
 
+// SSE events forwarded to the window so other hooks can react without
+// opening a second SSE connection.
+const FORWARD_EVENTS = ["appointments_updated", "payment_updated", "stats_updated"] as const
+
 export function useNotifications() {
   const [appointments, setAppointments] = useState<PendingAppointment[]>([])
   const [seenAt, setSeenAt] = useState<string>(() =>
@@ -24,11 +28,23 @@ export function useNotifications() {
   const connect = () => {
     if (esRef.current) esRef.current.close()
     const es = new EventSource("/api/notifications/stream")
-    es.onmessage = (e) => {
+
+    // Named event: pending appointments / bell count
+    es.addEventListener("notifications", (e) => {
       const data = JSON.parse(e.data)
       setAppointments(data.pendingAppointments ?? [])
       lastServerTime.current = data.serverTime
+    })
+
+    // Forward typed mutation events to the window so any page can react
+    for (const event of FORWARD_EVENTS) {
+      es.addEventListener(event, (e) => {
+        window.dispatchEvent(
+          new CustomEvent(`app:${event}`, { detail: JSON.parse(e.data) })
+        )
+      })
     }
+
     esRef.current = es
   }
 

@@ -14,6 +14,7 @@ import {
   Activity,
   UserCog,
   Wrench,
+  CreditCard,
 } from "lucide-react"
 
 interface SidebarNavProps {
@@ -50,6 +51,11 @@ const navItems = [
     title: "Servicii",
     href: "/services",
     icon: Wrench,
+  },
+  {
+    title: "Plăți",
+    href: "/billing",
+    icon: CreditCard,
   },
   {
     title: "Rapoarte",
@@ -101,7 +107,7 @@ export function SidebarNav({ userRole }: SidebarNavProps) {
                 <Icon className={cn("h-5 w-5 transition-transform duration-300 group-hover:scale-110", isActive ? "text-white" : "text-muted-foreground/70 group-hover:text-blue-500")} />
                 <span className="tracking-tight">{item.title}</span>
                 {isActive && (
-                  <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                  <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)]" />
                 )}
               </Link>
             )
@@ -130,7 +136,7 @@ export function SidebarNav({ userRole }: SidebarNavProps) {
                   <Icon className={cn("h-5 w-5 transition-transform duration-300 group-hover:scale-110", isActive ? "text-white" : "text-muted-foreground/70 group-hover:text-blue-500")} />
                   <span className="tracking-tight">{item.title}</span>
                   {isActive && (
-                    <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                    <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)]" />
                   )}
                 </Link>
               )

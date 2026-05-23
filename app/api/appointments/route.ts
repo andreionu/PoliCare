@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { sendAppointmentNotification } from "@/lib/notifications"
+import { emitAppEvent } from "@/lib/event-bus"
 
 // GET /api/appointments - Get all appointments
 export async function GET(request: Request) {
@@ -174,6 +175,7 @@ export async function POST(request: Request) {
       )
     }
 
+    emitAppEvent("appointments_updated", { action: "created" })
     return NextResponse.json(appointment, { status: 201 })
   } catch (error) {
     console.error("Error creating appointment:", error)

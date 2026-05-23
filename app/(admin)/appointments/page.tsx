@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
+import { useRealtimeEvent } from "@/hooks/use-realtime"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -150,7 +151,7 @@ const getStatusBgColor = (status: string) => {
     case "ANULAT": return "bg-rose-50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-800/30"
     case "FINALIZAT": return "bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/30"
     case "NEPREZENTARE": return "bg-slate-50 dark:bg-slate-900/10 border-slate-100 dark:border-slate-800/30"
-    default: return "bg-slate-50 border-slate-100"
+    default: return "bg-slate-50 dark:bg-slate-800/20 border-slate-100 dark:border-slate-700/30"
   }
 }
 
@@ -162,7 +163,7 @@ const getStatusTextColor = (status: string) => {
     case "ANULAT": return "text-rose-700 dark:text-rose-400"
     case "FINALIZAT": return "text-blue-700 dark:text-blue-400"
     case "NEPREZENTARE": return "text-slate-600 dark:text-slate-400"
-    default: return "text-slate-600"
+    default: return "text-slate-600 dark:text-slate-400"
   }
 }
 
@@ -300,6 +301,8 @@ export default function AppointmentsPage() {
   useEffect(() => {
     fetchData()
   }, [])
+
+  useRealtimeEvent("appointments_updated", fetchData)
 
   // Pre-fill form from query params (doctorId / patientId / departmentId)
   useEffect(() => {

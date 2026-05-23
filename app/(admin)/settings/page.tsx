@@ -276,8 +276,8 @@ export default function SettingsPage() {
               {/* Notification Settings */}
               <Card>
                 <div className="p-6 border-b flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                    <Bell className="w-5 h-5 text-green-600" />
+                  <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-500/15 flex items-center justify-center">
+                    <Bell className="w-5 h-5 text-green-600 dark:text-green-400" />
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold">Notificări</h2>

@@ -142,58 +142,161 @@ export default function ReportsPage() {
         if (reportFormData.format === "excel") {
           const XLSX = await import("xlsx")
           const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
+          ws["!cols"] = headers.map((_: string, i: number) => ({
+            wch: Math.min(
+              Math.max(
+                headers[i].length,
+                ...rows.map((r: string[]) => (r[i] ?? "").length),
+                10
+              ) + 3,
+              45
+            ),
+          }))
           const wb = XLSX.utils.book_new()
-          XLSX.utils.book_append_sheet(wb, ws, "Raport")
+          XLSX.utils.book_append_sheet(wb, ws, TYPE_LABELS[reportFormData.type] ?? "Raport")
           XLSX.writeFile(wb, `raport-${reportFormData.type}-${dateStr}.xlsx`)
         } else if (reportFormData.format === "pdf") {
           const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
             import("jspdf"),
             import("jspdf-autotable"),
           ])
-          const doc = new jsPDF()
-          
-          // PDF Template styling
-          doc.setFillColor(32, 96, 112) // #206070 Primary color
-          doc.rect(0, 0, 210, 40, "F")
-          
-          doc.setTextColor(255, 255, 255)
-          doc.setFontSize(24)
-          doc.setFont("helvetica", "bold")
-          doc.text("POLICARE", 14, 22)
-          
-          doc.setFontSize(10)
-          doc.setFont("helvetica", "normal")
-          doc.text("Clinica Medicala Excellence", 14, 30)
-          
-          doc.setFontSize(12)
-          doc.setTextColor(255, 255, 255)
-          doc.text(`Data: ${new Date().toLocaleDateString("ro-RO")}`, 150, 22)
+          // jsPDF Helvetica only covers Latin-1; ă ș ț are missing and cause broken layout.
+          // Replace unsupported Romanian chars with their closest ASCII equivalents.
+          const toPdf = (s: string) => s
+            .replace(/ă/g, "a").replace(/Ă/g, "A")
+            .replace(/ș/g, "s").replace(/Ș/g, "S")
+            .replace(/ş/g, "s").replace(/Ş/g, "S")
+            .replace(/ț/g, "t").replace(/Ț/g, "T")
+            .replace(/ţ/g, "t").replace(/Ţ/g, "T")
 
-          doc.setTextColor(30, 41, 59)
+          const doc = new jsPDF({ orientation: "landscape" })
+          const pageW = doc.internal.pageSize.width // 297mm landscape
+          const m = 14
+
+          // Header
+          doc.setFillColor(32, 96, 112)
+          doc.rect(0, 0, 5, 32, "F")
           doc.setFontSize(16)
           doc.setFont("helvetica", "bold")
-          doc.text(title, 14, 55)
+          doc.setTextColor(32, 96, 112)
+          doc.text("POLICARE", 12, 13)
+          doc.setFontSize(8)
+          doc.setFont("helvetica", "normal")
+          doc.setTextColor(100, 116, 139)
+          doc.text("Clinica Medicala", 12, 22)
+          doc.setFontSize(8)
+          doc.setTextColor(100, 116, 139)
+          doc.text(new Date().toLocaleDateString("ro-RO"), pageW - m, 13, { align: "right" })
+          doc.text(toPdf(periodLabel), pageW - m, 22, { align: "right" })
+          doc.setDrawColor(220, 228, 235)
+          doc.setLineWidth(0.4)
+          doc.line(12, 32, pageW - 12, 32)
+          doc.setFontSize(14)
+          doc.setFont("helvetica", "bold")
+          doc.setTextColor(15, 23, 42)
+          doc.text(toPdf(TYPE_LABELS[reportFormData.type] ?? title), 12, 44)
+
+          // Patients: drop CNP (idx 1, sensitive) and Email (idx 5) so 7 cols fit comfortably
+          // Appointments: replace UUID id col with a sequential row number; fix header names
+          const dropSet = new Set<number>(reportFormData.type === "patients" ? [1, 5] : [])
+          const pdfHeaders = headers
+            .filter((_: string, i: number) => !dropSet.has(i))
+            .map(toPdf)
+          if (reportFormData.type === "appointments") {
+            pdfHeaders[0] = "Nr."
+            pdfHeaders[pdfHeaders.length - 1] = "Min."
+          }
+          const pdfRows: string[][] = rows.map((r: string[], rowIdx: number) => {
+            const base = reportFormData.type === "appointments"
+              ? [String(rowIdx + 1), ...r.slice(1)]
+              : [...r]
+            return base.filter((_: string, i: number) => !dropSet.has(i)).map(toPdf)
+          })
+
+          // Column widths after dropping (landscape 297mm, 14mm margins = 269mm usable)
+          const colWidthMap: Record<string, Record<number, { cellWidth: number }>> = {
+            patients: {
+              // Remaining after drop: Nume, Varsta, Gen, Telefon, Status, Medic primar, Data
+              0: { cellWidth: 56 },
+              1: { cellWidth: 22 },
+              2: { cellWidth: 32 }, // fits MASCULIN
+              3: { cellWidth: 34 },
+              4: { cellWidth: 32 }, // fits PROGRAMAT
+              5: { cellWidth: 58 }, // fits Dr. Maria Ionescu
+              6: { cellWidth: 28 },
+              // Total: 262mm
+            },
+            appointments: {
+              // Nr, Data, Ora, Pacient, Medic, Departament, Status, Min.
+              0: { cellWidth: 14 },
+              1: { cellWidth: 28 },
+              2: { cellWidth: 20 },
+              3: { cellWidth: 46 },
+              4: { cellWidth: 46 },
+              5: { cellWidth: 42 },
+              6: { cellWidth: 38 }, // fits IN_ASTEPTARE
+              7: { cellWidth: 20 },
+              // Total: 254mm
+            },
+            doctors: {
+              0: { cellWidth: 46 },
+              1: { cellWidth: 46 },
+              2: { cellWidth: 42 },
+              3: { cellWidth: 28 },
+              4: { cellWidth: 18 },
+              5: { cellWidth: 26 },
+              6: { cellWidth: 26 },
+              // Total: 232mm
+            },
+            departments: {
+              0: { cellWidth: 90 },
+              1: { cellWidth: 52 },
+              2: { cellWidth: 52 },
+              3: { cellWidth: 52 },
+              // Total: 246mm
+            },
+          }
+
+          const typeWidths = colWidthMap[reportFormData.type] ?? {}
+          const columnStyles: Record<number, object> = {
+            ...typeWidths,
+            0: { fontStyle: "bold", ...(typeWidths[0] ?? {}) },
+          }
 
           autoTable(doc, {
-            head: [headers],
-            body: rows,
-            startY: 65,
-            theme: 'grid',
-            headStyles: { fillColor: [32, 96, 112], textColor: 255, fontStyle: 'bold' },
+            head: [pdfHeaders],
+            body: pdfRows,
+            startY: 52,
+            theme: "striped",
+            headStyles: {
+              fillColor: [32, 96, 112],
+              textColor: [255, 255, 255],
+              fontStyle: "bold",
+              fontSize: 8.5,
+              cellPadding: 5,
+            },
+            bodyStyles: {
+              fontSize: 9,
+              textColor: [30, 41, 59],
+              cellPadding: 5,
+            },
             alternateRowStyles: { fillColor: [248, 250, 252] },
-            styles: { fontSize: 9, cellPadding: 4 },
+            columnStyles,
+            margin: { left: m, right: m },
           })
-          
+
           const pageCount = (doc as any).internal.getNumberOfPages()
           for (let i = 1; i <= pageCount; i++) {
             doc.setPage(i)
-            doc.setFontSize(8)
-            doc.setTextColor(100, 116, 139)
-            doc.text(
-              `Pagina ${i} din ${pageCount}  |  Generat din portalul administrativ PoliCare`,
-              14,
-              doc.internal.pageSize.height - 10
-            )
+            const footerY = doc.internal.pageSize.height - 8
+            doc.setDrawColor(220, 228, 235)
+            doc.setLineWidth(0.3)
+            doc.line(m, footerY - 4, pageW - m, footerY - 4)
+            doc.setFontSize(7)
+            doc.setFont("helvetica", "normal")
+            doc.setTextColor(148, 163, 184)
+            doc.text(`Pagina ${i} din ${pageCount}`, m, footerY)
+            doc.text("PoliCare · Portal Administrativ", pageW - m, footerY, { align: "right" })
           }
 
           doc.save(`raport-${reportFormData.type}-${dateStr}.pdf`)

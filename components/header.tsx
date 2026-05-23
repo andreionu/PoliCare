@@ -130,7 +130,7 @@ export function Header({ userName, userRole }: HeaderProps) {
                             <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors truncate">
                               {appt.patient.name}
                             </p>
-                            <span className="text-xs font-bold text-amber-600 shrink-0 bg-amber-100 px-2 py-0.5 rounded-md">
+                            <span className="text-xs font-bold text-amber-600 dark:text-amber-400 shrink-0 bg-amber-100 dark:bg-amber-500/15 px-2 py-0.5 rounded-md">
                               {appt.startTime}
                             </span>
                           </div>

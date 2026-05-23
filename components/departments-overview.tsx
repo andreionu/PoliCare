@@ -88,7 +88,7 @@ export function DepartmentsOverview({ departments, loading }: DepartmentsOvervie
                           <p className="text-sm font-bold text-foreground/90 tracking-tight group-hover:text-foreground/100 transition-colors">{dept.name}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{dept.doctorCount} medici</span>
-                            <span className="w-1 h-1 rounded-full bg-slate-200" />
+                            <span className="w-1 h-1 rounded-full bg-slate-200 dark:bg-slate-600" />
                             <span className={cn("text-[10px] font-bold uppercase tracking-widest", style.color)}>Activ</span>
                           </div>
                         </div>

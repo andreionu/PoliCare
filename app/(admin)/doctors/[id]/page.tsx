@@ -87,9 +87,9 @@ const doctorStatusLabels: Record<string, string> = {
 }
 
 const doctorStatusColors: Record<string, string> = {
-  ACTIV: "bg-green-100 text-green-700",
-  IN_CONCEDIU: "bg-yellow-100 text-yellow-700",
-  INDISPONIBIL: "bg-red-100 text-red-700",
+  ACTIV: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400",
+  IN_CONCEDIU: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400",
+  INDISPONIBIL: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400",
 }
 
 const MALE_DOCTOR_PHOTOS = [
@@ -358,14 +358,14 @@ export default function DoctorDetailPage() {
                 />
                 <div className="space-y-1">
                   <div className="flex items-center gap-3">
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">{doctor.name}</h1>
+                    <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">{doctor.name}</h1>
                     <Badge className={cn("px-2.5 py-0.5 rounded-full border-none font-bold text-[10px] uppercase tracking-wider", doctorStatusColors[doctor.status])}>
                       {doctorStatusLabels[doctor.status] || doctor.status}
                     </Badge>
                   </div>
-                  <p className="text-slate-500 font-semibold flex items-center gap-2">
+                  <p className="text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-2">
                     <span className="text-primary/70">{doctor.specialty}</span>
-                    <span className="h-1 w-1 rounded-full bg-slate-300" />
+                    <span className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                     <span>{doctor.department.name}</span>
                   </p>
                 </div>
@@ -384,14 +384,14 @@ export default function DoctorDetailPage() {
                 </Button>
               )}
               {isSuperAdmin && doctor?.hasAccount && (
-                <Badge className="bg-emerald-100 text-emerald-700 font-bold px-3 py-1.5 rounded-xl">
+                <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400 font-bold px-3 py-1.5 rounded-xl">
                   Cont activ
                 </Badge>
               )}
               <Button
                 variant="outline"
                 onClick={handleOpenEdit}
-                className="rounded-xl h-11 px-6 font-bold border-slate-200 hover:bg-slate-50 transition-all flex-1 sm:flex-none"
+                className="rounded-xl h-11 px-6 font-bold border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-all flex-1 sm:flex-none"
               >
                 <Edit className="h-4 w-4 mr-2 text-primary" />
                 Editează Profil
@@ -401,7 +401,7 @@ export default function DoctorDetailPage() {
 
           {/* Info cards */}
           <div className="grid md:grid-cols-2 gap-6">
-            <Card className="p-6 border-slate-100 shadow-xl shadow-slate-200/50 rounded-3xl overflow-hidden relative group">
+            <Card className="p-6 border-slate-100 dark:border-slate-700/30 shadow-xl shadow-slate-200/50 dark:shadow-none rounded-3xl overflow-hidden relative group">
               <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
                 <User className="w-24 h-24 rotate-12" />
               </div>
@@ -411,47 +411,47 @@ export default function DoctorDetailPage() {
                   Contact & Profil
                 </h3>
                 <div className="space-y-4">
-                  <div className="flex items-center gap-4 p-3 rounded-2xl bg-slate-50/50 border border-slate-100 hover:border-primary/20 transition-colors">
-                    <div className="h-10 w-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-primary shrink-0">
+                  <div className="flex items-center gap-4 p-3 rounded-2xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-700/30 hover:border-primary/20 transition-colors">
+                    <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-700/50 shadow-sm flex items-center justify-center text-primary shrink-0">
                       <Phone className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase font-bold text-slate-400">Telefon</p>
-                      <p className="font-bold text-slate-900">{doctor.phone}</p>
+                      <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">Telefon</p>
+                      <p className="font-bold text-slate-900 dark:text-slate-100">{doctor.phone}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 p-3 rounded-2xl bg-slate-50/50 border border-slate-100 hover:border-primary/20 transition-colors">
-                    <div className="h-10 w-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-primary shrink-0">
+                  <div className="flex items-center gap-4 p-3 rounded-2xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-700/30 hover:border-primary/20 transition-colors">
+                    <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-700/50 shadow-sm flex items-center justify-center text-primary shrink-0">
                       <Mail className="h-5 w-5" />
                     </div>
                     <div className="truncate">
-                      <p className="text-[10px] uppercase font-bold text-slate-400">Email</p>
-                      <p className="font-bold text-slate-900 truncate">{doctor.email}</p>
+                      <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">Email</p>
+                      <p className="font-bold text-slate-900 dark:text-slate-100 truncate">{doctor.email}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-center gap-4 p-3 rounded-2xl bg-slate-50/50 border border-slate-100 hover:border-primary/20 transition-colors">
-                      <div className="h-10 w-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-amber-500 shrink-0">
+                    <div className="flex items-center gap-4 p-3 rounded-2xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-700/30 hover:border-primary/20 transition-colors">
+                      <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-700/50 shadow-sm flex items-center justify-center text-amber-500 shrink-0">
                         <Clock className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase font-bold text-slate-400">Experiență</p>
-                        <p className="font-bold text-slate-900">{doctor.experience}</p>
+                        <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">Experiență</p>
+                        <p className="font-bold text-slate-900 dark:text-slate-100">{doctor.experience}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 p-3 rounded-2xl bg-slate-50/50 border border-slate-100 hover:border-primary/20 transition-colors">
-                      <div className="h-10 w-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-yellow-500 shrink-0">
+                    <div className="flex items-center gap-4 p-3 rounded-2xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-700/30 hover:border-primary/20 transition-colors">
+                      <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-700/50 shadow-sm flex items-center justify-center text-yellow-500 shrink-0">
                         <Star className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase font-bold text-slate-400">Rating</p>
-                        <p className="font-bold text-slate-900">{doctor.rating.toFixed(1)}</p>
+                        <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">Rating</p>
+                        <p className="font-bold text-slate-900 dark:text-slate-100">{doctor.rating.toFixed(1)}</p>
                       </div>
                     </div>
                   </div>
                   {doctor.bio && (
-                    <div className="mt-4 p-4 rounded-2xl bg-indigo-50/30 border border-indigo-100/50">
-                      <p className="text-sm font-medium text-slate-600 leading-relaxed italic">
+                    <div className="mt-4 p-4 rounded-2xl bg-indigo-50/30 dark:bg-indigo-500/5 border border-indigo-100/50 dark:border-indigo-500/10">
+                      <p className="text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed italic">
                         "{doctor.bio}"
                       </p>
                     </div>
@@ -460,7 +460,7 @@ export default function DoctorDetailPage() {
               </div>
             </Card>
 
-            <Card className="p-6 border-slate-100 shadow-xl shadow-slate-200/50 rounded-3xl overflow-hidden relative group">
+            <Card className="p-6 border-slate-100 dark:border-slate-700/30 shadow-xl shadow-slate-200/50 dark:shadow-none rounded-3xl overflow-hidden relative group">
               <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
                 <Calendar className="w-24 h-24 -rotate-12" />
               </div>
@@ -472,55 +472,55 @@ export default function DoctorDetailPage() {
                 <div className="space-y-4 flex-1">
                   <div className="flex items-center justify-between p-4 rounded-2xl bg-primary/5 border border-primary/10">
                     <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-xl bg-white shadow-sm flex items-center justify-center text-primary">
+                      <div className="h-12 w-12 rounded-xl bg-white dark:bg-slate-700/50 shadow-sm flex items-center justify-center text-primary">
                         <Users className="h-6 w-6" />
                       </div>
                       <div>
-                        <p className="font-extrabold text-2xl text-slate-900 tracking-tight">{doctorPatients.length}</p>
-                        <p className="text-[10px] uppercase font-bold text-slate-500">Pacienți Asignați</p>
+                        <p className="font-extrabold text-2xl text-slate-900 dark:text-slate-100 tracking-tight">{doctorPatients.length}</p>
+                        <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Pacienți Asignați</p>
                       </div>
                     </div>
-                    <div className="h-1 w-24 bg-slate-200 rounded-full overflow-hidden">
+                    <div className="h-1 w-24 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                        <div className="h-full bg-primary rounded-full transition-all duration-1000" style={{ width: `${Math.min((doctorPatients.length / 50) * 100, 100)}%` }} />
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100">
+                  <div className="flex items-center justify-between p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-500/5 border border-indigo-100 dark:border-indigo-500/10">
                     <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-xl bg-white shadow-sm flex items-center justify-center text-indigo-600">
+                      <div className="h-12 w-12 rounded-xl bg-white dark:bg-slate-700/50 shadow-sm flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                         <Calendar className="h-6 w-6" />
                       </div>
                       <div>
-                        <p className="font-extrabold text-2xl text-slate-900 tracking-tight">{doctor.appointments.length}</p>
-                        <p className="text-[10px] uppercase font-bold text-slate-500">Programări Recente</p>
+                        <p className="font-extrabold text-2xl text-slate-900 dark:text-slate-100 tracking-tight">{doctor.appointments.length}</p>
+                        <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Programări Recente</p>
                       </div>
                     </div>
-                    <Badge variant="outline" className="rounded-lg bg-white border-slate-200 font-bold text-slate-600">
+                    <Badge variant="outline" className="rounded-lg bg-white dark:bg-slate-700/50 border-slate-200 dark:border-slate-600 font-bold text-slate-600 dark:text-slate-400">
                       Total
                     </Badge>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                  <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-700/30">
                     <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-600">
+                      <div className="h-12 w-12 rounded-xl bg-white dark:bg-slate-700/50 shadow-sm flex items-center justify-center text-slate-600 dark:text-slate-400">
                         <Clock className="h-6 w-6" />
                       </div>
                       <div>
-                        <p className="font-extrabold text-2xl text-slate-900 tracking-tight">
+                        <p className="font-extrabold text-2xl text-slate-900 dark:text-slate-100 tracking-tight">
                           {schedules.filter((s) => s.isActive).length}
                         </p>
-                        <p className="text-[10px] uppercase font-bold text-slate-500">Zile Active / Săptămână</p>
+                        <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Zile Active / Săptămână</p>
                       </div>
                     </div>
                     <div className="flex -space-x-1">
                       {WEEK_DAYS.map((day) => {
                         const sched = schedules.find(s => s.dayOfWeek === day);
                         return (
-                          <div 
-                            key={day} 
+                          <div
+                            key={day}
                             className={cn(
-                              "h-2 w-2 rounded-full ring-2 ring-white",
-                              sched?.isActive ? "bg-primary" : "bg-slate-200"
+                              "h-2 w-2 rounded-full ring-2 ring-white dark:ring-card",
+                              sched?.isActive ? "bg-primary" : "bg-slate-200 dark:bg-slate-600"
                             )}
                           />
                         )
@@ -534,34 +534,34 @@ export default function DoctorDetailPage() {
 
           {/* Tabs Section */}
           <Tabs defaultValue="schedule" className="space-y-6">
-            <TabsList className="bg-slate-100/50 p-1.5 rounded-2xl h-14 border border-slate-200/60 w-full sm:w-auto">
-              <TabsTrigger 
-                value="schedule" 
-                className="rounded-xl px-8 h-11 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-md font-bold text-sm transition-all"
+            <TabsList className="bg-slate-100/50 dark:bg-slate-800/50 p-1.5 rounded-2xl h-14 border border-slate-200/60 dark:border-slate-700/40 w-full sm:w-auto">
+              <TabsTrigger
+                value="schedule"
+                className="rounded-xl px-8 h-11 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-primary data-[state=active]:shadow-md font-bold text-sm transition-all"
               >
                 Program
               </TabsTrigger>
-              <TabsTrigger 
-                value="patients" 
-                className="rounded-xl px-8 h-11 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-md font-bold text-sm transition-all"
+              <TabsTrigger
+                value="patients"
+                className="rounded-xl px-8 h-11 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-primary data-[state=active]:shadow-md font-bold text-sm transition-all"
               >
-                Pacienți <span className="ml-2 px-1.5 py-0.5 rounded-md bg-slate-100 text-[10px] text-slate-500">{doctorPatients.length}</span>
+                Pacienți <span className="ml-2 px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700/50 text-[10px] text-slate-500 dark:text-slate-400">{doctorPatients.length}</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="appointments" 
-                className="rounded-xl px-8 h-11 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-md font-bold text-sm transition-all"
+              <TabsTrigger
+                value="appointments"
+                className="rounded-xl px-8 h-11 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-primary data-[state=active]:shadow-md font-bold text-sm transition-all"
               >
-                Programări <span className="ml-2 px-1.5 py-0.5 rounded-md bg-slate-100 text-[10px] text-slate-500">{doctor.appointments.length}</span>
+                Programări <span className="ml-2 px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700/50 text-[10px] text-slate-500 dark:text-slate-400">{doctor.appointments.length}</span>
               </TabsTrigger>
             </TabsList>
 
             {/* Schedule tab */}
             <TabsContent value="schedule" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
-              <Card className="p-8 border-slate-100 shadow-xl shadow-slate-200/50 rounded-[32px] overflow-hidden">
+              <Card className="p-8 border-slate-100 dark:border-slate-700/30 shadow-xl shadow-slate-200/50 dark:shadow-none rounded-[32px] overflow-hidden">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
                   <div>
-                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Program săptămânal</h3>
-                    <p className="text-sm text-slate-500 font-medium">Configurează intervalele de lucru pentru fiecare zi.</p>
+                    <h3 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Program săptămânal</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Configurează intervalele de lucru pentru fiecare zi.</p>
                   </div>
                   <Button 
                     onClick={handleSaveSchedule} 
@@ -582,9 +582,9 @@ export default function DoctorDetailPage() {
                       key={s.dayOfWeek} 
                       className={cn(
                         "flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 rounded-2xl transition-all duration-300 border",
-                        s.isActive 
-                          ? "bg-white border-slate-100 shadow-sm" 
-                          : "bg-slate-50 border-transparent opacity-60"
+                        s.isActive
+                          ? "bg-white dark:bg-slate-800/50 border-slate-100 dark:border-slate-700/30 shadow-sm"
+                          : "bg-slate-50 dark:bg-slate-800/20 border-transparent opacity-60"
                       )}
                     >
                       <div className="flex items-center gap-4 w-full sm:w-32">
@@ -595,7 +595,7 @@ export default function DoctorDetailPage() {
                         />
                         <span className={cn(
                           "text-sm font-black uppercase tracking-wider",
-                          s.isActive ? "text-slate-900" : "text-slate-400"
+                          s.isActive ? "text-slate-900 dark:text-slate-100" : "text-slate-400"
                         )}>
                           {DAY_NAMES[s.dayOfWeek]}
                         </span>
@@ -609,7 +609,7 @@ export default function DoctorDetailPage() {
                               type="time"
                               value={s.startTime}
                               onChange={(e) => updateScheduleDay(s.dayOfWeek, "startTime", e.target.value)}
-                              className="pl-9 h-11 rounded-xl bg-slate-50 border-transparent focus:bg-white focus:border-primary/20 font-bold transition-all"
+                              className="pl-9 h-11 rounded-xl bg-slate-50 dark:bg-slate-800/50 border-transparent focus:bg-white dark:focus:bg-slate-700/50 focus:border-primary/20 font-bold transition-all"
                             />
                           </div>
                           <span className="text-slate-300 font-black">/</span>
@@ -619,7 +619,7 @@ export default function DoctorDetailPage() {
                               type="time"
                               value={s.endTime}
                               onChange={(e) => updateScheduleDay(s.dayOfWeek, "endTime", e.target.value)}
-                              className="pl-9 h-11 rounded-xl bg-slate-50 border-transparent focus:bg-white focus:border-primary/20 font-bold transition-all"
+                              className="pl-9 h-11 rounded-xl bg-slate-50 dark:bg-slate-800/50 border-transparent focus:bg-white dark:focus:bg-slate-700/50 focus:border-primary/20 font-bold transition-all"
                             />
                           </div>
                         </div>
@@ -637,33 +637,33 @@ export default function DoctorDetailPage() {
             {/* Patients tab */}
             <TabsContent value="patients" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
               {doctorPatients.length === 0 ? (
-                <Card className="p-12 text-center border-dashed border-2 bg-slate-50/50 rounded-[32px]">
-                  <div className="h-16 w-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4 border border-slate-100">
-                    <Users className="h-8 w-8 text-slate-300" />
+                <Card className="p-12 text-center border-dashed border-2 bg-slate-50/50 dark:bg-slate-800/20 rounded-[32px]">
+                  <div className="h-16 w-16 bg-white dark:bg-slate-800/50 rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4 border border-slate-100 dark:border-slate-700/30">
+                    <Users className="h-8 w-8 text-slate-300 dark:text-slate-600" />
                   </div>
-                  <h4 className="font-bold text-slate-900">Niciun pacient asignat</h4>
-                  <p className="text-sm text-slate-500 mt-1">Acest medic nu are momentan pacienți în lista principală.</p>
+                  <h4 className="font-bold text-slate-900 dark:text-slate-100">Niciun pacient asignat</h4>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Acest medic nu are momentan pacienți în lista principală.</p>
                 </Card>
               ) : (
                 <div className="grid sm:grid-cols-2 gap-4">
                   {doctorPatients.map((patient) => (
-                    <Card key={patient.id} className="p-5 border-slate-100 hover:shadow-lg hover:shadow-slate-200/50 transition-all group rounded-2xl">
+                    <Card key={patient.id} className="p-5 border-slate-100 dark:border-slate-700/30 hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-none transition-all group rounded-2xl">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center text-indigo-600 font-black text-lg border border-indigo-100 group-hover:scale-110 transition-transform">
                             {patient.name.charAt(0)}
                           </div>
                           <div>
-                            <p className="font-black text-slate-900 tracking-tight">{patient.name}</p>
+                            <p className="font-black text-slate-900 dark:text-slate-100 tracking-tight">{patient.name}</p>
                             <p className="text-xs font-bold text-slate-400 mt-0.5">{patient.phone}</p>
                           </div>
                         </div>
                         <Badge
                           className={cn(
                             "px-2.5 py-0.5 rounded-full border-none font-bold text-[10px] uppercase tracking-wider",
-                            patient.status === "ACTIV" ? "bg-green-100 text-green-700" :
-                            patient.status === "PROGRAMAT" ? "bg-amber-100 text-amber-700" :
-                            "bg-slate-100 text-slate-600"
+                            patient.status === "ACTIV" ? "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400" :
+                            patient.status === "PROGRAMAT" ? "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400" :
+                            "bg-slate-100 text-slate-600 dark:bg-slate-500/15 dark:text-slate-400"
                           )}
                         >
                           {patient.status === "NOU" ? "Nou" :
@@ -680,38 +680,38 @@ export default function DoctorDetailPage() {
             {/* Appointments tab */}
             <TabsContent value="appointments" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
               {doctor.appointments.length === 0 ? (
-                <Card className="p-12 text-center border-dashed border-2 bg-slate-50/50 rounded-[32px]">
-                   <div className="h-16 w-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4 border border-slate-100">
-                    <Calendar className="h-8 w-8 text-slate-300" />
+                <Card className="p-12 text-center border-dashed border-2 bg-slate-50/50 dark:bg-slate-800/20 rounded-[32px]">
+                   <div className="h-16 w-16 bg-white dark:bg-slate-800/50 rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4 border border-slate-100 dark:border-slate-700/30">
+                    <Calendar className="h-8 w-8 text-slate-300 dark:text-slate-600" />
                   </div>
-                  <h4 className="font-bold text-slate-900">Nicio programare recentă</h4>
-                  <p className="text-sm text-slate-500 mt-1">Calendarul de activitate este gol pentru ultimele 30 de zile.</p>
+                  <h4 className="font-bold text-slate-900 dark:text-slate-100">Nicio programare recentă</h4>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Calendarul de activitate este gol pentru ultimele 30 de zile.</p>
                 </Card>
               ) : (
                 <div className="space-y-3">
                   {doctor.appointments.map((apt) => (
-                    <Card key={apt.id} className="p-5 border-slate-100 hover:shadow-lg hover:shadow-slate-200/50 transition-all rounded-2xl">
+                    <Card key={apt.id} className="p-5 border-slate-100 dark:border-slate-700/30 hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-none transition-all rounded-2xl">
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-6">
-                          <div className="text-center bg-slate-50 p-3 rounded-2xl min-w-[100px] border border-slate-100">
-                            <p className="text-xl font-black text-slate-900 leading-none">{new Date(apt.date).getDate()}</p>
-                            <p className="text-[10px] uppercase font-bold text-slate-500 mt-1.5">{new Date(apt.date).toLocaleDateString("ro-RO", { month: "long" })}</p>
+                          <div className="text-center bg-slate-50 dark:bg-slate-800/30 p-3 rounded-2xl min-w-[100px] border border-slate-100 dark:border-slate-700/30">
+                            <p className="text-xl font-black text-slate-900 dark:text-slate-100 leading-none">{new Date(apt.date).getDate()}</p>
+                            <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mt-1.5">{new Date(apt.date).toLocaleDateString("ro-RO", { month: "long" })}</p>
                             <div className="mt-2 h-0.5 w-4 bg-primary mx-auto rounded-full" />
                             <p className="text-xs font-black text-primary mt-2">{apt.startTime}</p>
                           </div>
                           <div>
-                            <p className="text-[10px] uppercase font-black text-slate-400 tracking-wider mb-1">Pacient</p>
-                            <p className="font-black text-lg text-slate-900 tracking-tight">{apt.patient.name}</p>
-                            <p className="text-sm font-bold text-slate-500 mt-0.5">{apt.department?.name || "—"}</p>
+                            <p className="text-[10px] uppercase font-black text-slate-400 dark:text-slate-500 tracking-wider mb-1">Pacient</p>
+                            <p className="font-black text-lg text-slate-900 dark:text-slate-100 tracking-tight">{apt.patient.name}</p>
+                            <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mt-0.5">{apt.department?.name || "—"}</p>
                           </div>
                         </div>
                         <Badge
                           className={cn(
                             "px-3 py-1 rounded-full border-none font-black text-[10px] uppercase tracking-wider",
-                            apt.status === "CONFIRMAT" ? "bg-emerald-100 text-emerald-700" :
-                            apt.status === "FINALIZAT" ? "bg-blue-100 text-blue-700" :
-                            apt.status === "ANULAT" ? "bg-rose-100 text-rose-700" :
-                            "bg-amber-100 text-amber-700"
+                            apt.status === "CONFIRMAT" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400" :
+                            apt.status === "FINALIZAT" ? "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400" :
+                            apt.status === "ANULAT" ? "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400" :
+                            "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"
                           )}
                         >
                           {aptStatusLabels[apt.status] || apt.status}

@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { DashboardStats } from "@/components/dashboard-stats"
 import { RecentAppointments } from "@/components/recent-appointments"
 import { DepartmentsOverview } from "@/components/departments-overview"
 import { Preloader } from "@/components/preloader"
 import { Badge } from "@/components/ui/badge"
+import { useRealtimeEvent } from "@/hooks/use-realtime"
 
 interface DashboardData {
   totalPatients: number
@@ -35,7 +36,7 @@ export default function DashboardPage() {
   const [statsData, setStatsData] = useState<DashboardData | null>(null)
   const [loadingStats, setLoadingStats] = useState(false)
 
-  useEffect(() => {
+  const fetchStats = useCallback(() => {
     setLoadingStats(true)
     fetch("/api/dashboard/stats")
       .then((r) => r.json())
@@ -43,6 +44,10 @@ export default function DashboardPage() {
       .catch(console.error)
       .finally(() => setLoadingStats(false))
   }, [])
+
+  useEffect(() => { fetchStats() }, [fetchStats])
+  useRealtimeEvent("appointments_updated", fetchStats)
+  useRealtimeEvent("stats_updated", fetchStats)
 
   const [greeting, setGreeting] = useState("")
 
@@ -67,7 +72,7 @@ export default function DashboardPage() {
                 <Badge variant="outline" className="rounded-full px-3 py-1 border-primary/20 bg-primary/5 text-primary dark:border-primary/10 dark:bg-primary/5 font-bold text-[10px] tracking-widest uppercase">
                   Management Portal
                 </Badge>
-                <div className="h-1 w-1 rounded-full bg-slate-300" />
+                <div className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">v1.2.4</span>
               </div>
               <h1 className="text-4xl font-extrabold tracking-tight text-foreground">{greeting}, Admin!</h1>

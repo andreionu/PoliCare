@@ -266,9 +266,9 @@ export default function DoctorsPage() {
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { label: "Total Medici", val: stats.total, icon: Stethoscope, color: "text-primary", bg: "bg-primary/5", shadow: "shadow-primary/10" },
-              { label: "Medici Activi", val: stats.active, icon: Activity, color: "text-emerald-600", bg: "bg-emerald-50", shadow: "shadow-emerald-200" },
-              { label: "Rating Mediu", val: stats.avgRating, icon: Award, color: "text-amber-600", bg: "bg-amber-50", shadow: "shadow-amber-200" },
+              { label: "Total Medici", val: stats.total, icon: Stethoscope, color: "text-primary", bg: "bg-primary/5 dark:bg-primary/10", shadow: "shadow-primary/10" },
+              { label: "Medici Activi", val: stats.active, icon: Activity, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-500/15", shadow: "shadow-emerald-200 dark:shadow-none" },
+              { label: "Rating Mediu", val: stats.avgRating, icon: Award, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-500/15", shadow: "shadow-amber-200 dark:shadow-none" },
             ].map((stat, i) => (
               <Card key={i} className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm rounded-2xl">
                 <div className={cn("absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 rounded-full blur-3xl opacity-50 group-hover:opacity-100 transition-opacity", stat.bg)} />
@@ -342,8 +342,8 @@ export default function DoctorsPage() {
                     <Badge className={cn(
                       "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider border shadow-sm",
                       doctor.status === "ACTIV"
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                        : "bg-amber-50 text-amber-700 border-amber-100"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/20"
+                        : "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/20"
                     )}>
                       {getStatusDisplay(doctor.status)}
                     </Badge>

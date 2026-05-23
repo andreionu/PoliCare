@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { sendAppointmentNotification } from "@/lib/notifications"
+import { emitAppEvent } from "@/lib/event-bus"
 
 // GET /api/appointments/[id] - Get single appointment
 export async function GET(
@@ -177,6 +178,7 @@ export async function PUT(
       )
     }
 
+    emitAppEvent("appointments_updated", { action: "updated" })
     return NextResponse.json(appointment)
   } catch (error) {
     console.error("Error updating appointment:", error)
@@ -199,6 +201,7 @@ export async function DELETE(
       where: { id },
     })
 
+    emitAppEvent("appointments_updated", { action: "deleted" })
     return NextResponse.json({ message: "Appointment deleted" })
   } catch (error) {
     console.error("Error deleting appointment:", error)

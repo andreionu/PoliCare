@@ -49,7 +49,7 @@ function getEntityColor(entity: string) {
     user: { bg: "bg-amber-50 dark:bg-amber-900/20", icon: "text-amber-600 dark:text-amber-400", border: "border-amber-100 dark:border-amber-800" },
     report: { bg: "bg-rose-50 dark:bg-rose-900/20", icon: "text-rose-600 dark:text-rose-400", border: "border-rose-100 dark:border-rose-800" },
   }
-  return map[entity.toLowerCase()] ?? { bg: "bg-slate-50", icon: "text-slate-600", border: "border-slate-100" }
+  return map[entity.toLowerCase()] ?? { bg: "bg-slate-50 dark:bg-slate-900/20", icon: "text-slate-600 dark:text-slate-400", border: "border-slate-100 dark:border-slate-800" }
 }
 
 function formatRelativeTime(dateStr: string) {

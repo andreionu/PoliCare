@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { emitAppEvent } from "@/lib/event-bus"
 
 // GET /api/patients - Get all patients (supports ?phone=X, ?email=X and ?search=X filters)
 export async function GET(request: Request) {
@@ -106,6 +107,7 @@ export async function POST(request: Request) {
       },
     })
 
+    emitAppEvent("stats_updated", { action: "patient_created" })
     return NextResponse.json(patient, { status: 201 })
   } catch (error: any) {
     // Handle expected CNP uniqueness conflict (P2002)

@@ -68,13 +68,13 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 }
 
 const colorMap: Record<string, { bg: string; text: string; iconBg: string }> = {
-  rose: { bg: "bg-rose-50", text: "text-rose-600", iconBg: "bg-rose-100" },
-  blue: { bg: "bg-blue-50", text: "text-blue-600", iconBg: "bg-blue-100" },
-  emerald: { bg: "bg-emerald-50", text: "text-emerald-600", iconBg: "bg-emerald-100" },
-  purple: { bg: "bg-purple-50", text: "text-purple-600", iconBg: "bg-purple-100" },
-  pink: { bg: "bg-pink-50", text: "text-pink-600", iconBg: "bg-pink-100" },
-  amber: { bg: "bg-amber-50", text: "text-amber-600", iconBg: "bg-amber-100" },
-  cyan: { bg: "bg-cyan-50", text: "text-cyan-600", iconBg: "bg-cyan-100" },
+  rose: { bg: "bg-rose-50 dark:bg-rose-500/10", text: "text-rose-600 dark:text-rose-400", iconBg: "bg-rose-100 dark:bg-rose-500/20" },
+  blue: { bg: "bg-blue-50 dark:bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", iconBg: "bg-blue-100 dark:bg-blue-500/20" },
+  emerald: { bg: "bg-emerald-50 dark:bg-emerald-500/10", text: "text-emerald-600 dark:text-emerald-400", iconBg: "bg-emerald-100 dark:bg-emerald-500/20" },
+  purple: { bg: "bg-purple-50 dark:bg-purple-500/10", text: "text-purple-600 dark:text-purple-400", iconBg: "bg-purple-100 dark:bg-purple-500/20" },
+  pink: { bg: "bg-pink-50 dark:bg-pink-500/10", text: "text-pink-600 dark:text-pink-400", iconBg: "bg-pink-100 dark:bg-pink-500/20" },
+  amber: { bg: "bg-amber-50 dark:bg-amber-500/10", text: "text-amber-600 dark:text-amber-400", iconBg: "bg-amber-100 dark:bg-amber-500/20" },
+  cyan: { bg: "bg-cyan-50 dark:bg-cyan-500/10", text: "text-cyan-600 dark:text-cyan-400", iconBg: "bg-cyan-100 dark:bg-cyan-500/20" },
 }
 
 export default function DepartmentsPage() {
@@ -234,8 +234,8 @@ export default function DepartmentsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               { label: "Total Unități", val: stats.total, icon: LayoutGrid, color: "text-primary", bg: "bg-primary/5", shadow: "shadow-primary/10" },
-              { label: "Unități Active", val: stats.active, icon: Activity, color: "text-emerald-600", bg: "bg-emerald-50", shadow: "shadow-emerald-200" },
-              { label: "Medici Alocați", val: stats.capacity, icon: Users, color: "text-indigo-600", bg: "bg-indigo-50", shadow: "shadow-indigo-200" },
+              { label: "Unități Active", val: stats.active, icon: Activity, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-500/15", shadow: "shadow-emerald-200 dark:shadow-none" },
+              { label: "Medici Alocați", val: stats.capacity, icon: Users, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-500/15", shadow: "shadow-indigo-200 dark:shadow-none" },
             ].map((stat, i) => (
               <Card key={i} className="relative overflow-hidden group p-6 border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-card/50 backdrop-blur-sm rounded-2xl">
                 <div className={cn("absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 rounded-full blur-3xl opacity-50 group-hover:opacity-100 transition-opacity", stat.bg)} />
@@ -256,12 +256,12 @@ export default function DepartmentsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {loading ? (
               Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-64 bg-white rounded-2xl animate-pulse border border-slate-100 shadow-sm" />
+                <div key={i} className="h-64 bg-white dark:bg-card/50 rounded-2xl animate-pulse border border-slate-100 dark:border-slate-700/30 shadow-sm" />
               ))
             ) : departments.length === 0 ? (
               <div className="col-span-full flex flex-col items-center justify-center py-20 px-6 text-center bg-white dark:bg-card/50 rounded-2xl border border-border/50">
-                <div className="w-20 h-20 rounded-2xl bg-slate-50 flex items-center justify-center mb-6">
-                  <Building2 className="w-10 h-10 text-slate-200" />
+                <div className="w-20 h-20 rounded-2xl bg-slate-50 dark:bg-slate-800/30 flex items-center justify-center mb-6">
+                  <Building2 className="w-10 h-10 text-slate-200 dark:text-slate-600" />
                 </div>
                 <h3 className="text-xl font-bold text-foreground mb-2">Niciun departament găsit</h3>
                 <p className="text-muted-foreground max-w-sm mx-auto mb-8">Nu am găsit niciun departament configurat în acest moment.</p>
@@ -288,9 +288,9 @@ export default function DepartmentsPage() {
                         </div>
                         <Badge className={cn(
                           "rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider border shadow-sm transition-all",
-                          dept.status === "ACTIV" 
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
-                            : "bg-slate-50 text-slate-400 border-slate-100"
+                          dept.status === "ACTIV"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/20"
+                            : "bg-slate-50 text-slate-400 border-slate-100 dark:bg-slate-500/15 dark:text-slate-500 dark:border-slate-500/20"
                         )}>
                           {dept.status === "ACTIV" ? "Activ" : "Inactiv"}
                         </Badge>
@@ -303,7 +303,7 @@ export default function DepartmentsPage() {
                         </p>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 py-4 border-t border-slate-100/60">
+                      <div className="grid grid-cols-2 gap-4 py-4 border-t border-slate-100/60 dark:border-slate-700/30">
                         <div className="flex flex-col gap-0.5">
                           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Medici</span>
                           <div className="flex items-center gap-1.5">

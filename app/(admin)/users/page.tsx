@@ -248,7 +248,7 @@ export default function UsersPage() {
 
   const getStatusBadge = (status: string) => {
     return status === "ACTIVE" ? (
-      <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Activ</Badge>
+      <Badge className="bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-500/15 dark:text-green-400 dark:hover:bg-green-500/15">Activ</Badge>
     ) : (
       <Badge variant="outline" className="text-muted-foreground">Inactiv</Badge>
     )

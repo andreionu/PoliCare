@@ -492,11 +492,11 @@ export default function PatientsPage() {
                         <Badge
                           variant={patient.status === "ACTIV" ? "default" : "secondary"}
                           className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider w-fit ${
-                            patient.status === "ACTIV" 
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
+                            patient.status === "ACTIV"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/20"
                               : patient.status === "PROGRAMAT"
-                                ? "bg-blue-50 text-blue-700 border-blue-100"
-                                : "bg-slate-50 text-slate-700 border-slate-100"
+                                ? "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/20"
+                                : "bg-slate-50 text-slate-700 border-slate-100 dark:bg-slate-500/15 dark:text-slate-400 dark:border-slate-500/20"
                           } border shadow-sm`}
                         >
                           {getStatusDisplay(patient.status)}

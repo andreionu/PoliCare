@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { emitAppEvent } from "@/lib/event-bus"
 
 // GET /api/patients/[id] - Get single patient
 export async function GET(
@@ -136,6 +137,7 @@ export async function DELETE(
       where: { id },
     })
 
+    emitAppEvent("stats_updated", { action: "patient_deleted" })
     return NextResponse.json({ message: "Patient deleted" })
   } catch (error) {
     console.error("Error deleting patient:", error)

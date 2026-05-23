@@ -85,10 +85,10 @@ interface PatientDetail {
 }
 
 const statusColors: Record<string, string> = {
-  NOU: "bg-blue-100 text-blue-700",
-  ACTIV: "bg-green-100 text-green-700",
-  PROGRAMAT: "bg-yellow-100 text-yellow-700",
-  INACTIV: "bg-gray-100 text-gray-600",
+  NOU: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",
+  ACTIV: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400",
+  PROGRAMAT: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400",
+  INACTIV: "bg-gray-100 text-gray-600 dark:bg-gray-500/15 dark:text-gray-400",
 }
 
 const statusLabels: Record<string, string> = {
@@ -690,15 +690,15 @@ export default function PatientDetailPage() {
                               </div>
                               <div className="grid md:grid-cols-2 gap-8">
                                 {record.symptoms && (
-                                  <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                                  <div className="bg-slate-50/50 dark:bg-slate-800/30 p-4 rounded-xl border border-slate-100 dark:border-slate-700/30">
                                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 italic">Simptome</p>
                                     <p className="text-sm font-medium italic">{record.symptoms}</p>
                                   </div>
                                 )}
                                 {record.diagnosis && (
-                                  <div className="bg-indigo-50/30 p-4 rounded-xl border border-indigo-100">
-                                    <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2">Diagnostic</p>
-                                    <p className="text-sm font-black text-indigo-950/80">{record.diagnosis}</p>
+                                  <div className="bg-indigo-50/30 dark:bg-indigo-500/5 p-4 rounded-xl border border-indigo-100 dark:border-indigo-500/10">
+                                    <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2">Diagnostic</p>
+                                    <p className="text-sm font-black text-indigo-950/80 dark:text-indigo-300/80">{record.diagnosis}</p>
                                   </div>
                                 )}
                               </div>
