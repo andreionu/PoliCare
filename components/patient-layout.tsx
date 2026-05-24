@@ -87,7 +87,7 @@ export function PatientLayout({ children, userName }: PatientLayoutProps) {
           <Button
             variant="ghost"
             className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl"
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={() => signOut({ callbackUrl: "/" })}
           >
             <LogOut className="h-4 w-4 mr-2" />
             Deconectare
@@ -141,7 +141,7 @@ export function PatientLayout({ children, userName }: PatientLayoutProps) {
                 )
               })}
               <button
-                onClick={() => signOut({ callbackUrl: "/login" })}
+                onClick={() => signOut({ callbackUrl: "/" })}
                 className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-destructive hover:bg-destructive/10 transition-all"
               >
                 <LogOut className="h-5 w-5 shrink-0" />

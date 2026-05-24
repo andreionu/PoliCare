@@ -9,6 +9,7 @@ import { Calendar, Bell, ChevronRight, Loader2, Clock, Plus, CreditCard, ArrowRi
 import { format } from "date-fns"
 import { ro } from "date-fns/locale"
 import { PatientBookingDialog } from "@/components/patient-booking-dialog"
+import { formatDoctorName } from "@/lib/utils"
 
 const statusLabels: Record<string, string> = {
   IN_ASTEPTARE: "În așteptare",
@@ -94,7 +95,7 @@ export default function PatientDashboardPage() {
       )}
 
       <Card className="rounded-2xl border-slate-100 shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b">
           <h2 className="font-black text-foreground">Programări viitoare</h2>
           <Link href="/patient/appointments" className="text-sm text-teal-600 font-bold flex items-center gap-1 hover:underline">
             Vezi toate <ChevronRight className="h-4 w-4" />
@@ -114,7 +115,7 @@ export default function PatientDashboardPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                    <p className="font-bold text-sm text-foreground">Dr. {appt.doctor?.name}</p>
+                    <p className="font-bold text-sm text-foreground">{appt.doctor?.name ? formatDoctorName(appt.doctor.name) : ""}</p>
                     <Badge className={statusColors[appt.status] ?? "bg-gray-100 text-gray-700"}>
                       {statusLabels[appt.status] ?? appt.status}
                     </Badge>
@@ -132,7 +133,7 @@ export default function PatientDashboardPage() {
 
       {data?.recentNotifications?.length > 0 && (
         <Card className="rounded-2xl border-slate-100 shadow-sm overflow-hidden">
-          <div className="p-6 border-b">
+          <div className="p-4 sm:p-6 border-b">
             <h2 className="font-black text-foreground">Notificări recente</h2>
           </div>
           <div className="divide-y divide-border/50">

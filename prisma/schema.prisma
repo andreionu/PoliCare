@@ -33,6 +33,7 @@ enum Role {
   FRONT_DESK
   DOCTOR
   PATIENT
+  MARKETING
 }
 
 enum UserStatus {

@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { sendAppointmentNotification } from "@/lib/notifications"
 import { emitAppEvent } from "@/lib/event-bus"
+import { logActivity } from "@/lib/activity"
 
 // GET /api/appointments - Get all appointments
 export async function GET(request: Request) {
@@ -37,41 +40,31 @@ export async function GET(request: Request) {
       where.date = { gte: past, lte: future }
     }
 
-    const appointments = await prisma.appointment.findMany({
-      where,
-      include: {
-        patient: {
-          select: {
-            id: true,
-            name: true,
-            phone: true,
-            email: true,
-          },
-        },
-        doctor: {
-          select: {
-            id: true,
-            name: true,
-            specialty: true,
-          },
-        },
-        department: {
-          select: {
-            id: true,
-            name: true,
-            color: true,
-          },
-        },
-        service: true,
-        notifications: {
-          orderBy: { createdAt: "desc" },
-          take: 10,
-        },
-      },
-      orderBy: [{ date: "asc" }, { startTime: "asc" }],
-    })
+    const pageParam = searchParams.get("page")
+    const paginated = pageParam !== null
+    const page = Math.max(1, parseInt(pageParam ?? "1"))
+    const limit = Math.min(200, Math.max(1, parseInt(searchParams.get("limit") ?? "50")))
 
-    return NextResponse.json(appointments)
+    const include = {
+      patient: { select: { id: true, name: true, phone: true, email: true } },
+      doctor: { select: { id: true, name: true, specialty: true } },
+      department: { select: { id: true, name: true, color: true } },
+      service: true,
+      notifications: { orderBy: { createdAt: "desc" as const }, take: 10 },
+    }
+    const orderBy = [{ date: "asc" as const }, { startTime: "asc" as const }]
+
+    if (!paginated) {
+      const appointments = await prisma.appointment.findMany({ where, include, orderBy })
+      return NextResponse.json(appointments)
+    }
+
+    const [appointments, total] = await Promise.all([
+      prisma.appointment.findMany({ where, include, orderBy, skip: (page - 1) * limit, take: limit }),
+      prisma.appointment.count({ where }),
+    ])
+
+    return NextResponse.json({ data: appointments, total, page, totalPages: Math.ceil(total / limit) })
   } catch (error) {
     console.error("Error fetching appointments:", error)
     return NextResponse.json(
@@ -84,6 +77,7 @@ export async function GET(request: Request) {
 // POST /api/appointments - Create a new appointment
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions)
     const body = await request.json()
 
     // --- Working hours and status validation ---
@@ -111,10 +105,10 @@ export async function POST(request: Request) {
     }
 
     if (doctor?.status === "IN_CONCEDIU") {
-      return NextResponse.json({ error: "CONFLICT", message: `Dr. ${doctor.name} este în concediu` }, { status: 409 })
+      return NextResponse.json({ error: "CONFLICT", message: `${doctor.name.replace(/^(Dr\.\s*)+/i, "Dr. ")} este în concediu` }, { status: 409 })
     }
     if (doctor?.status === "INDISPONIBIL") {
-      return NextResponse.json({ error: "CONFLICT", message: `Dr. ${doctor.name} este indisponibil` }, { status: 409 })
+      return NextResponse.json({ error: "CONFLICT", message: `${doctor.name.replace(/^(Dr\.\s*)+/i, "Dr. ")} este indisponibil` }, { status: 409 })
     }
 
     const startOfDay = new Date(body.date); startOfDay.setHours(0, 0, 0, 0)
@@ -165,7 +159,7 @@ export async function POST(request: Request) {
           patient: {
             name: appointment.patient.name,
             email: appointment.patient.email,
-            phone: appointment.patient.phone,
+            phone: appointment.patient.phone ?? "",
           },
           doctor: { name: appointment.doctor.name },
           department: appointment.department ? { name: appointment.department.name } : null,
@@ -175,6 +169,13 @@ export async function POST(request: Request) {
       )
     }
 
+    logActivity({
+      action: "CREATE",
+      entity: "appointment",
+      entityId: appointment.id,
+      description: `Programare creată: ${appointment.patient.name} → ${appointment.doctor.name} (${new Date(appointment.date).toLocaleDateString("ro-RO")} ${appointment.startTime})`,
+      userId: session?.user?.id ?? undefined,
+    })
     emitAppEvent("appointments_updated", { action: "created" })
     return NextResponse.json(appointment, { status: 201 })
   } catch (error) {

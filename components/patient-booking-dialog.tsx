@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, ChevronRight, ChevronLeft, Calendar, Clock, Check, Stethoscope } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, formatDoctorName } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import { ro } from "date-fns/locale"
@@ -231,7 +231,7 @@ export function PatientBookingDialog({ open, onOpenChange, onBooked }: PatientBo
                             <Stethoscope className="h-4 w-4 text-slate-500" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold">Dr. {doc.name}</p>
+                            <p className="text-sm font-bold">{formatDoctorName(doc.name)}</p>
                             <p className="text-xs text-muted-foreground">{doc.specialty}</p>
                           </div>
                           {selectedDoctorId === doc.id && <Check className="h-4 w-4 text-teal-600 shrink-0" />}
@@ -326,7 +326,7 @@ export function PatientBookingDialog({ open, onOpenChange, onBooked }: PatientBo
                     <Stethoscope className="h-4 w-4 text-teal-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold">Dr. {selectedDoctor?.name}</p>
+                    <p className="text-sm font-bold">{selectedDoctor ? formatDoctorName(selectedDoctor.name) : ""}</p>
                     <p className="text-xs text-muted-foreground">{selectedDept?.name}</p>
                   </div>
                 </div>

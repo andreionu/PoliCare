@@ -53,7 +53,7 @@ export async function POST(request: Request) {
           unit_amount: Math.round(appointment.service.price * 100),
           product_data: {
             name: appointment.service.name,
-            description: `Consultație Dr. ${appointment.doctor.name} · ${apptDate} ${appointment.startTime}`,
+            description: `Consultație ${appointment.doctor.name.replace(/^(Dr\.\s*)+/i, "Dr. ")} · ${apptDate} ${appointment.startTime}`,
           },
         },
         quantity: 1,
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
 
   const result = await sendEmail({
     to: appointment.patient.email,
-    subject: `Plată în așteptare — ${appointment.service.name} cu Dr. ${appointment.doctor.name}`,
+    subject: `Plată în așteptare — ${appointment.service.name} cu ${appointment.doctor.name.replace(/^(Dr\.\s*)+/i, "Dr. ")}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
         <div style="background: #206070; padding: 28px 32px; border-radius: 12px 12px 0 0;">
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
           <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 24px;">
             <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
               <tr><td style="color: #64748b; padding: 6px 0;">Serviciu</td><td style="font-weight: 700; text-align: right;">${appointment.service.name}</td></tr>
-              <tr><td style="color: #64748b; padding: 6px 0;">Medic</td><td style="font-weight: 600; text-align: right;">Dr. ${appointment.doctor.name}</td></tr>
+              <tr><td style="color: #64748b; padding: 6px 0;">Medic</td><td style="font-weight: 600; text-align: right;">${appointment.doctor.name.replace(/^(Dr\.\s*)+/i, "Dr. ")}</td></tr>
               <tr><td style="color: #64748b; padding: 6px 0;">Data</td><td style="font-weight: 600; text-align: right; text-transform: capitalize;">${apptDate}</td></tr>
               <tr><td style="color: #64748b; padding: 6px 0;">Ora</td><td style="font-weight: 600; text-align: right;">${appointment.startTime}</td></tr>
               <tr style="border-top: 1px solid #e2e8f0;"><td style="color: #1a1a1a; font-weight: 700; padding: 12px 0 6px;">Total de plată</td><td style="font-size: 18px; font-weight: 800; color: #206070; text-align: right; padding: 12px 0 6px;">${priceStr}</td></tr>

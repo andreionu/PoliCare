@@ -70,6 +70,8 @@ export default function PatientsPage() {
   const searchParams = useSearchParams()
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get("search") ?? "")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [doctorFilter, setDoctorFilter] = useState("all")
+  const [doctors, setDoctors] = useState<{ id: string; name: string }[]>([])
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
@@ -111,12 +113,19 @@ export default function PatientsPage() {
 
 
   useEffect(() => {
+    fetch("/api/doctors?limit=200")
+      .then((r) => r.json())
+      .then((data) => setDoctors(Array.isArray(data) ? data : []))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
     setPage(1)
-  }, [debouncedSearch])
+  }, [debouncedSearch, doctorFilter])
 
   useEffect(() => {
     fetchPatients(debouncedSearch || undefined, page)
-  }, [debouncedSearch, page])
+  }, [debouncedSearch, doctorFilter, page])
 
   const handleAddPatient = async () => {
     // Basic validation
@@ -255,6 +264,7 @@ export default function PatientsPage() {
     try {
       const params = new URLSearchParams({ page: String(currentPage), limit: "20" })
       if (search) params.set("search", search)
+      if (doctorFilter !== "all") params.set("doctorId", doctorFilter)
       const response = await fetch(`/api/patients?${params}`)
       if (!response.ok) throw new Error("Failed to fetch")
       const json = await response.json()
@@ -397,6 +407,17 @@ export default function PatientsPage() {
                   <SelectItem value="ACTIV">Activ</SelectItem>
                   <SelectItem value="PROGRAMAT">Programat</SelectItem>
                   <SelectItem value="INACTIV">Inactiv</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={doctorFilter} onValueChange={(v) => { setDoctorFilter(v); setPage(1) }}>
+                <SelectTrigger className="h-12 w-full sm:w-52 bg-muted/50 border-none rounded-xl focus:ring-2 focus:ring-primary">
+                  <SelectValue placeholder="Toți medicii" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toți medicii</SelectItem>
+                  {doctors.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { emitAppEvent } from "@/lib/event-bus"
+import { logActivity } from "@/lib/activity"
 
 // GET /api/patients - Get all patients (supports ?phone=X, ?email=X and ?search=X filters)
 export async function GET(request: Request) {
@@ -9,6 +12,7 @@ export async function GET(request: Request) {
     const phone = searchParams.get("phone")
     const email = searchParams.get("email")
     const search = searchParams.get("search")
+    const doctorId = searchParams.get("doctorId")
 
     const where: Record<string, unknown> = {}
     
@@ -23,6 +27,8 @@ export async function GET(request: Request) {
     } else if (email) {
       where.email = email
     }
+
+    if (doctorId) where.primaryDoctorId = doctorId
 
     if (search) {
       if (where.OR) {
@@ -86,6 +92,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   let body: any;
   try {
+    const session = await getServerSession(authOptions)
     body = await request.json()
 
     const patient = await prisma.patient.create({
@@ -107,6 +114,13 @@ export async function POST(request: Request) {
       },
     })
 
+    logActivity({
+      action: "CREATE",
+      entity: "patient",
+      entityId: patient.id,
+      description: `Pacient înregistrat: ${patient.name}`,
+      userId: session?.user?.id,
+    })
     emitAppEvent("stats_updated", { action: "patient_created" })
     return NextResponse.json(patient, { status: 201 })
   } catch (error: any) {

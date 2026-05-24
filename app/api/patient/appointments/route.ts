@@ -48,8 +48,8 @@ export async function POST(request: Request) {
 
     const doctor = await prisma.doctor.findUnique({ where: { id: doctorId }, select: { status: true, name: true } })
     if (!doctor) return NextResponse.json({ message: "Medicul nu a fost găsit" }, { status: 404 })
-    if (doctor.status === "IN_CONCEDIU") return NextResponse.json({ message: `Dr. ${doctor.name} este în concediu` }, { status: 409 })
-    if (doctor.status === "INDISPONIBIL") return NextResponse.json({ message: `Dr. ${doctor.name} este indisponibil` }, { status: 409 })
+    if (doctor.status === "IN_CONCEDIU") return NextResponse.json({ message: `${doctor.name.replace(/^(Dr\.\s*)+/i, "Dr. ")} este în concediu` }, { status: 409 })
+    if (doctor.status === "INDISPONIBIL") return NextResponse.json({ message: `${doctor.name.replace(/^(Dr\.\s*)+/i, "Dr. ")} este indisponibil` }, { status: 409 })
 
     const apptDate = new Date(date)
     const startOfDay = new Date(apptDate); startOfDay.setHours(0, 0, 0, 0)

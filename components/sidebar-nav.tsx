@@ -18,8 +18,10 @@ import {
 } from "lucide-react"
 
 interface SidebarNavProps {
-  userRole?: "SUPER_ADMIN" | "FRONT_DESK" | null
+  userRole?: "SUPER_ADMIN" | "FRONT_DESK" | "MARKETING" | null
 }
+
+const MARKETING_ALLOWED_HREFS = ["/reports", "/activity", "/billing"]
 
 const navItems = [
   {
@@ -85,12 +87,18 @@ const superAdminNavItems = [
 export function SidebarNav({ userRole }: SidebarNavProps) {
   const pathname = usePathname()
 
+  const visibleNavItems = userRole === "MARKETING"
+    ? navItems.filter(item => MARKETING_ALLOWED_HREFS.includes(item.href))
+    : navItems
+
   return (
     <nav className="space-y-6 px-4 py-4">
       <div>
-        <p className="px-3 mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50">Meniu Principal</p>
+        <p className="px-3 mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50">
+          {userRole === "MARKETING" ? "Marketing" : "Meniu Principal"}
+        </p>
         <div className="space-y-1.5">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
             return (

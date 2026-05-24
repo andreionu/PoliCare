@@ -28,7 +28,7 @@ export function AdminLayout({ children, userName, userRole }: AdminLayoutProps) 
           <Logo size="sm" />
         </div>
         <div className="flex-1 overflow-y-auto py-6">
-          <SidebarNav userRole={userRole as "SUPER_ADMIN" | "FRONT_DESK"} />
+          <SidebarNav userRole={userRole as "SUPER_ADMIN" | "FRONT_DESK" | "MARKETING"} />
         </div>
       </aside>
 

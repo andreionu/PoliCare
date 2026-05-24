@@ -15,6 +15,7 @@ async function main() {
 
   const adminPassword = await bcrypt.hash("admin123", 10)
   const frontDeskPassword = await bcrypt.hash("receptie123", 10)
+  const demoPassword = await bcrypt.hash("Demo2026!", 10)
 
   const admin = await prisma.user.upsert({
     where: { email: "admin@policare.ro" },
@@ -26,7 +27,12 @@ async function main() {
     update: {},
     create: { email: "receptie@policare.ro", name: "Recepție", password: frontDeskPassword, role: "FRONT_DESK", status: "ACTIVE" },
   })
-  console.log(`✅ Users: ${admin.email}, ${frontDesk.email}`)
+  const marketing = await prisma.user.upsert({
+    where: { email: "marketing@policare.ro" },
+    update: {},
+    create: { email: "marketing@policare.ro", name: "Echipa Marketing", password: demoPassword, role: "MARKETING", status: "ACTIVE" },
+  })
+  console.log(`✅ Users: ${admin.email}, ${frontDesk.email}, ${marketing.email}`)
 
   // ── Departments ──────────────────────────────────────────────────────────────
   const deptData = [
@@ -184,6 +190,20 @@ async function main() {
   ])
   console.log("✅ Doctors created")
 
+  // Demo doctor account linked to Dr. Mihai Popescu
+  const drMihai = await prisma.doctor.findFirst({ where: { email: "mihai.popescu@policare.ro" } })
+  if (drMihai) {
+    const demoDoctor = await prisma.user.upsert({
+      where: { email: "demo.doctor@policare.ro" },
+      update: {},
+      create: { email: "demo.doctor@policare.ro", name: drMihai.name, password: demoPassword, role: "DOCTOR", status: "ACTIVE" },
+    })
+    if (!drMihai.userId) {
+      await prisma.doctor.update({ where: { id: drMihai.id }, data: { userId: demoDoctor.id } })
+    }
+    console.log(`✅ Demo doctor: ${demoDoctor.email}`)
+  }
+
   await prisma.settings.upsert({
     where: { id: "clinic_settings" },
     update: {},
@@ -199,6 +219,8 @@ async function main() {
   console.log("\n🎉 Seeding complete!")
   console.log("   Admin:      admin@policare.ro / admin123")
   console.log("   Front Desk: receptie@policare.ro / receptie123")
+  console.log("   Dr. Popescu: demo.doctor@policare.ro / Demo2026!")
+  console.log("   Marketing:  marketing@policare.ro / Demo2026!")
 }
 
 main()

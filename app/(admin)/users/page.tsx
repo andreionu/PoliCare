@@ -17,7 +17,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { UserPlus, Search, Shield, User, Trash2, Edit, Mail, Phone, Loader2 } from "lucide-react"
+import { UserPlus, Search, Shield, User, Trash2, Edit, Mail, Phone, Loader2, Info } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 
@@ -232,9 +232,33 @@ export default function UsersPage() {
   const getRoleBadge = (userRole: string) => {
     if (userRole === "SUPER_ADMIN") {
       return (
-        <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">
+        <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100 dark:bg-purple-500/15 dark:text-purple-400 dark:hover:bg-purple-500/15">
           <Shield className="w-3 h-3 mr-1" />
           Super Admin
+        </Badge>
+      )
+    }
+    if (userRole === "MARKETING") {
+      return (
+        <Badge className="bg-pink-100 text-pink-700 hover:bg-pink-100 dark:bg-pink-500/15 dark:text-pink-400 dark:hover:bg-pink-500/15">
+          <Info className="w-3 h-3 mr-1" />
+          Marketing
+        </Badge>
+      )
+    }
+    if (userRole === "DOCTOR") {
+      return (
+        <Badge className="bg-teal-100 text-teal-700 hover:bg-teal-100 dark:bg-teal-500/15 dark:text-teal-400 dark:hover:bg-teal-500/15">
+          <User className="w-3 h-3 mr-1" />
+          Medic
+        </Badge>
+      )
+    }
+    if (userRole === "PATIENT") {
+      return (
+        <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-100 dark:bg-gray-500/15 dark:text-gray-400 dark:hover:bg-gray-500/15">
+          <User className="w-3 h-3 mr-1" />
+          Pacient
         </Badge>
       )
     }
@@ -294,6 +318,51 @@ export default function UsersPage() {
               <div className="text-3xl font-bold tracking-tight text-emerald-600">{users.filter((u) => u.status === "ACTIVE").length}</div>
             </Card>
           </div>
+
+          {/* Role Permissions Legend */}
+          <Card className="p-5 border-none shadow-sm rounded-2xl bg-white dark:bg-card/50">
+            <div className="flex items-center gap-2 mb-3">
+              <Info className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Roluri & Permisiuni</span>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 text-sm">
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-purple-50 dark:bg-purple-500/10">
+                <Shield className="w-4 h-4 text-purple-600 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-semibold text-purple-700 dark:text-purple-400">Super Admin</span>
+                  <p className="text-muted-foreground text-xs mt-0.5">Acces complet, gestionare utilizatori</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-500/10">
+                <User className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-semibold text-blue-700 dark:text-blue-400">Recepție</span>
+                  <p className="text-muted-foreground text-xs mt-0.5">Pacienți, programări, medici, rapoarte</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-pink-50 dark:bg-pink-500/10">
+                <Info className="w-4 h-4 text-pink-600 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-semibold text-pink-700 dark:text-pink-400">Marketing</span>
+                  <p className="text-muted-foreground text-xs mt-0.5">Rapoarte, plăți, activitate (citire)</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-teal-50 dark:bg-teal-500/10">
+                <User className="w-4 h-4 text-teal-600 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-semibold text-teal-700 dark:text-teal-400">Medic</span>
+                  <p className="text-muted-foreground text-xs mt-0.5">Portal medic — programări proprii</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-gray-50 dark:bg-gray-500/10">
+                <User className="w-4 h-4 text-gray-600 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-semibold text-gray-700 dark:text-gray-400">Pacient</span>
+                  <p className="text-muted-foreground text-xs mt-0.5">Portal pacient — date proprii</p>
+                </div>
+              </div>
+            </div>
+          </Card>
 
           {/* Search */}
           <Card className="p-4 border-none shadow-sm rounded-2xl bg-white dark:bg-card/50">
@@ -434,6 +503,7 @@ export default function UsersPage() {
                 <SelectContent>
                   <SelectItem value="FRONT_DESK">Recepție</SelectItem>
                   <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                  <SelectItem value="MARKETING">Marketing</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -517,6 +587,7 @@ export default function UsersPage() {
                   <SelectContent>
                     <SelectItem value="FRONT_DESK">Recepție</SelectItem>
                     <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                    <SelectItem value="MARKETING">Marketing</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

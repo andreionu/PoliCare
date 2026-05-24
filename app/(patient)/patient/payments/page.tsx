@@ -9,6 +9,7 @@ import { CreditCard, CheckCircle, Clock, Loader2, Receipt, Printer } from "lucid
 import { format } from "date-fns"
 import { ro } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
+import { formatDoctorName } from "@/lib/utils"
 
 interface Appointment {
   id: string
@@ -132,45 +133,36 @@ export default function PatientPaymentsPage() {
             <p className="font-semibold text-sm">Nicio programare cu tarif</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/30 text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  <th className="text-left px-4 py-3">Dată</th>
-                  <th className="text-left px-4 py-3">Medic</th>
-                  <th className="text-left px-4 py-3 hidden sm:table-cell">Serviciu</th>
-                  <th className="text-right px-4 py-3">Sumă</th>
-                  <th className="text-center px-4 py-3">Status</th>
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/50">
-                {appointments.map(appt => {
-                  const pb = paymentBadge[appt.paymentStatus] ?? paymentBadge.UNPAID
-                  const canPay = appt.paymentStatus === "UNPAID" && !["ANULAT","NEPREZENTARE"].includes(appt.status)
-                  const isPaid = appt.paymentStatus === "PAID"
-                  return (
-                    <tr key={appt.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <p className="font-semibold">{format(new Date(appt.date), "d MMM yyyy", { locale: ro })}</p>
-                        <p className="text-xs text-muted-foreground">{appt.startTime}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="font-medium">Dr. {appt.doctor.name}</p>
-                        {appt.doctor.specialty && <p className="text-xs text-muted-foreground">{appt.doctor.specialty}</p>}
-                      </td>
-                      <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground">{appt.service?.name}</td>
-                      <td className="px-4 py-3 text-right font-bold">
+          <>
+            {/* Mobile card list */}
+            <div className="sm:hidden divide-y divide-border/50">
+              {appointments.map(appt => {
+                const pb = paymentBadge[appt.paymentStatus] ?? paymentBadge.UNPAID
+                const canPay = appt.paymentStatus === "UNPAID" && !["ANULAT","NEPREZENTARE"].includes(appt.status)
+                const isPaid = appt.paymentStatus === "PAID"
+                return (
+                  <div key={appt.id} className="p-4 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-bold text-sm text-foreground truncate">{formatDoctorName(appt.doctor.name)}</p>
+                        {appt.service && <p className="text-xs text-muted-foreground truncate">{appt.service.name}</p>}
+                      </div>
+                      <Badge className={`${pb.className} border-none shrink-0`}>{pb.label}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(appt.date), "d MMM yyyy", { locale: ro })} · {appt.startTime}
+                      </p>
+                      <p className="font-black text-sm text-foreground">
                         {(appt.service?.price ?? 0).toLocaleString("ro-RO")} lei
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <Badge className={`${pb.className} border-none`}>{pb.label}</Badge>
-                      </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                      </p>
+                    </div>
+                    {(canPay || isPaid) && (
+                      <div className="pt-1">
                         {canPay && (
                           <Button
                             size="sm"
-                            className="rounded-xl bg-teal-600 hover:bg-teal-700 text-white gap-1.5 h-8 text-xs font-bold"
+                            className="w-full rounded-xl bg-teal-600 hover:bg-teal-700 text-white gap-1.5 h-9 text-xs font-bold"
                             onClick={() => handlePay(appt.id)}
                             disabled={paying === appt.id}
                           >
@@ -182,26 +174,92 @@ export default function PatientPaymentsPage() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="rounded-xl gap-1.5 h-8 text-xs font-bold text-teal-600 hover:bg-teal-50"
+                            className="w-full rounded-xl gap-1.5 h-9 text-xs font-bold text-teal-600 hover:bg-teal-50"
                             onClick={() => setReceiptAppt(appt)}
                           >
                             <Receipt className="h-3.5 w-3.5" />
-                            Chitanță
+                            Vizualizează chitanța
                           </Button>
                         )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/30 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    <th className="text-left px-4 py-3">Dată</th>
+                    <th className="text-left px-4 py-3">Medic</th>
+                    <th className="text-left px-4 py-3">Serviciu</th>
+                    <th className="text-right px-4 py-3">Sumă</th>
+                    <th className="text-center px-4 py-3">Status</th>
+                    <th className="px-4 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  {appointments.map(appt => {
+                    const pb = paymentBadge[appt.paymentStatus] ?? paymentBadge.UNPAID
+                    const canPay = appt.paymentStatus === "UNPAID" && !["ANULAT","NEPREZENTARE"].includes(appt.status)
+                    const isPaid = appt.paymentStatus === "PAID"
+                    return (
+                      <tr key={appt.id} className="hover:bg-muted/20 transition-colors">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <p className="font-semibold">{format(new Date(appt.date), "d MMM yyyy", { locale: ro })}</p>
+                          <p className="text-xs text-muted-foreground">{appt.startTime}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="font-medium">{formatDoctorName(appt.doctor.name)}</p>
+                          {appt.doctor.specialty && <p className="text-xs text-muted-foreground">{appt.doctor.specialty}</p>}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{appt.service?.name}</td>
+                        <td className="px-4 py-3 text-right font-bold">
+                          {(appt.service?.price ?? 0).toLocaleString("ro-RO")} lei
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <Badge className={`${pb.className} border-none`}>{pb.label}</Badge>
+                        </td>
+                        <td className="px-4 py-3 text-right whitespace-nowrap">
+                          {canPay && (
+                            <Button
+                              size="sm"
+                              className="rounded-xl bg-teal-600 hover:bg-teal-700 text-white gap-1.5 h-8 text-xs font-bold"
+                              onClick={() => handlePay(appt.id)}
+                              disabled={paying === appt.id}
+                            >
+                              {paying === appt.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CreditCard className="h-3.5 w-3.5" />}
+                              Plătește
+                            </Button>
+                          )}
+                          {isPaid && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="rounded-xl gap-1.5 h-8 text-xs font-bold text-teal-600 hover:bg-teal-50"
+                              onClick={() => setReceiptAppt(appt)}
+                            >
+                              <Receipt className="h-3.5 w-3.5" />
+                              Chitanță
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
 
       {/* Receipt dialog */}
       <Dialog open={!!receiptAppt} onOpenChange={(open) => { if (!open) setReceiptAppt(null) }}>
-        <DialogContent className="max-w-sm rounded-2xl">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-sm rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-center">Chitanță</DialogTitle>
           </DialogHeader>
@@ -224,7 +282,7 @@ export default function PatientPaymentsPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Medic</span>
-                  <span className="font-semibold">Dr. {receiptAppt.doctor.name}</span>
+                  <span className="font-semibold">{formatDoctorName(receiptAppt.doctor.name)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Serviciu</span>

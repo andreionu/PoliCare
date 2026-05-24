@@ -9,7 +9,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (!session) redirect("/login")
 
-  const adminRoles = ["SUPER_ADMIN", "FRONT_DESK"]
+  const adminRoles = ["SUPER_ADMIN", "FRONT_DESK", "MARKETING"]
   if (!adminRoles.includes(session.user.role)) redirect("/login")
 
   return (

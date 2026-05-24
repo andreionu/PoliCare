@@ -56,7 +56,7 @@ export async function POST(request: Request) {
             unit_amount: Math.round(appointment.service.price * 100),
             product_data: {
               name: appointment.service.name,
-              description: `Consultație Dr. ${appointment.doctor.name} · ${apptDate} ${appointment.startTime}`,
+              description: `Consultație ${appointment.doctor.name.replace(/^(Dr\.\s*)+/i, "Dr. ")} · ${apptDate} ${appointment.startTime}`,
             },
           },
           quantity: 1,

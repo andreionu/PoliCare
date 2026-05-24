@@ -102,6 +102,7 @@ export async function GET() {
       where: { date: { gte: startOfThisMonth, lt: startOfNextMonth } },
       select: {
         status: true,
+        paymentStatus: true,
         doctor: { select: { id: true, name: true } },
         service: { select: { price: true } },
       },
@@ -114,6 +115,8 @@ export async function GET() {
       doctorMap[id].total++;
       if (appt.status === "FINALIZAT") {
         doctorMap[id].completed++;
+      }
+      if (appt.paymentStatus === "PAID") {
         doctorMap[id].revenue += appt.service?.price ? Number(appt.service.price) : 0;
       }
       if (appt.status === "ANULAT" || appt.status === "NEPREZENTARE") doctorMap[id].cancelled++;

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Loader2 } from "lucide-react"
+import { formatDoctorName } from "@/lib/utils"
 
 interface RecentAppointment {
   id: string
@@ -94,7 +95,7 @@ export function RecentAppointments({ appointments, loading }: RecentAppointments
                       <p className="text-sm font-bold leading-none truncate tracking-tight text-foreground/90">{apt.patient.name}</p>
                       <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                         <span className="text-primary font-bold">●</span>
-                        <span className="truncate">Dr. {apt.doctor.name} {apt.department ? `· ${apt.department.name}` : ""}</span>
+                        <span className="truncate">{formatDoctorName(apt.doctor.name)} {apt.department ? `· ${apt.department.name}` : ""}</span>
                       </p>
                     </div>
                   </div>

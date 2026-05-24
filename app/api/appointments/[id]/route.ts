@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { sendAppointmentNotification } from "@/lib/notifications"
 import { emitAppEvent } from "@/lib/event-bus"
+import { logActivity } from "@/lib/activity"
 
 // GET /api/appointments/[id] - Get single appointment
 export async function GET(
@@ -100,10 +101,10 @@ export async function PUT(
 
         const doctor = await prisma.doctor.findUnique({ where: { id: checkDoctorId }, select: { status: true, name: true } })
         if (doctor?.status === "IN_CONCEDIU") {
-          return NextResponse.json({ error: "CONFLICT", message: `Dr. ${doctor.name} este în concediu` }, { status: 409 })
+          return NextResponse.json({ error: "CONFLICT", message: `${doctor.name.replace(/^(Dr\.\s*)+/i, "Dr. ")} este în concediu` }, { status: 409 })
         }
         if (doctor?.status === "INDISPONIBIL") {
-          return NextResponse.json({ error: "CONFLICT", message: `Dr. ${doctor.name} este indisponibil` }, { status: 409 })
+          return NextResponse.json({ error: "CONFLICT", message: `${doctor.name.replace(/^(Dr\.\s*)+/i, "Dr. ")} este indisponibil` }, { status: 409 })
         }
 
         const startOfDay = new Date(checkDate); startOfDay.setHours(0, 0, 0, 0)
@@ -165,7 +166,7 @@ export async function PUT(
           patient: {
             name: appointment.patient.name,
             email: appointment.patient.email ?? null,
-            phone: appointment.patient.phone,
+            phone: appointment.patient.phone ?? "",
           },
           doctor: { name: appointment.doctor.name },
           department: appointment.department ? { name: appointment.department.name } : null,
@@ -178,6 +179,15 @@ export async function PUT(
       )
     }
 
+    logActivity({
+      action: "UPDATE",
+      entity: "appointment",
+      entityId: id,
+      description: body.status
+        ? `Status programare actualizat → ${body.status}: ${appointment.patient.name}`
+        : `Programare reprogramată: ${appointment.patient.name} (${new Date(appointment.date).toLocaleDateString("ro-RO")} ${appointment.startTime})`,
+      userId: session.user?.id ?? undefined,
+    })
     emitAppEvent("appointments_updated", { action: "updated" })
     return NextResponse.json(appointment)
   } catch (error) {
@@ -201,6 +211,14 @@ export async function DELETE(
       where: { id },
     })
 
+    const session2 = await getServerSession(authOptions)
+    logActivity({
+      action: "DELETE",
+      entity: "appointment",
+      entityId: id,
+      description: `Programare ștearsă (ID: ${id})`,
+      userId: session2?.user?.id,
+    })
     emitAppEvent("appointments_updated", { action: "deleted" })
     return NextResponse.json({ message: "Appointment deleted" })
   } catch (error) {

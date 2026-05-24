@@ -23,6 +23,7 @@ import { useNotifications } from "@/hooks/use-notifications"
 import { formatDistanceToNow } from "date-fns"
 import { ro } from "date-fns/locale"
 import { useTheme } from "next-themes"
+import { formatDoctorName } from "@/lib/utils"
 
 interface HeaderProps {
   userName: string
@@ -135,7 +136,7 @@ export function Header({ userName, userRole }: HeaderProps) {
                             </span>
                           </div>
                           <p className="text-xs text-muted-foreground font-medium truncate">
-                            Dr. {appt.doctor.name}
+                            {formatDoctorName(appt.doctor.name)}
                           </p>
                           <p className="text-[10px] text-muted-foreground/60 font-bold uppercase tracking-widest pt-1">
                             {formatDistanceToNow(new Date(appt.createdAt), { addSuffix: true, locale: ro })}

@@ -11,7 +11,7 @@ import { format } from "date-fns"
 import { ro } from "date-fns/locale"
 import { PatientBookingDialog } from "@/components/patient-booking-dialog"
 import { useToast } from "@/hooks/use-toast"
-import { cn } from "@/lib/utils"
+import { cn, formatDoctorName } from "@/lib/utils"
 
 const statusLabels: Record<string, string> = {
   IN_ASTEPTARE: "În așteptare",
@@ -121,14 +121,14 @@ export default function PatientAppointmentsPage() {
 
   return (
     <main className="flex-1 p-4 sm:p-6 space-y-4 sm:space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-black text-foreground">Programările Mele</h1>
           <p className="text-muted-foreground">{appointments.length} programări</p>
         </div>
         <Button
           onClick={() => setBookingOpen(true)}
-          className="rounded-xl bg-teal-600 hover:bg-teal-700 text-white gap-2"
+          className="rounded-xl bg-teal-600 hover:bg-teal-700 text-white gap-2 self-start sm:self-auto"
         >
           <Plus className="h-4 w-4" />
           Programare Nouă
@@ -173,7 +173,7 @@ export default function PatientAppointmentsPage() {
                   <div className="flex flex-col gap-2">
                     {/* Top row: name + badges */}
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-bold text-sm text-foreground">Dr. {appt.doctor?.name}</p>
+                      <p className="font-bold text-sm text-foreground">{appt.doctor?.name ? formatDoctorName(appt.doctor.name) : ""}</p>
                       <Badge className={statusColors[appt.status] ?? "bg-gray-100 text-gray-700"}>
                         {statusLabels[appt.status] ?? appt.status}
                       </Badge>

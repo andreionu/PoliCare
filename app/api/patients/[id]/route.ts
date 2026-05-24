@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { emitAppEvent } from "@/lib/event-bus"
+import { logActivity } from "@/lib/activity"
 
 // GET /api/patients/[id] - Get single patient
 export async function GET(
@@ -97,6 +98,14 @@ export async function PUT(
       },
     })
 
+    const session = await getServerSession(authOptions)
+    logActivity({
+      action: "UPDATE",
+      entity: "patient",
+      entityId: id,
+      description: `Fișă pacient actualizată: ${patient.name}`,
+      userId: session?.user?.id,
+    })
     return NextResponse.json(patient)
   } catch (error: any) {
     console.error("Error updating patient:", error)
@@ -137,6 +146,14 @@ export async function DELETE(
       where: { id },
     })
 
+    const session = await getServerSession(authOptions)
+    logActivity({
+      action: "DELETE",
+      entity: "patient",
+      entityId: id,
+      description: `Pacient șters (ID: ${id})`,
+      userId: session?.user?.id,
+    })
     emitAppEvent("stats_updated", { action: "patient_deleted" })
     return NextResponse.json({ message: "Patient deleted" })
   } catch (error) {

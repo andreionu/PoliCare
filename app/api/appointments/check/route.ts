@@ -26,11 +26,11 @@ export async function GET(request: Request) {
     }
 
     if (doctor.status === "IN_CONCEDIU") {
-      return NextResponse.json({ available: false, reason: `Dr. ${doctor.name} este în concediu` })
+      return NextResponse.json({ available: false, reason: `${doctor.name.replace(/^(Dr\.\s*)+/i, "Dr. ")} este în concediu` })
     }
 
     if (doctor.status === "INDISPONIBIL") {
-      return NextResponse.json({ available: false, reason: `Dr. ${doctor.name} este indisponibil` })
+      return NextResponse.json({ available: false, reason: `${doctor.name.replace(/^(Dr\.\s*)+/i, "Dr. ")} este indisponibil` })
     }
 
     // 2. Check doctor schedule for that day-of-week
