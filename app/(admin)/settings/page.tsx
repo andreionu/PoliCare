@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { Building2, Bell, Shield, Clock, Mail, Phone, MapPin, Loader2, Lock } from "lucide-react"
+import { Building2, Bell, Shield, Clock, Mail, Phone, MapPin, Loader2, Lock, Eye, EyeOff } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -57,6 +57,9 @@ export default function SettingsPage() {
   // Password change dialog state
   const [showPasswordDialog, setShowPasswordDialog] = useState(false)
   const [passwordForm, setPasswordForm] = useState({ email: "", currentPassword: "", newPassword: "", confirmPassword: "" })
+  const [showCurrentPwd, setShowCurrentPwd] = useState(false)
+  const [showNewPwd, setShowNewPwd] = useState(false)
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false)
   const [changingPassword, setChangingPassword] = useState(false)
 
   useEffect(() => {
@@ -163,6 +166,7 @@ export default function SettingsPage() {
       toast({ title: "Succes", description: "Parola a fost schimbată cu succes." })
       setShowPasswordDialog(false)
       setPasswordForm({ email: "", currentPassword: "", newPassword: "", confirmPassword: "" })
+      setShowCurrentPwd(false); setShowNewPwd(false); setShowConfirmPwd(false)
     } catch {
       toast({ title: "Eroare", description: "Nu s-a putut schimba parola.", variant: "destructive" })
     } finally {
@@ -538,33 +542,54 @@ export default function SettingsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="pwd-current">Parola curentă</Label>
-              <Input
-                id="pwd-current"
-                type="password"
-                placeholder="••••••••"
-                value={passwordForm.currentPassword}
-                onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-              />
+              <div className="relative">
+                <Input
+                  id="pwd-current"
+                  type={showCurrentPwd ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={passwordForm.currentPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                  className="pr-10"
+                />
+                <button type="button" onClick={() => setShowCurrentPwd(!showCurrentPwd)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                  {showCurrentPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="pwd-new">Parola nouă</Label>
-              <Input
-                id="pwd-new"
-                type="password"
-                placeholder="Minim 6 caractere"
-                value={passwordForm.newPassword}
-                onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-              />
+              <div className="relative">
+                <Input
+                  id="pwd-new"
+                  type={showNewPwd ? "text" : "password"}
+                  placeholder="Minim 6 caractere"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                  className="pr-10"
+                />
+                <button type="button" onClick={() => setShowNewPwd(!showNewPwd)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                  {showNewPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="pwd-confirm">Confirmă parola nouă</Label>
-              <Input
-                id="pwd-confirm"
-                type="password"
-                placeholder="••••••••"
-                value={passwordForm.confirmPassword}
-                onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-              />
+              <div className="relative">
+                <Input
+                  id="pwd-confirm"
+                  type={showConfirmPwd ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                  className="pr-10"
+                />
+                <button type="button" onClick={() => setShowConfirmPwd(!showConfirmPwd)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                  {showConfirmPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
           </div>
           <DialogFooter className="pt-6 border-t mt-6">
@@ -574,6 +599,7 @@ export default function SettingsPage() {
               onClick={() => {
                 setShowPasswordDialog(false)
                 setPasswordForm({ email: "", currentPassword: "", newPassword: "", confirmPassword: "" })
+      setShowCurrentPwd(false); setShowNewPwd(false); setShowConfirmPwd(false)
               }}
               disabled={changingPassword}
             >

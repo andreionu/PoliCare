@@ -202,23 +202,41 @@ export function LoginScreen() {
 
           <div className="pt-10 border-t border-slate-100">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 text-center">Conturi Demonstrative</p>
-            <div className="grid grid-cols-2 gap-4">
-              <button 
+            <div className="grid grid-cols-2 gap-3">
+              <button
                 onClick={() => {setEmail("admin@policare.ro"); setPassword("admin123")}}
-                className="flex flex-col items-start p-5 rounded-[24px] bg-white border border-slate-100 hover:border-[#206070]/30 hover:shadow-lg hover:shadow-[#206070]/5 transition-all group"
+                className="flex flex-col items-start p-4 rounded-[20px] bg-white border border-slate-100 hover:border-[#206070]/30 hover:shadow-lg hover:shadow-[#206070]/5 transition-all"
               >
-                <div className="px-3 py-1 rounded-full bg-[#206070]/10 text-[#206070] text-[9px] font-black uppercase tracking-widest mb-3">Administrator</div>
+                <div className="px-2.5 py-1 rounded-full bg-[#206070]/10 text-[#206070] text-[9px] font-black uppercase tracking-widest mb-2">Administrator</div>
                 <div className="text-xs font-bold text-slate-800">admin@policare.ro</div>
-                <div className="text-[10px] text-slate-400 font-medium">Parolă: admin123</div>
+                <div className="text-[10px] text-slate-400 font-medium">admin123</div>
               </button>
-              
-              <button 
+
+              <button
                 onClick={() => {setEmail("receptie@policare.ro"); setPassword("receptie123")}}
-                className="flex flex-col items-start p-5 rounded-[24px] bg-white border border-slate-100 hover:border-[#40A0D0]/30 hover:shadow-lg hover:shadow-[#40A0D0]/5 transition-all group"
+                className="flex flex-col items-start p-4 rounded-[20px] bg-white border border-slate-100 hover:border-[#40A0D0]/30 hover:shadow-lg hover:shadow-[#40A0D0]/5 transition-all"
               >
-                <div className="px-3 py-1 rounded-full bg-[#40A0D0]/10 text-[#40A0D0] text-[9px] font-black uppercase tracking-widest mb-3">Front Desk</div>
+                <div className="px-2.5 py-1 rounded-full bg-[#40A0D0]/10 text-[#40A0D0] text-[9px] font-black uppercase tracking-widest mb-2">Recepție</div>
                 <div className="text-xs font-bold text-slate-800">receptie@policare.ro</div>
-                <div className="text-[10px] text-slate-400 font-medium">Parolă: receptie123</div>
+                <div className="text-[10px] text-slate-400 font-medium">receptie123</div>
+              </button>
+
+              <button
+                onClick={() => {setEmail("demo.doctor@policare.ro"); setPassword("Demo2026!")}}
+                className="flex flex-col items-start p-4 rounded-[20px] bg-white border border-slate-100 hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-500/5 transition-all"
+              >
+                <div className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[9px] font-black uppercase tracking-widest mb-2">Medic</div>
+                <div className="text-xs font-bold text-slate-800">demo.doctor@policare.ro</div>
+                <div className="text-[10px] text-slate-400 font-medium">Demo2026!</div>
+              </button>
+
+              <button
+                onClick={() => {setEmail("marketing@policare.ro"); setPassword("Demo2026!")}}
+                className="flex flex-col items-start p-4 rounded-[20px] bg-white border border-slate-100 hover:border-pink-300 hover:shadow-lg hover:shadow-pink-500/5 transition-all"
+              >
+                <div className="px-2.5 py-1 rounded-full bg-pink-50 text-pink-700 text-[9px] font-black uppercase tracking-widest mb-2">Marketing</div>
+                <div className="text-xs font-bold text-slate-800">marketing@policare.ro</div>
+                <div className="text-[10px] text-slate-400 font-medium">Demo2026!</div>
               </button>
             </div>
           </div>

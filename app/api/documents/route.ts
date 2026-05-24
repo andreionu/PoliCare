@@ -11,7 +11,7 @@ const containerName = process.env.AZURE_STORAGE_CONTAINER_NAME || "documents"
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-  if (!["SUPER_ADMIN", "FRONT_DESK"].includes(session.user.role)) {
+  if (!["SUPER_ADMIN", "FRONT_DESK", "DOCTOR"].includes(session.user.role)) {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 })
   }
   try {

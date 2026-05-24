@@ -206,6 +206,7 @@ function LoginForm({ onSuccess, onSwitchTab }: { onSuccess: () => void; onSwitch
 function RegisterForm({ onSuccess, onSwitchTab }: { onSuccess: () => void; onSwitchTab: () => void }) {
   const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", confirmPassword: "" })
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
@@ -305,13 +306,17 @@ function RegisterForm({ onSuccess, onSwitchTab }: { onSuccess: () => void; onSwi
         <div className="relative">
           <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input
-            type="password"
+            type={showConfirmPassword ? "text" : "password"}
             placeholder="Repetați parola"
             value={form.confirmPassword}
             onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
             required
-            className="h-11 pl-11 bg-slate-50 border-slate-200 rounded-2xl font-medium"
+            className="h-11 pl-11 pr-11 bg-slate-50 border-slate-200 rounded-2xl font-medium"
           />
+          <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#206070]">
+            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
         </div>
       </div>
 

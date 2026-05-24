@@ -22,6 +22,7 @@ export default function PatientProfilePage() {
 
   const [showPw, setShowPw] = useState(false)
   const [showNewPw, setShowNewPw] = useState(false)
+  const [showConfirmPw, setShowConfirmPw] = useState(false)
   const [pwOpen, setPwOpen] = useState(false)
   const [savingPw, setSavingPw] = useState(false)
   const [pwForm, setPwForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" })
@@ -236,6 +237,8 @@ export default function PatientProfilePage() {
               label="Confirmă parola nouă"
               value={pwForm.confirmPassword}
               onChange={(v) => setPwForm((p) => ({ ...p, confirmPassword: v }))}
+              show={showConfirmPw}
+              onToggle={() => setShowConfirmPw((s) => !s)}
             />
             <Button
               onClick={handleChangePassword}

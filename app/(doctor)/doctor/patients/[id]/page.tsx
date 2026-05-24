@@ -10,7 +10,10 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { ArrowLeft, Loader2, User, Phone, Mail, Calendar, FileText, Plus } from "lucide-react"
+import {
+  ArrowLeft, Loader2, User, Phone, Mail, Calendar, FileText, Plus,
+  Upload, Download, Trash2, File, ImageIcon,
+} from "lucide-react"
 import { format } from "date-fns"
 import { ro } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
@@ -55,6 +58,7 @@ export default function DoctorPatientDetailPage() {
   const [showRecordModal, setShowRecordModal] = useState(false)
   const [recordForm, setRecordForm] = useState(emptyRecord)
   const [savingRecord, setSavingRecord] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     fetch(`/api/patients/${patientId}`)
@@ -99,6 +103,48 @@ export default function DoctorPatientDetailPage() {
     } finally {
       setSavingRecord(false)
     }
+  }
+
+  const handleUploadDocument = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("patientId", patientId)
+      const res = await fetch("/api/documents", { method: "POST", body: formData })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.message || "Eroare la încărcare")
+      }
+      const newDoc = await res.json()
+      setPatient((prev: any) => ({ ...prev, documents: [newDoc, ...(prev.documents ?? [])] }))
+      toast({ title: "Document încărcat cu succes" })
+    } catch (err: any) {
+      toast({ title: "Eroare", description: err.message, variant: "destructive" })
+    } finally {
+      setUploading(false)
+      e.target.value = ""
+    }
+  }
+
+  const handleDeleteDocument = async (docId: string) => {
+    const res = await fetch(`/api/documents/${docId}`, { method: "DELETE" })
+    if (res.ok) {
+      setPatient((prev: any) => ({ ...prev, documents: prev.documents.filter((d: any) => d.id !== docId) }))
+      toast({ title: "Document șters" })
+    } else {
+      toast({ title: "Eroare la ștergere", variant: "destructive" })
+    }
+  }
+
+  const handleDownloadDocument = async (docId: string, name: string) => {
+    const res = await fetch(`/api/documents/${docId}/url`)
+    if (!res.ok) { toast({ title: "Eroare la descărcare", variant: "destructive" }); return }
+    const { url } = await res.json()
+    const a = document.createElement("a")
+    a.href = url; a.target = "_blank"; a.download = name; a.click()
   }
 
   if (loading) {
@@ -157,6 +203,7 @@ export default function DoctorPatientDetailPage() {
         <TabsList className="rounded-xl">
           <TabsTrigger value="appointments">Programări ({patient.appointments?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="records">Fișe Medicale ({patient.medicalRecords?.length ?? 0})</TabsTrigger>
+          <TabsTrigger value="documents">Documente ({patient.documents?.length ?? 0})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="appointments" className="mt-4">
@@ -245,6 +292,73 @@ export default function DoctorPatientDetailPage() {
             )}
           </Card>
         </TabsContent>
+
+        <TabsContent value="documents" className="mt-4 space-y-4">
+          <Card className="p-6 border-none shadow-sm bg-white dark:bg-card/50 rounded-2xl">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div>
+                <h3 className="font-bold text-lg">Atașamente Medicale</h3>
+                <p className="text-sm text-muted-foreground">Încărcați rezultate analize, imagistică sau alte documente (PDF, JPG, PNG, max 10MB)</p>
+              </div>
+              <div className="relative">
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={handleUploadDocument}
+                  disabled={uploading}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                />
+                <Button disabled={uploading} className="gap-2 px-6 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-all shadow-md">
+                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  {uploading ? "Se încarcă..." : "Încarcă Document"}
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          {!patient.documents?.length ? (
+            <Card className="p-16 text-center border-dashed border-2 bg-transparent rounded-2xl">
+              <div className="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-4">
+                <File className="h-8 w-8 text-indigo-300" />
+              </div>
+              <h4 className="font-bold text-muted-foreground italic uppercase tracking-widest text-sm">Niciun document atașat</h4>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {patient.documents.map((doc: any) => (
+                <Card key={doc.id} className="p-4 border shadow-sm bg-white rounded-2xl flex items-center gap-4 hover:shadow-md transition-shadow group">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${doc.type.includes("pdf") ? "bg-rose-50 text-rose-500" : "bg-blue-50 text-blue-500"}`}>
+                    {doc.type.includes("pdf") ? <FileText className="h-6 w-6" /> : <ImageIcon className="h-6 w-6" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm truncate text-foreground">{doc.name}</p>
+                    <div className="flex gap-2 text-xs text-muted-foreground font-medium mt-1">
+                      <span>{(doc.size / 1024 / 1024).toFixed(2)} MB</span>
+                      <span>•</span>
+                      <span>{new Date(doc.createdAt).toLocaleDateString("ro-RO")}</span>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost" size="icon"
+                    aria-label="Descarcă document"
+                    className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => handleDownloadDocument(doc.id, doc.name)}
+                  >
+                    <Download className="h-5 w-5 text-muted-foreground hover:text-foreground" />
+                  </Button>
+                  <Button
+                    variant="ghost" size="icon"
+                    aria-label="Șterge document"
+                    className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                    onClick={() => handleDeleteDocument(doc.id)}
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </Button>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
 
       <Dialog open={showRecordModal} onOpenChange={setShowRecordModal}>
@@ -255,83 +369,45 @@ export default function DoctorPatientDetailPage() {
           <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto pr-1">
             <div className="space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Simptome</Label>
-              <Textarea
-                placeholder="Descrieți simptomele pacientului..."
-                className="rounded-xl resize-none"
-                rows={2}
-                value={recordForm.symptoms}
-                onChange={(e) => setRecordForm((f) => ({ ...f, symptoms: e.target.value }))}
-              />
+              <Textarea placeholder="Descrieți simptomele pacientului..." className="rounded-xl resize-none" rows={2}
+                value={recordForm.symptoms} onChange={(e) => setRecordForm((f) => ({ ...f, symptoms: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Diagnostic</Label>
-              <Textarea
-                placeholder="Diagnostic stabilit..."
-                className="rounded-xl resize-none"
-                rows={2}
-                value={recordForm.diagnosis}
-                onChange={(e) => setRecordForm((f) => ({ ...f, diagnosis: e.target.value }))}
-              />
+              <Textarea placeholder="Diagnostic stabilit..." className="rounded-xl resize-none" rows={2}
+                value={recordForm.diagnosis} onChange={(e) => setRecordForm((f) => ({ ...f, diagnosis: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Tratament</Label>
-              <Textarea
-                placeholder="Plan de tratament..."
-                className="rounded-xl resize-none"
-                rows={2}
-                value={recordForm.treatment}
-                onChange={(e) => setRecordForm((f) => ({ ...f, treatment: e.target.value }))}
-              />
+              <Textarea placeholder="Plan de tratament..." className="rounded-xl resize-none" rows={2}
+                value={recordForm.treatment} onChange={(e) => setRecordForm((f) => ({ ...f, treatment: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Rețetă / Medicație</Label>
-              <Textarea
-                placeholder="Medicamente prescrise..."
-                className="rounded-xl resize-none"
-                rows={2}
-                value={recordForm.prescription}
-                onChange={(e) => setRecordForm((f) => ({ ...f, prescription: e.target.value }))}
-              />
+              <Textarea placeholder="Medicamente prescrise..." className="rounded-xl resize-none" rows={2}
+                value={recordForm.prescription} onChange={(e) => setRecordForm((f) => ({ ...f, prescription: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Note adiționale</Label>
-              <Textarea
-                placeholder="Alte observații..."
-                className="rounded-xl resize-none"
-                rows={2}
-                value={recordForm.notes}
-                onChange={(e) => setRecordForm((f) => ({ ...f, notes: e.target.value }))}
-              />
+              <Textarea placeholder="Alte observații..." className="rounded-xl resize-none" rows={2}
+                value={recordForm.notes} onChange={(e) => setRecordForm((f) => ({ ...f, notes: e.target.value }))} />
             </div>
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={recordForm.followUpRequired}
-                  onChange={(e) => setRecordForm((f) => ({ ...f, followUpRequired: e.target.checked }))}
-                  className="rounded"
-                />
+                <input type="checkbox" checked={recordForm.followUpRequired}
+                  onChange={(e) => setRecordForm((f) => ({ ...f, followUpRequired: e.target.checked }))} className="rounded" />
                 <span className="text-sm font-semibold">Necesită control</span>
               </label>
               {recordForm.followUpRequired && (
-                <Input
-                  type="date"
-                  className="h-9 rounded-xl flex-1"
+                <Input type="date" className="h-9 rounded-xl flex-1"
                   value={recordForm.followUpDate}
-                  onChange={(e) => setRecordForm((f) => ({ ...f, followUpDate: e.target.value }))}
-                />
+                  onChange={(e) => setRecordForm((f) => ({ ...f, followUpDate: e.target.value }))} />
               )}
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRecordModal(false)} className="rounded-xl">
-              Anulează
-            </Button>
-            <Button
-              onClick={handleSaveRecord}
-              disabled={savingRecord}
-              className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white"
-            >
+            <Button variant="outline" onClick={() => setShowRecordModal(false)} className="rounded-xl">Anulează</Button>
+            <Button onClick={handleSaveRecord} disabled={savingRecord} className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white">
               {savingRecord && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Salvează
             </Button>
