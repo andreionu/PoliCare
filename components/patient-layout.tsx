@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { LayoutDashboard, Calendar, FileText, LogOut, Menu, X, User, CreditCard } from "lucide-react"
+import { LayoutDashboard, Calendar, FileText, LogOut, Menu, X, User, CreditCard, Pill } from "lucide-react"
 
 interface PatientLayoutProps {
   children: React.ReactNode
@@ -17,11 +17,12 @@ interface PatientLayoutProps {
 }
 
 const navItems = [
-  { title: "Dashboard",         mobileLabel: "Acasă",       href: "/patient/dashboard",    icon: LayoutDashboard },
-  { title: "Programările Mele", mobileLabel: "Programări",  href: "/patient/appointments", icon: Calendar },
-  { title: "Plăți",             mobileLabel: "Plăți",       href: "/patient/payments",     icon: CreditCard },
-  { title: "Documentele Mele",  mobileLabel: "Documente",   href: "/patient/documents",    icon: FileText },
-  { title: "Profilul Meu",      mobileLabel: "Profil",      href: "/patient/profile",      icon: User },
+  { title: "Dashboard",         mobileLabel: "Acasă",       href: "/patient/dashboard",      icon: LayoutDashboard },
+  { title: "Programările Mele", mobileLabel: "Programări",  href: "/patient/appointments",   icon: Calendar },
+  { title: "Rețetele Mele",     mobileLabel: "Rețete",      href: "/patient/prescriptions",  icon: Pill },
+  { title: "Plăți",             mobileLabel: "Plăți",       href: "/patient/payments",       icon: CreditCard },
+  { title: "Documentele Mele",  mobileLabel: "Documente",   href: "/patient/documents",      icon: FileText },
+  { title: "Profilul Meu",      mobileLabel: "Profil",      href: "/patient/profile",        icon: User },
 ]
 
 export function PatientLayout({ children, userName }: PatientLayoutProps) {

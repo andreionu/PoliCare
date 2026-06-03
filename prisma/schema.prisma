@@ -23,9 +23,23 @@ model User {
 
   doctorProfile  Doctor?
   patientProfile Patient?
+  resetTokens    PasswordResetToken[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([userId])
 }
 
 enum Role {
@@ -83,9 +97,10 @@ model Doctor {
   department   Department @relation(fields: [departmentId], references: [id])
   departmentId String
 
-  appointments Appointment[]
-  schedules    DoctorSchedule[]
-  patients     Patient[]        @relation("PrimaryDoctor")
+  appointments  Appointment[]
+  schedules     DoctorSchedule[]
+  patients      Patient[]        @relation("PrimaryDoctor")
+  prescriptions Prescription[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -139,6 +154,7 @@ model Patient {
   appointments   Appointment[]
   medicalRecords MedicalRecord[]
   documents      Document[]
+  prescriptions  Prescription[]
 
   createdBy   User?   @relation("PatientCreatedBy", fields: [createdById], references: [id])
   createdById String?
@@ -211,6 +227,7 @@ model Appointment {
 
   medicalRecord MedicalRecord?
   notifications Notification[]
+  prescriptions Prescription[]
 
   paymentStatus         PaymentStatus @default(UNPAID)
   stripeSessionId       String?
@@ -369,4 +386,38 @@ model Document {
 
   @@index([patientId])
   @@index([medicalRecordId])
+}
+
+// PRESCRIPTION (REȚETĂ MEDICALĂ)
+model Prescription {
+  id     String @id @default(cuid())
+  number String @unique
+
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  doctorId String
+  doctor   Doctor @relation(fields: [doctorId], references: [id])
+
+  appointmentId String?
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+
+  diagnosis   String
+  medications Json
+  notes       String?
+
+  status PrescriptionStatus @default(ACTIVA)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([status])
+}
+
+enum PrescriptionStatus {
+  ACTIVA
+  EXPIRATA
+  ANULATA
 }

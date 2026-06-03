@@ -144,7 +144,7 @@ export function LoginScreen() {
             <div className="space-y-2 group">
               <div className="flex items-center justify-between ml-1">
                 <Label htmlFor="password" className="text-xs font-black uppercase tracking-widest text-[#206070] opacity-70">Parolă</Label>
-                <button type="button" className="text-xs text-[#40A0D0] hover:text-[#206070] font-bold transition-colors">Ai uitat parola?</button>
+                <Link href="/forgot-password" className="text-xs text-[#40A0D0] hover:text-[#206070] font-bold transition-colors">Ai uitat parola?</Link>
               </div>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-[#206070] transition-colors" />

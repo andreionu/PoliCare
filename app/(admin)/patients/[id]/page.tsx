@@ -36,10 +36,13 @@ import {
   File,
   Download,
   Trash2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Pill,
+  Printer,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { PrescriptionPrint } from "@/components/prescription-print"
 
 interface PatientDetail {
   id: string
@@ -145,6 +148,11 @@ export default function PatientDetailPage() {
   })
   const [savingRecord, setSavingRecord] = useState(false)
 
+  // Prescriptions
+  const [prescriptions, setPrescriptions] = useState<any[]>([])
+  const [printRx, setPrintRx] = useState<any | null>(null)
+  const [deletingRx, setDeletingRx] = useState<string | null>(null)
+
   // Document Upload
   const [uploading, setUploading] = useState(false)
 
@@ -218,9 +226,32 @@ export default function PatientDetailPage() {
     }
   }, [patientId, toast])
 
+  const fetchPrescriptions = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/prescriptions?patientId=${patientId}`)
+      if (res.ok) setPrescriptions(await res.json())
+    } catch {}
+  }, [patientId])
+
+  const handleDeleteRx = async (rxId: string) => {
+    if (!confirm("Ștergeți această rețetă?")) return
+    setDeletingRx(rxId)
+    try {
+      const res = await fetch(`/api/prescriptions/${rxId}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Eroare la ștergere")
+      await fetchPrescriptions()
+      toast({ title: "Succes", description: "Rețeta a fost ștearsă." })
+    } catch (error: any) {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" })
+    } finally {
+      setDeletingRx(null)
+    }
+  }
+
   useEffect(() => {
     fetchPatient()
-    
+    fetchPrescriptions()
+
     const fetchDoctors = async () => {
       try {
         const response = await fetch("/api/doctors")
@@ -233,7 +264,7 @@ export default function PatientDetailPage() {
       }
     }
     fetchDoctors()
-  }, [fetchPatient])
+  }, [fetchPatient, fetchPrescriptions])
 
   const handleOpenEdit = () => {
     if (!patient) return
@@ -605,23 +636,29 @@ export default function PatientDetailPage() {
             <div className="lg:col-span-2 space-y-6">
               <Tabs defaultValue="appointments" className="w-full">
                 <TabsList className="bg-muted/10 p-1 rounded-2xl mb-6 backdrop-blur-sm border h-auto flex flex-wrap sm:flex-nowrap">
-                  <TabsTrigger 
-                    value="appointments" 
+                  <TabsTrigger
+                    value="appointments"
                     className="flex-1 py-3 px-6 rounded-xl data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm font-bold text-sm transition-all"
                   >
                     Programări ({patient.appointments.length})
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="records" 
+                  <TabsTrigger
+                    value="records"
                     className="flex-1 py-3 px-6 rounded-xl data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm font-bold text-sm transition-all"
                   >
                     Fișe Medicale ({patient.medicalRecords.length})
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="documents" 
+                  <TabsTrigger
+                    value="documents"
                     className="flex-1 py-3 px-6 rounded-xl data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm font-bold text-sm transition-all"
                   >
                     Documente ({patient.documents?.length || 0})
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="prescriptions"
+                    className="flex-1 py-3 px-6 rounded-xl data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm font-bold text-sm transition-all"
+                  >
+                    Rețete ({prescriptions.length})
                   </TabsTrigger>
                 </TabsList>
 
@@ -778,11 +815,83 @@ export default function PatientDetailPage() {
                     </div>
                   )}
                 </TabsContent>
+
+                <TabsContent value="prescriptions" className="mt-0 space-y-4 outline-none">
+                  {prescriptions.length === 0 ? (
+                    <Card className="p-16 text-center border-dashed border-2 bg-transparent rounded-2xl">
+                      <div className="w-16 h-16 rounded-full bg-muted/20 flex items-center justify-center mx-auto mb-4">
+                        <Pill className="h-8 w-8 text-muted-foreground/30" />
+                      </div>
+                      <h4 className="font-bold text-muted-foreground italic uppercase tracking-widest text-sm">Nicio Rețetă</h4>
+                      <p className="text-xs text-muted-foreground/60 mt-2">Rețetele sunt adăugate de medicul curant din portalul doctorului.</p>
+                    </Card>
+                  ) : (
+                    <div className="space-y-3 animate-in fade-in slide-in-from-right-4">
+                      {prescriptions.map((rx) => (
+                        <Card key={rx.id} className="p-5 border-none shadow-sm bg-white dark:bg-card/50 hover:shadow-md transition-all rounded-2xl">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-4 min-w-0">
+                              <div className="h-11 w-11 rounded-xl bg-teal-50 flex items-center justify-center shrink-0">
+                                <FileText className="h-5 w-5 text-teal-600" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className="font-bold text-sm">{rx.number}</p>
+                                  <Badge className={`text-[10px] font-semibold px-2 py-0.5 ${
+                                    rx.status === "ACTIVA" ? "bg-emerald-100 text-emerald-700" :
+                                    rx.status === "EXPIRATA" ? "bg-amber-100 text-amber-700" :
+                                    "bg-red-100 text-red-700"
+                                  }`}>
+                                    {rx.status === "ACTIVA" ? "Activă" : rx.status === "EXPIRATA" ? "Expirată" : "Anulată"}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground mt-0.5 truncate">{rx.diagnosis}</p>
+                                <p className="text-xs text-muted-foreground/70 mt-1">
+                                  Dr. {rx.doctor.name} · {new Date(rx.createdAt).toLocaleDateString("ro-RO")}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPrintRx(rx)}
+                                className="rounded-xl gap-1.5 text-teal-700 border-teal-200 hover:bg-teal-50"
+                              >
+                                <Printer className="h-4 w-4" />
+                                <span className="hidden sm:inline">Print</span>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteRx(rx.id)}
+                                disabled={deletingRx === rx.id}
+                                className="rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10 h-9 w-9"
+                              >
+                                {deletingRx === rx.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                              </Button>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
               </Tabs>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Prescription Print Dialog */}
+      <Dialog open={!!printRx} onOpenChange={(v) => { if (!v) setPrintRx(null) }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold">Rețetă {printRx?.number}</DialogTitle>
+          </DialogHeader>
+          {printRx && <PrescriptionPrint prescription={printRx} />}
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Patient Modal */}
       <Dialog open={showEditPatient} onOpenChange={setShowEditPatient}>

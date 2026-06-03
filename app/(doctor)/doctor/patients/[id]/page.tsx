@@ -12,11 +12,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import {
   ArrowLeft, Loader2, User, Phone, Mail, Calendar, FileText, Plus,
-  Upload, Download, Trash2, File, ImageIcon,
+  Upload, Download, Trash2, File, ImageIcon, Pill, Printer,
 } from "lucide-react"
 import { format } from "date-fns"
 import { ro } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
+import { PrescriptionForm } from "@/components/prescription-form"
+import { PrescriptionPrint } from "@/components/prescription-print"
 
 const statusColors: Record<string, string> = {
   IN_ASTEPTARE: "bg-amber-100 text-amber-700",
@@ -59,6 +61,9 @@ export default function DoctorPatientDetailPage() {
   const [recordForm, setRecordForm] = useState(emptyRecord)
   const [savingRecord, setSavingRecord] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [prescriptions, setPrescriptions] = useState<any[]>([])
+  const [showPrescriptionForm, setShowPrescriptionForm] = useState(false)
+  const [printRx, setPrintRx] = useState<any | null>(null)
 
   useEffect(() => {
     fetch(`/api/patients/${patientId}`)
@@ -70,7 +75,19 @@ export default function DoctorPatientDetailPage() {
       .then(setPatient)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
+
+    fetch(`/api/prescriptions?patientId=${patientId}`)
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => Array.isArray(data) && setPrescriptions(data))
+      .catch(() => {})
   }, [patientId])
+
+  const refreshPrescriptions = () => {
+    fetch(`/api/prescriptions?patientId=${patientId}`)
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => Array.isArray(data) && setPrescriptions(data))
+      .catch(() => {})
+  }
 
   const handleSaveRecord = async () => {
     setSavingRecord(true)
@@ -200,10 +217,11 @@ export default function DoctorPatientDetailPage() {
       </div>
 
       <Tabs defaultValue="appointments">
-        <TabsList className="rounded-xl">
+        <TabsList className="rounded-xl flex-wrap h-auto">
           <TabsTrigger value="appointments">Programări ({patient.appointments?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="records">Fișe Medicale ({patient.medicalRecords?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="documents">Documente ({patient.documents?.length ?? 0})</TabsTrigger>
+          <TabsTrigger value="prescriptions">Rețete ({prescriptions.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="appointments" className="mt-4">
@@ -359,7 +377,75 @@ export default function DoctorPatientDetailPage() {
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="prescriptions" className="mt-4 space-y-3">
+          <div className="flex justify-end">
+            <Button
+              onClick={() => setShowPrescriptionForm(true)}
+              className="rounded-xl bg-teal-600 hover:bg-teal-700 text-white gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Adaugă Rețetă
+            </Button>
+          </div>
+          <Card className="rounded-2xl border-slate-100 overflow-hidden">
+            {prescriptions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-3">
+                <Pill className="h-8 w-8 opacity-30" />
+                <p className="text-sm font-semibold">Nicio rețetă</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border/50">
+                {prescriptions.map((rx) => (
+                  <div key={rx.id} className="flex items-center gap-4 p-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-bold">{rx.number}</p>
+                        <Badge className={`text-[10px] px-2 ${
+                          rx.status === "ACTIVA" ? "bg-emerald-100 text-emerald-700" :
+                          rx.status === "EXPIRATA" ? "bg-amber-100 text-amber-700" :
+                          "bg-red-100 text-red-700"
+                        }`}>
+                          {rx.status === "ACTIVA" ? "Activă" : rx.status === "EXPIRATA" ? "Expirată" : "Anulată"}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">{rx.diagnosis}</p>
+                      <p className="text-xs text-muted-foreground/60">
+                        {format(new Date(rx.createdAt), "d MMMM yyyy", { locale: ro })}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPrintRx(rx)}
+                      className="rounded-xl gap-1.5 text-teal-700 border-teal-200 hover:bg-teal-50 shrink-0"
+                    >
+                      <Printer className="h-4 w-4" />
+                      Print
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      <PrescriptionForm
+        patientId={patientId}
+        open={showPrescriptionForm}
+        onOpenChange={setShowPrescriptionForm}
+        onSaved={refreshPrescriptions}
+      />
+
+      <Dialog open={!!printRx} onOpenChange={(v) => { if (!v) setPrintRx(null) }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold">Rețetă {printRx?.number}</DialogTitle>
+          </DialogHeader>
+          {printRx && <PrescriptionPrint prescription={printRx} />}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showRecordModal} onOpenChange={setShowRecordModal}>
         <DialogContent className="max-w-lg rounded-2xl">
