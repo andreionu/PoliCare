@@ -248,14 +248,6 @@ export function LoginScreen() {
                 <div className="text-[10px] text-slate-400 font-medium">Pacient2026!</div>
               </button>
 
-              <button
-                onClick={() => {setEmail("test@policare.ro"); setPassword("Test2026!")}}
-                className="flex flex-col items-start p-4 rounded-[20px] bg-white border border-slate-100 hover:border-amber-300 hover:shadow-lg hover:shadow-amber-500/5 transition-all"
-              >
-                <div className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-[9px] font-black uppercase tracking-widest mb-2">Cont Test</div>
-                <div className="text-xs font-bold text-slate-800">test@policare.ro</div>
-                <div className="text-[10px] text-slate-400 font-medium">Test2026!</div>
-              </button>
             </div>
           </div>
         </div>

@@ -200,6 +200,17 @@ function LoginForm({ onSuccess, onSwitchTab }: { onSuccess: () => void; onSwitch
         )}
       </Button>
 
+      <div className="flex items-center justify-center gap-2 pt-1">
+        <span className="text-[10px] text-slate-400">Cont demonstrativ:</span>
+        <button
+          type="button"
+          onClick={() => { setEmail("test@policare.ro"); setPassword("Test2026!") }}
+          className="text-[10px] font-bold text-[#206070] hover:underline"
+        >
+          test@policare.ro
+        </button>
+      </div>
+
       <p className="text-center text-xs text-slate-500">
         Ești pacient nou?{" "}
         <button type="button" onClick={onSwitchTab} className="text-[#206070] font-bold hover:underline">
