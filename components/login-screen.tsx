@@ -5,7 +5,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { signIn, getSession } from "next-auth/react"
-import { Eye, EyeOff, Loader2, ShieldCheck, Mail, Lock, ArrowRight } from "lucide-react"
+import { Eye, EyeOff, Loader2, ShieldCheck, Mail, Lock, ArrowRight, ArrowLeft } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -115,6 +115,11 @@ export function LoginScreen() {
       {/* Right Panel: Login Form */}
       <div className="flex items-center justify-center p-8 lg:p-24 bg-[#F8FAFC]">
         <div className="w-full max-w-md space-y-10 animate-in fade-in slide-in-from-right-8 duration-700">
+          <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-[#206070] font-semibold transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+            Pagina principală
+          </Link>
+
           <div className="space-y-4">
             <div className="lg:hidden mb-8">
               <Logo size="lg" />
