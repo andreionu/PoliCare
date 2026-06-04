@@ -124,7 +124,9 @@ export default function PatientAppointmentsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-black text-foreground">Programările Mele</h1>
-          <p className="text-muted-foreground">{appointments.length} programări</p>
+          <p className="text-muted-foreground">
+            {loading ? "Se încarcă..." : `${appointments.length} programări`}
+          </p>
         </div>
         <Button
           onClick={() => setBookingOpen(true)}

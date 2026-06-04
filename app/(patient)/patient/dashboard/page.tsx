@@ -20,6 +20,14 @@ const statusLabels: Record<string, string> = {
   NEPREZENTARE: "Neprezentare",
 }
 
+const eventLabels: Record<string, string> = {
+  BOOKING_RECEIVED: "Cerere de programare primită",
+  CONFIRMATION:     "Programare confirmată",
+  CANCELLATION:     "Programare anulată",
+  REMINDER:         "Reminder programare",
+  CUSTOM:           "Notificare",
+}
+
 const statusColors: Record<string, string> = {
   IN_ASTEPTARE: "bg-amber-100 text-amber-700",
   CONFIRMAT: "bg-blue-100 text-blue-700",
@@ -32,13 +40,15 @@ const statusColors: Record<string, string> = {
 export default function PatientDashboardPage() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [bookingOpen, setBookingOpen] = useState(false)
 
   const fetchData = () => {
+    setError(false)
     fetch("/api/patient/dashboard")
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error(); return r.json() })
       .then(setData)
-      .catch(console.error)
+      .catch(() => setError(true))
       .finally(() => setLoading(false))
   }
 
@@ -48,6 +58,15 @@ export default function PatientDashboardPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground">
+        <p className="text-sm font-semibold">Nu s-au putut încărca datele.</p>
+        <button onClick={fetchData} className="text-sm text-teal-600 hover:underline font-bold">Reîncearcă</button>
       </div>
     )
   }
@@ -141,7 +160,14 @@ export default function PatientDashboardPage() {
               <div key={notif.id} className="flex items-start gap-3 p-4">
                 <Bell className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{notif.message}</p>
+                  <p className="text-sm font-medium">
+                    {eventLabels[notif.event] ?? "Notificare"}
+                  </p>
+                  {notif.appointment && (
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(notif.appointment.date), "d MMM yyyy", { locale: ro })} · {notif.appointment.startTime}
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {format(new Date(notif.sentAt), "d MMM yyyy HH:mm", { locale: ro })}
                   </p>

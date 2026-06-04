@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
 function getDateRange(period: string): { start: Date; end: Date } {
@@ -44,6 +46,9 @@ function toCsvRow(fields: (string | number | null | undefined)[]): string {
 
 // GET /api/reports?type=patients&period=current-month&format=csv
 export async function GET(request: Request) {
+  const session = await getServerSession(authOptions)
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
   const { searchParams } = new URL(request.url)
   const type = searchParams.get("type") || "patients"
   const period = searchParams.get("period") || "current-month"

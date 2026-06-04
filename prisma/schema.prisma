@@ -92,9 +92,9 @@ model Doctor {
   bio        String?
 
   userId String? @unique
-  user   User?   @relation(fields: [userId], references: [id])
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  department   Department @relation(fields: [departmentId], references: [id])
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
   departmentId String
 
   appointments  Appointment[]
@@ -148,7 +148,7 @@ model Patient {
   userId String? @unique
   user   User?   @relation(fields: [userId], references: [id])
 
-  primaryDoctor   Doctor? @relation("PrimaryDoctor", fields: [primaryDoctorId], references: [id])
+  primaryDoctor   Doctor? @relation("PrimaryDoctor", fields: [primaryDoctorId], references: [id], onDelete: SetNull)
   primaryDoctorId String?
 
   appointments   Appointment[]
@@ -156,9 +156,9 @@ model Patient {
   documents      Document[]
   prescriptions  Prescription[]
 
-  createdBy   User?   @relation("PatientCreatedBy", fields: [createdById], references: [id])
+  createdBy   User?   @relation("PatientCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById String?
-  updatedBy   User?   @relation("PatientUpdatedBy", fields: [updatedById], references: [id])
+  updatedBy   User?   @relation("PatientUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
   updatedById String?
 
   createdAt DateTime @default(now())
@@ -191,7 +191,7 @@ model Service {
   price       Float?
   isActive    Boolean @default(true)
 
-  department   Department @relation(fields: [departmentId], references: [id])
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
   departmentId String
 
   appointments Appointment[]
@@ -219,7 +219,7 @@ model Appointment {
   doctor   Doctor @relation(fields: [doctorId], references: [id])
   doctorId String
 
-  department   Department @relation(fields: [departmentId], references: [id])
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
   departmentId String
 
   service   Service? @relation(fields: [serviceId], references: [id])
@@ -233,7 +233,7 @@ model Appointment {
   stripeSessionId       String?
   stripePaymentIntentId String?
 
-  createdBy   User?   @relation("AppointmentCreatedBy", fields: [createdById], references: [id])
+  createdBy   User?   @relation("AppointmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById String?
 
   createdAt DateTime @default(now())
@@ -397,10 +397,10 @@ model Prescription {
   patient   Patient @relation(fields: [patientId], references: [id])
 
   doctorId String
-  doctor   Doctor @relation(fields: [doctorId], references: [id])
+  doctor   Doctor @relation(fields: [doctorId], references: [id], onDelete: Restrict)
 
   appointmentId String?
-  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 
   diagnosis   String
   medications Json

@@ -69,7 +69,7 @@ export async function POST(request: Request) {
             id: appt.id,
             date: appt.date,
             startTime: appt.startTime,
-            patient: { name: appt.patient.name, email: appt.patient.email ?? null, phone: appt.patient.phone },
+            patient: { name: appt.patient.name, email: appt.patient.email ?? null, phone: appt.patient.phone ?? "" },
             doctor: { name: appt.doctor.name },
             department: appt.department ? { name: appt.department.name } : null,
           },

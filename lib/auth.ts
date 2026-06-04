@@ -81,6 +81,13 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id
         token.doctorId = (user as any).doctorId ?? null
         token.patientId = (user as any).patientId ?? null
+      } else if (token.id && token.role === "PATIENT" && !token.patientId) {
+        // Lazy re-fetch: patient linked after initial login — pick up the new patientId
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          include: { patientProfile: { select: { id: true } } },
+        })
+        if (dbUser?.patientProfile) token.patientId = dbUser.patientProfile.id
       }
       return token
     },

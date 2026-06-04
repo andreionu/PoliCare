@@ -460,7 +460,7 @@ export default function ReportsPage() {
                         cursor={{fill: 'rgba(59, 130, 246, 0.04)'}} 
                         contentStyle={{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)', padding: '12px' }} 
                         itemStyle={{ color: '#0f172a', fontWeight: 800 }} 
-                        formatter={(value: number) => [value, "Consultații / Servicii"]}
+                        formatter={(value: any) => [value, "Consultații / Servicii"]}
                       />
                       <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={24} fill="url(#colorBlue)" />
                     </BarChart>
@@ -500,7 +500,7 @@ export default function ReportsPage() {
                         cursor={{fill: 'rgba(16, 185, 129, 0.04)'}} 
                         contentStyle={{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }} 
                         itemStyle={{ color: '#064e3b', fontWeight: 800 }} 
-                        formatter={(value: number) => [value, "Programări"]}
+                        formatter={(value: any) => [value, "Programări"]}
                       />
                       <Bar dataKey="count" fill="url(#colorGreen)" radius={[8, 8, 0, 0]} barSize={32} />
                     </BarChart>
@@ -559,7 +559,7 @@ export default function ReportsPage() {
                       <Tooltip 
                         contentStyle={{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }} 
                         itemStyle={{ fontWeight: 800, color: '#0f172a' }} 
-                        formatter={(value: number) => [value, "Pacienți"]}
+                        formatter={(value: any) => [value, "Pacienți"]}
                       />
                       <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 600, paddingTop: '15px' }} />
                     </PieChart>

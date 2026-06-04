@@ -49,9 +49,17 @@ export function PrescriptionPrint({ prescription }: PrescriptionPrintProps) {
   const date = format(new Date(prescription.createdAt), "dd.MM.yyyy", { locale: ro })
   const medications = prescription.medications as Medication[]
 
-  const patientAge = prescription.patient.birthDate
-    ? new Date().getFullYear() - new Date(prescription.patient.birthDate).getFullYear()
-    : null
+  const patientAge = (() => {
+    if (!prescription.patient.birthDate) return null
+    const today = new Date()
+    const birth = new Date(prescription.patient.birthDate)
+    let age = today.getFullYear() - birth.getFullYear()
+    if (today.getMonth() < birth.getMonth() ||
+        (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) {
+      age--
+    }
+    return age
+  })()
 
   return (
     <div>

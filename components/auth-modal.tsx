@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { signIn, getSession } from "next-auth/react"
 import { Eye, EyeOff, Loader2, Mail, Lock, User, Phone, ArrowRight, CheckCircle2 } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
@@ -145,7 +146,15 @@ function LoginForm({ onSuccess, onSwitchTab }: { onSuccess: () => void; onSwitch
       </div>
 
       <div className="space-y-2 group">
-        <Label className="text-xs font-black uppercase tracking-widest text-[#206070] opacity-70">Parolă</Label>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-black uppercase tracking-widest text-[#206070] opacity-70">Parolă</Label>
+          <Link
+            href="/forgot-password"
+            className="text-xs text-[#40A0D0] hover:text-[#206070] font-bold transition-colors"
+          >
+            Ai uitat parola?
+          </Link>
+        </div>
         <div className="relative">
           <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-[#206070] transition-colors" />
           <Input

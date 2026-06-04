@@ -30,17 +30,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const hashedPassword = await bcrypt.hash(temporaryPassword, 10)
 
-  const user = await prisma.user.create({
-    data: {
-      email,
-      name: doctor.name,
-      password: hashedPassword,
-      role: "DOCTOR",
-      status: "ACTIVE",
-    },
+  const user = await prisma.$transaction(async (tx) => {
+    const newUser = await tx.user.create({
+      data: {
+        email,
+        name: doctor.name,
+        password: hashedPassword,
+        role: "DOCTOR",
+        status: "ACTIVE",
+      },
+    })
+    await tx.doctor.update({ where: { id }, data: { userId: newUser.id } })
+    return newUser
   })
-
-  await prisma.doctor.update({ where: { id }, data: { userId: user.id } })
 
   return NextResponse.json({ message: "Cont creat cu succes", email: user.email }, { status: 201 })
 }

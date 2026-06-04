@@ -26,18 +26,7 @@ export async function POST(request: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    const user = await prisma.user.create({
-      data: {
-        email,
-        name,
-        phone: phone || null,
-        password: hashedPassword,
-        role: "PATIENT",
-        status: "ACTIVE",
-      },
-    })
-
-    // Try to link to existing Patient record by email or phone
+    // Find an existing unlinked patient before the transaction
     const existingPatient = await prisma.patient.findFirst({
       where: {
         userId: null,
@@ -48,22 +37,36 @@ export async function POST(request: Request) {
       },
     })
 
-    if (existingPatient) {
-      await prisma.patient.update({
-        where: { id: existingPatient.id },
-        data: { userId: user.id },
-      })
-    } else {
-      await prisma.patient.create({
+    // Create user + link/create patient atomically so a partial failure doesn't leave an orphaned User
+    await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
         data: {
-          name,
           email,
+          name,
           phone: phone || null,
-          userId: user.id,
-          status: "NOU",
+          password: hashedPassword,
+          role: "PATIENT",
+          status: "ACTIVE",
         },
       })
-    }
+
+      if (existingPatient) {
+        await tx.patient.update({
+          where: { id: existingPatient.id },
+          data: { userId: user.id },
+        })
+      } else {
+        await tx.patient.create({
+          data: {
+            name,
+            email,
+            phone: phone || null,
+            userId: user.id,
+            status: "NOU",
+          },
+        })
+      }
+    })
 
     return NextResponse.json({ message: "Cont creat cu succes" }, { status: 201 })
   } catch (error: any) {

@@ -79,8 +79,13 @@ export async function POST(request: Request) {
     if (!patient) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
     const year = new Date().getFullYear()
-    const count = await prisma.prescription.count()
-    const number = `RX-${year}-${(count + 1).toString().padStart(4, "0")}`
+    const lastRx = await prisma.prescription.findFirst({
+      where: { number: { startsWith: `RX-${year}-` } },
+      orderBy: { number: "desc" },
+      select: { number: true },
+    })
+    const lastNum = lastRx ? parseInt(lastRx.number.split("-")[2], 10) : 0
+    const number = `RX-${year}-${String(lastNum + 1).padStart(4, "0")}`
 
     const prescription = await prisma.prescription.create({
       data: {
@@ -99,7 +104,10 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json(prescription, { status: 201 })
-  } catch (error) {
+  } catch (error: any) {
+    if (error.code === "P2002" && error.meta?.target?.includes("number")) {
+      return NextResponse.json({ error: "Eroare la generarea numărului rețetei. Reîncercați." }, { status: 409 })
+    }
     console.error("Error creating prescription:", error)
     return NextResponse.json({ error: "Failed to create prescription" }, { status: 500 })
   }

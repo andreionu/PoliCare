@@ -68,6 +68,7 @@
     "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/uuid": "^10.0.0",
     "@vitest/coverage-v8": "^4.1.1",
     "docx": "^9.6.1",
     "eslint": "^9.39.4",

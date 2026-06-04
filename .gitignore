@@ -161,3 +161,15 @@ $RECYCLE.BIN/
 .turbo
 *.pem
 .certbot
+
+# ============================================
+# Thesis / presentation artifacts
+# ============================================
+THESIS_*.md
+generate_thesis.js
+*.docx
+*.doc
+raport-*.pdf
+Sandru_*.pdf
+regulament_*.pdf
+test-results/
