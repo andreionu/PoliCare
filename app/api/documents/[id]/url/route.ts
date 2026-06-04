@@ -45,7 +45,7 @@ export async function GET(
 
   // If it's a mock URL, return it directly
   if (!doc.url || doc.url.includes("mockstorage")) {
-    return NextResponse.json({ url: doc.url, expiresAt: null })
+    return NextResponse.json({ url: doc.url, expiresAt: null, mock: true })
   }
 
   // Generate SAS URL if account credentials are available
