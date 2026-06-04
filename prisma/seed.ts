@@ -510,6 +510,22 @@ async function main() {
   if (alexFutureAppt) await upsertNotif(alexFutureAppt.id, "BOOKING_RECEIVED", alexandruPatient.email!, "Cererea dvs. de programare a fost primită.")
   console.log("✅ Notifications created")
 
+  // ── Documents for client test account (Alexandru Dima) ───────────────────────
+  const alexDocs = [
+    { name: "Analize de sânge — hemogramă completă",   type: "application/pdf", size: 184320,  url: "https://mockstorage.blob.core.windows.net/documents/alex-dima/analize-sange-2026-04.pdf",    createdAt: daysFromNow(-45) },
+    { name: "Ecografie abdominală",                     type: "application/pdf", size: 2621440, url: "https://mockstorage.blob.core.windows.net/documents/alex-dima/ecografie-abdomen-2026-03.pdf", createdAt: daysFromNow(-72) },
+    { name: "Radiografie torace față",                 type: "application/pdf", size: 1572864, url: "https://mockstorage.blob.core.windows.net/documents/alex-dima/radiografie-torace-2026-02.pdf", createdAt: daysFromNow(-90) },
+    { name: "Scrisoare medicală — Dr. Stoica",          type: "application/pdf", size: 98304,   url: "https://mockstorage.blob.core.windows.net/documents/alex-dima/scrisoare-medicala-2026-05.pdf", createdAt: daysFromNow(-10) },
+    { name: "Buletin identitate (copie)",               type: "image/png",       size: 512000,  url: "https://mockstorage.blob.core.windows.net/documents/alex-dima/buletin-identitate.png",         createdAt: daysFromNow(-120) },
+  ]
+  for (const doc of alexDocs) {
+    const existing = await prisma.document.findFirst({ where: { patientId: alexandruPatient.id, name: doc.name } })
+    if (!existing) {
+      await prisma.document.create({ data: { ...doc, patientId: alexandruPatient.id } })
+    }
+  }
+  console.log(`✅ ${alexDocs.length} documents for Alexandru Dima`)
+
   console.log("\n🎉 Seeding complete!")
   console.log("   Admin:         admin@policare.ro / admin123")
   console.log("   Front Desk:    receptie@policare.ro / receptie123")
