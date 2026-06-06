@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { applyExpiredStatuses } from "@/lib/appointment-utils"
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
@@ -15,9 +16,9 @@ export async function GET(request: Request) {
   const status = searchParams.get("status")
 
   const where: any = { patientId }
-  if (status && status !== "all") where.status = status
+  if (status && status !== "all" && status !== "INCHEIATA") where.status = status
 
-  const appointments = await prisma.appointment.findMany({
+  const raw = await prisma.appointment.findMany({
     where,
     include: {
       doctor: { select: { name: true, specialty: true } },
@@ -26,6 +27,9 @@ export async function GET(request: Request) {
     },
     orderBy: [{ date: "desc" }, { startTime: "asc" }],
   })
+
+  let appointments = applyExpiredStatuses(raw)
+  if (status === "INCHEIATA") appointments = appointments.filter((a) => a.status === "INCHEIATA")
 
   return NextResponse.json(appointments)
 }

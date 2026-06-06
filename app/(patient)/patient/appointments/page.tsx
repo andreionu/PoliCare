@@ -21,6 +21,7 @@ const statusLabels: Record<string, string> = {
   FINALIZAT:      "Finalizat",
   ANULAT:         "Anulat",
   NEPREZENTARE:   "Neprezentare",
+  INCHEIATA:      "Încheiată",
 }
 
 const statusColors: Record<string, string> = {
@@ -30,6 +31,7 @@ const statusColors: Record<string, string> = {
   FINALIZAT:      "bg-emerald-50 text-emerald-700 border-emerald-200",
   ANULAT:         "bg-red-50 text-red-600 border-red-200",
   NEPREZENTARE:   "bg-slate-50 text-slate-500 border-slate-200",
+  INCHEIATA:      "bg-slate-50 text-slate-500 border-slate-200",
 }
 
 const paymentColors: Record<string, string> = {
@@ -52,6 +54,7 @@ const FILTERS = [
   { value: "CONFIRMAT",     label: "Confirmate" },
   { value: "FINALIZAT",     label: "Finalizate" },
   { value: "ANULAT",        label: "Anulate" },
+  { value: "INCHEIATA",     label: "Încheiate" },
 ]
 
 function AppointmentCard({

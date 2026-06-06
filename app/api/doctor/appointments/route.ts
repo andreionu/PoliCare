@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { applyExpiredStatuses } from "@/lib/appointment-utils"
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
@@ -18,14 +19,15 @@ export async function GET(request: Request) {
   const pageSize = 20
 
   const where: any = { doctorId }
-  if (status && status !== "all") where.status = status
+  // "INCHEIATA" is a computed status — query all non-terminal statuses instead
+  if (status && status !== "all" && status !== "INCHEIATA") where.status = status
   if (date) {
     const d = new Date(date)
     const nextDay = new Date(d.getTime() + 24 * 60 * 60 * 1000)
     where.date = { gte: d, lt: nextDay }
   }
 
-  const [appointments, total] = await Promise.all([
+  const [raw, total] = await Promise.all([
     prisma.appointment.findMany({
       where,
       include: {
@@ -39,6 +41,9 @@ export async function GET(request: Request) {
     }),
     prisma.appointment.count({ where }),
   ])
+
+  let appointments = applyExpiredStatuses(raw)
+  if (status === "INCHEIATA") appointments = appointments.filter((a) => a.status === "INCHEIATA")
 
   return NextResponse.json({ appointments, total, page, pageSize })
 }

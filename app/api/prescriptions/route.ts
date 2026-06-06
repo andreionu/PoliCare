@@ -96,6 +96,7 @@ export async function POST(request: Request) {
         diagnosis: body.diagnosis,
         medications: body.medications,
         notes: body.notes || null,
+        signatureData: body.signatureData || null,
       },
       include: {
         doctor: { select: { id: true, name: true, specialty: true, department: { select: { name: true } } } },

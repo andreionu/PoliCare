@@ -94,8 +94,11 @@ export default function LandingPage() {
         const [depts, pats, docs, sett] = await Promise.all([
           deptRes.json(), patRes.json(), docRes.json(), settingsRes.json()
         ])
-        setDepartments(depts)
-        setStats({ totalPatients: pats.length, totalDoctors: docs.length, totalDepartments: depts.length })
+        const deptsArr = Array.isArray(depts) ? depts : []
+        const patsArr  = Array.isArray(pats)  ? pats  : []
+        const docsArr  = Array.isArray(docs)  ? docs  : []
+        setDepartments(deptsArr)
+        setStats({ totalPatients: patsArr.length, totalDoctors: docsArr.length, totalDepartments: deptsArr.length })
         setSettings(sett)
       } catch (err) {
         console.error(err)

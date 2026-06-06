@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { sendAppointmentNotification } from "@/lib/notifications"
 import { emitAppEvent } from "@/lib/event-bus"
 import { logActivity } from "@/lib/activity"
+import { applyExpiredStatuses } from "@/lib/appointment-utils"
 
 // GET /api/appointments - Get all appointments
 export async function GET(request: Request) {
@@ -19,7 +20,7 @@ export async function GET(request: Request) {
 
     // Build filter
     const where: Record<string, unknown> = {}
-    if (status) where.status = status
+    if (status && status !== "INCHEIATA") where.status = status
     if (doctorId) where.doctorId = doctorId
     if (patientId) where.patientId = patientId
     if (date) {
@@ -55,14 +56,18 @@ export async function GET(request: Request) {
     const orderBy = [{ date: "asc" as const }, { startTime: "asc" as const }]
 
     if (!paginated) {
-      const appointments = await prisma.appointment.findMany({ where, include, orderBy })
+      const raw = await prisma.appointment.findMany({ where, include, orderBy })
+      let appointments = applyExpiredStatuses(raw)
+      if (status === "INCHEIATA") appointments = appointments.filter((a) => a.status === "INCHEIATA")
       return NextResponse.json(appointments)
     }
 
-    const [appointments, total] = await Promise.all([
+    const [raw, total] = await Promise.all([
       prisma.appointment.findMany({ where, include, orderBy, skip: (page - 1) * limit, take: limit }),
       prisma.appointment.count({ where }),
     ])
+    let appointments = applyExpiredStatuses(raw)
+    if (status === "INCHEIATA") appointments = appointments.filter((a) => a.status === "INCHEIATA")
 
     return NextResponse.json({ data: appointments, total, page, totalPages: Math.ceil(total / limit) })
   } catch (error) {

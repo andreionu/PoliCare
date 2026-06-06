@@ -1,14 +1,12 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Calendar, Loader2, CheckCircle, PlayCircle, XCircle, Flag, ClipboardList } from "lucide-react"
+import { Calendar, Loader2, CheckCircle, PlayCircle, XCircle, Flag, ClipboardList, Clock, Phone } from "lucide-react"
 import { format } from "date-fns"
 import { ro } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
@@ -41,21 +39,23 @@ const emptyForm: ConsultForm = {
 }
 
 const statusLabels: Record<string, string> = {
-  IN_ASTEPTARE: "În așteptare",
-  CONFIRMAT: "Confirmat",
+  IN_ASTEPTARE:   "În așteptare",
+  CONFIRMAT:      "Confirmat",
   IN_DESFASURARE: "În desfășurare",
-  FINALIZAT: "Finalizat",
-  ANULAT: "Anulat",
-  NEPREZENTARE: "Neprezentare",
+  FINALIZAT:      "Finalizat",
+  ANULAT:         "Anulat",
+  NEPREZENTARE:   "Neprezentare",
+  INCHEIATA:      "Încheiată",
 }
 
 const statusColors: Record<string, string> = {
-  IN_ASTEPTARE: "bg-amber-100 text-amber-700",
-  CONFIRMAT: "bg-blue-100 text-blue-700",
+  IN_ASTEPTARE:   "bg-amber-100 text-amber-700",
+  CONFIRMAT:      "bg-blue-100 text-blue-700",
   IN_DESFASURARE: "bg-purple-100 text-purple-700",
-  FINALIZAT: "bg-green-100 text-green-700",
-  ANULAT: "bg-red-100 text-red-700",
-  NEPREZENTARE: "bg-gray-100 text-gray-700",
+  FINALIZAT:      "bg-green-100 text-green-700",
+  ANULAT:         "bg-red-100 text-red-700",
+  NEPREZENTARE:   "bg-gray-100 text-gray-700",
+  INCHEIATA:      "bg-slate-100 text-slate-600",
 }
 
 type ActionDef = { label: string; status: string; icon: React.ElementType; className: string }
@@ -78,6 +78,9 @@ export default function DoctorAppointmentsPage() {
   const { toast } = useToast()
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const pageSize = 20
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState("all")
@@ -96,6 +99,7 @@ export default function DoctorAppointmentsPage() {
       const params = new URLSearchParams()
       if (statusFilter !== "all") params.set("status", statusFilter)
       if (dateFilter) params.set("date", dateFilter)
+      params.set("page", String(page))
       const res = await fetch(`/api/doctor/appointments?${params}`)
       if (!res.ok) throw new Error()
       const data = await res.json()
@@ -106,9 +110,12 @@ export default function DoctorAppointmentsPage() {
     } finally {
       setLoading(false)
     }
-  }, [statusFilter, dateFilter])
+  }, [statusFilter, dateFilter, page])
 
   useEffect(() => { fetchAppointments() }, [fetchAppointments])
+
+  // Reset to page 1 when filters change
+  useEffect(() => { setPage(1) }, [statusFilter, dateFilter])
 
   const handleStatusChange = async (apptId: string, newStatus: string) => {
     setUpdating(apptId)
@@ -211,60 +218,126 @@ export default function DoctorAppointmentsPage() {
     <main className="flex-1 p-4 sm:p-6 space-y-4 sm:space-y-6">
       <div>
         <h1 className="text-2xl font-black text-foreground">Programările Mele</h1>
-        <p className="text-muted-foreground">{total} programări găsite</p>
+        <p className="text-muted-foreground text-sm">{total} programări găsite</p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
+      {/* Status pills + date filter */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setStatusFilter("all")}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+              statusFilter === "all"
+                ? "bg-slate-800 text-white border-slate-800"
+                : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"
+            }`}
+          >
+            Toate
+          </button>
+          {Object.entries(statusLabels).map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => setStatusFilter(statusFilter === val ? "all" : val)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                statusFilter === val
+                  ? "bg-slate-800 text-white border-slate-800"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <Input
           type="date"
           value={dateFilter}
           onChange={(e) => setDateFilter(e.target.value)}
-          className="h-10 rounded-xl w-full sm:w-44"
+          className="h-9 rounded-xl w-full sm:w-44 text-sm"
         />
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-48 h-10 rounded-xl">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Toate statusurile</SelectItem>
-            {Object.entries(statusLabels).map(([val, label]) => (
-              <SelectItem key={val} value={val}>{label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
-      <Card className="rounded-2xl border-slate-100 shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="flex items-center justify-center h-48">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : appointments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
-            <Calendar className="h-10 w-10 opacity-30" />
-            <p className="font-semibold text-sm">Nicio programare găsită</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-border/50">
-            {appointments.map((appt) => {
-              const actions = nextActions[appt.status] ?? []
-              const isUpdating = updating === appt.id
-              const canConsult = ["CONFIRMAT", "IN_DESFASURARE", "FINALIZAT"].includes(appt.status)
-              return (
-                <div key={appt.id} className="p-4 hover:bg-muted/30 transition-colors">
-                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <p className="font-bold text-sm text-foreground">{appt.patient.name}</p>
-                    <Badge className={statusColors[appt.status] ?? "bg-gray-100 text-gray-700"}>
+      {loading ? (
+        <div className="flex items-center justify-center h-48">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : appointments.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+          <Calendar className="h-10 w-10 opacity-30" />
+          <p className="font-semibold text-sm">Nicio programare găsită</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {Object.entries(
+            appointments.reduce<Record<string, Appointment[]>>((acc, appt) => {
+              const day = appt.date.slice(0, 10)
+              ;(acc[day] ??= []).push(appt)
+              return acc
+            }, {})
+          )
+            .sort(([a], [b]) => b.localeCompare(a))
+            .map(([day, dayAppts]) => (
+              <div key={day}>
+                <div className="flex items-center gap-3 mb-3">
+                  <p className="text-sm font-bold text-slate-700 capitalize">
+                    {format(new Date(day + "T12:00:00"), "EEEE, d MMMM yyyy", { locale: ro })}
+                  </p>
+                  <div className="flex-1 h-px bg-slate-200" />
+                  <span className="text-xs text-slate-400 font-medium">{dayAppts.length} programări</span>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {dayAppts.map((appt) => {
+            const actions = nextActions[appt.status] ?? []
+            const isUpdating = updating === appt.id
+            const canConsult = ["CONFIRMAT", "IN_DESFASURARE", "FINALIZAT"].includes(appt.status)
+            const accentColor =
+              appt.status === "FINALIZAT"      ? "bg-green-400"  :
+              appt.status === "IN_DESFASURARE" ? "bg-purple-400" :
+              appt.status === "CONFIRMAT"      ? "bg-blue-400"   :
+              appt.status === "ANULAT"         ? "bg-red-400"    :
+              appt.status === "NEPREZENTARE"   ? "bg-gray-400"   :
+              appt.status === "INCHEIATA"      ? "bg-slate-400"  :
+              "bg-amber-400"
+            return (
+              <div
+                key={appt.id}
+                className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200 overflow-hidden flex flex-col"
+              >
+                <div className={`h-1 w-full ${accentColor}`} />
+                <div className="p-4 flex flex-col gap-3 flex-1">
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                        <Clock className="h-4 w-4 text-blue-500" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-sm text-foreground truncate">{appt.patient.name}</p>
+                        <p className="text-xs text-muted-foreground">{appt.startTime}–{appt.endTime}</p>
+                      </div>
+                    </div>
+                    <Badge className={`${statusColors[appt.status] ?? "bg-gray-100 text-gray-700"} text-[10px] shrink-0`}>
                       {statusLabels[appt.status] ?? appt.status}
                     </Badge>
-                    <span className="text-xs text-muted-foreground hidden sm:inline ml-auto">{appt.patient.phone}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    {format(new Date(appt.date), "d MMMM yyyy", { locale: ro })} · {appt.startTime}–{appt.endTime}
-                    {appt.department && ` · ${appt.department.name}`}
-                    {appt.service && ` · ${appt.service.name}`}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-1">
+
+                  {/* Meta */}
+                  <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                    {appt.patient.phone && (
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="h-3 w-3 text-slate-400 shrink-0" />
+                        <span>{appt.patient.phone}</span>
+                      </div>
+                    )}
+                    {(appt.service || appt.department) && (
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="h-3 w-3 text-slate-400 shrink-0" />
+                        <span className="truncate">{appt.service?.name ?? appt.department?.name}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex flex-wrap gap-1 mt-auto pt-1">
                     {isUpdating ? (
                       <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                     ) : (
@@ -280,7 +353,7 @@ export default function DoctorAppointmentsPage() {
                               onClick={() => handleStatusChange(appt.id, action.status)}
                             >
                               <Icon className="h-3.5 w-3.5" />
-                              <span className="hidden xs:inline">{action.label}</span>
+                              {action.label}
                             </Button>
                           )
                         })}
@@ -292,22 +365,76 @@ export default function DoctorAppointmentsPage() {
                             onClick={() => openConsultDialog(appt)}
                           >
                             <ClipboardList className="h-3.5 w-3.5" />
-                            <span className="hidden xs:inline">Consultație</span>
+                            Consultație
                           </Button>
                         )}
                       </>
                     )}
                   </div>
                 </div>
-              )
-            })}
+              </div>
+            )
+          })}
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {!loading && totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+          <p className="text-xs text-muted-foreground">
+            Pagina {page} din {totalPages} · {total} programări
+          </p>
+          <div className="flex items-center gap-1 flex-wrap justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl h-8 px-3 text-xs"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              Anterior
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+              .reduce<(number | "…")[]>((acc, p, i, arr) => {
+                if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("…")
+                acc.push(p)
+                return acc
+              }, [])
+              .map((p, i) =>
+                p === "…" ? (
+                  <span key={`ellipsis-${i}`} className="px-1 text-xs text-muted-foreground">…</span>
+                ) : (
+                  <Button
+                    key={p}
+                    variant={page === p ? "default" : "outline"}
+                    size="sm"
+                    className="rounded-xl h-8 w-8 p-0 text-xs"
+                    onClick={() => setPage(p as number)}
+                  >
+                    {p}
+                  </Button>
+                )
+              )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl h-8 px-3 text-xs"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Următor
+            </Button>
           </div>
-        )}
-      </Card>
+        </div>
+      )}
 
       {/* Consultation Dialog */}
       <Dialog open={!!consultAppt} onOpenChange={(open) => { if (!open) setConsultAppt(null) }}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               Fișă consultație — {consultAppt?.patient.name}

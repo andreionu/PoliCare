@@ -402,9 +402,10 @@ model Prescription {
   appointmentId String?
   appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 
-  diagnosis   String
-  medications Json
-  notes       String?
+  diagnosis     String
+  medications   Json
+  notes         String?
+  signatureData String?
 
   status PrescriptionStatus @default(ACTIVA)
 

@@ -21,21 +21,23 @@ import { PrescriptionForm } from "@/components/prescription-form"
 import { PrescriptionPrint } from "@/components/prescription-print"
 
 const statusColors: Record<string, string> = {
-  IN_ASTEPTARE: "bg-amber-100 text-amber-700",
-  CONFIRMAT: "bg-blue-100 text-blue-700",
+  IN_ASTEPTARE:   "bg-amber-100 text-amber-700",
+  CONFIRMAT:      "bg-blue-100 text-blue-700",
   IN_DESFASURARE: "bg-purple-100 text-purple-700",
-  FINALIZAT: "bg-green-100 text-green-700",
-  ANULAT: "bg-red-100 text-red-700",
-  NEPREZENTARE: "bg-gray-100 text-gray-700",
+  FINALIZAT:      "bg-green-100 text-green-700",
+  ANULAT:         "bg-red-100 text-red-700",
+  NEPREZENTARE:   "bg-gray-100 text-gray-700",
+  INCHEIATA:      "bg-slate-100 text-slate-600",
 }
 
 const statusLabels: Record<string, string> = {
-  IN_ASTEPTARE: "În așteptare",
-  CONFIRMAT: "Confirmat",
+  IN_ASTEPTARE:   "În așteptare",
+  CONFIRMAT:      "Confirmat",
   IN_DESFASURARE: "În desfășurare",
-  FINALIZAT: "Finalizat",
-  ANULAT: "Anulat",
-  NEPREZENTARE: "Neprezentare",
+  FINALIZAT:      "Finalizat",
+  ANULAT:         "Anulat",
+  NEPREZENTARE:   "Neprezentare",
+  INCHEIATA:      "Încheiată",
 }
 
 const emptyRecord = {
@@ -174,7 +176,7 @@ export default function DoctorPatientDetailPage() {
 
   if (error) {
     return (
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-4 sm:p-6">
         <Button variant="ghost" onClick={() => router.back()} className="mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" /> Înapoi
         </Button>
@@ -186,7 +188,7 @@ export default function DoctorPatientDetailPage() {
   }
 
   return (
-    <main className="flex-1 p-6 space-y-6">
+    <main className="flex-1 p-4 sm:p-6 space-y-4 sm:space-y-6">
       <Button variant="ghost" onClick={() => router.back()} className="rounded-xl">
         <ArrowLeft className="h-4 w-4 mr-2" /> Înapoi
       </Button>
@@ -234,14 +236,14 @@ export default function DoctorPatientDetailPage() {
             ) : (
               <div className="divide-y divide-border/50">
                 {patient.appointments.map((appt: any) => (
-                  <div key={appt.id} className="flex items-center gap-4 p-4">
+                  <div key={appt.id} className="flex items-start sm:items-center gap-3 p-4">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold">
-                        {format(new Date(appt.date), "d MMMM yyyy", { locale: ro })} · {appt.startTime}
+                        {format(new Date(appt.date), "d MMM yyyy", { locale: ro })} · {appt.startTime}
                       </p>
                       <p className="text-xs text-muted-foreground">{appt.department?.name}</p>
                     </div>
-                    <Badge className={statusColors[appt.status] ?? "bg-gray-100 text-gray-700"}>
+                    <Badge className={`shrink-0 text-[10px] ${statusColors[appt.status] ?? "bg-gray-100 text-gray-700"}`}>
                       {statusLabels[appt.status] ?? appt.status}
                     </Badge>
                   </div>
@@ -397,7 +399,7 @@ export default function DoctorPatientDetailPage() {
             ) : (
               <div className="divide-y divide-border/50">
                 {prescriptions.map((rx) => (
-                  <div key={rx.id} className="flex items-center gap-4 p-4">
+                  <div key={rx.id} className="flex items-start gap-3 p-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-bold">{rx.number}</p>
@@ -409,9 +411,9 @@ export default function DoctorPatientDetailPage() {
                           {rx.status === "ACTIVA" ? "Activă" : rx.status === "EXPIRATA" ? "Expirată" : "Anulată"}
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">{rx.diagnosis}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{rx.diagnosis}</p>
                       <p className="text-xs text-muted-foreground/60">
-                        {format(new Date(rx.createdAt), "d MMMM yyyy", { locale: ro })}
+                        {format(new Date(rx.createdAt), "d MMM yyyy", { locale: ro })}
                       </p>
                     </div>
                     <Button
@@ -421,7 +423,7 @@ export default function DoctorPatientDetailPage() {
                       className="rounded-xl gap-1.5 text-teal-700 border-teal-200 hover:bg-teal-50 shrink-0"
                     >
                       <Printer className="h-4 w-4" />
-                      Print
+                      <span className="hidden sm:inline">Print</span>
                     </Button>
                   </div>
                 ))}
@@ -439,7 +441,7 @@ export default function DoctorPatientDetailPage() {
       />
 
       <Dialog open={!!printRx} onOpenChange={(v) => { if (!v) setPrintRx(null) }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
+        <DialogContent className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-base font-bold">Rețetă {printRx?.number}</DialogTitle>
           </DialogHeader>
@@ -448,7 +450,7 @@ export default function DoctorPatientDetailPage() {
       </Dialog>
 
       <Dialog open={showRecordModal} onOpenChange={setShowRecordModal}>
-        <DialogContent className="max-w-lg rounded-2xl">
+        <DialogContent className="w-full max-w-lg rounded-2xl">
           <DialogHeader>
             <DialogTitle className="font-black">Fișă Medicală Nouă</DialogTitle>
           </DialogHeader>
@@ -478,14 +480,14 @@ export default function DoctorPatientDetailPage() {
               <Textarea placeholder="Alte observații..." className="rounded-xl resize-none" rows={2}
                 value={recordForm.notes} onChange={(e) => setRecordForm((f) => ({ ...f, notes: e.target.value }))} />
             </div>
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <label className="flex items-center gap-2 cursor-pointer select-none shrink-0">
                 <input type="checkbox" checked={recordForm.followUpRequired}
                   onChange={(e) => setRecordForm((f) => ({ ...f, followUpRequired: e.target.checked }))} className="rounded" />
                 <span className="text-sm font-semibold">Necesită control</span>
               </label>
               {recordForm.followUpRequired && (
-                <Input type="date" className="h-9 rounded-xl flex-1"
+                <Input type="date" className="h-9 rounded-xl w-full sm:flex-1"
                   value={recordForm.followUpDate}
                   onChange={(e) => setRecordForm((f) => ({ ...f, followUpDate: e.target.value }))} />
               )}

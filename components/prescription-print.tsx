@@ -20,6 +20,7 @@ interface PrescriptionData {
   diagnosis: string
   medications: Medication[]
   notes?: string | null
+  signatureData?: string | null
   status: string
   createdAt: string
   doctor: { name: string; specialty: string; department: { name: string } }
@@ -81,7 +82,7 @@ export function PrescriptionPrint({ prescription }: PrescriptionPrintProps) {
         style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
       >
         {/* Clinic header */}
-        <div className="bg-teal-700 text-white px-6 py-4 print:bg-teal-700 print:text-white">
+        <div className="bg-teal-700 text-white px-4 sm:px-6 py-3 sm:py-4 print:bg-teal-700 print:text-white">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-xl font-bold tracking-wide">{settings.clinicName}</p>
@@ -101,7 +102,7 @@ export function PrescriptionPrint({ prescription }: PrescriptionPrintProps) {
         </div>
 
         {/* Doctor + Patient info */}
-        <div className="grid grid-cols-2 divide-x divide-gray-200">
+        <div className="grid grid-cols-1 sm:grid-cols-2 sm:divide-x divide-gray-200 divide-y sm:divide-y-0">
           <div className="px-6 py-4 bg-gray-50">
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Medic</p>
             <p className="font-bold text-gray-800">Dr. {prescription.doctor.name}</p>
@@ -167,7 +168,15 @@ export function PrescriptionPrint({ prescription }: PrescriptionPrintProps) {
         {/* Signature area */}
         <div className="border-t border-gray-200 px-6 py-6 flex justify-end">
           <div className="text-center">
-            <div className="border-b border-gray-400 w-40 mb-1" />
+            {prescription.signatureData ? (
+              <img
+                src={prescription.signatureData}
+                alt="Semnătură medic"
+                className="h-12 sm:h-16 w-36 sm:w-44 object-contain mb-1"
+              />
+            ) : (
+              <div className="border-b border-gray-400 w-36 sm:w-44 mb-1 h-12 sm:h-16" />
+            )}
             <p className="text-xs text-gray-500">Semnătura și parafa medicului</p>
           </div>
         </div>

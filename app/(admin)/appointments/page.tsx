@@ -132,6 +132,7 @@ const getStatusDisplay = (status: string) => {
     case "ANULAT": return "Anulat"
     case "FINALIZAT": return "Finalizat"
     case "NEPREZENTARE": return "Neprezentare"
+    case "INCHEIATA": return "Încheiată"
     default: return status
   }
 }
@@ -142,6 +143,7 @@ const getStatusColor = (status: string) => {
     case "IN_ASTEPTARE": return "secondary"
     case "ANULAT": return "destructive"
     case "FINALIZAT": return "default"
+    case "INCHEIATA": return "secondary"
     default: return "secondary"
   }
 }
@@ -154,6 +156,7 @@ const getStatusBgColor = (status: string) => {
     case "ANULAT": return "bg-rose-50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-800/30"
     case "FINALIZAT": return "bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/30"
     case "NEPREZENTARE": return "bg-slate-50 dark:bg-slate-900/10 border-slate-100 dark:border-slate-800/30"
+    case "INCHEIATA": return "bg-slate-50 dark:bg-slate-900/10 border-slate-100 dark:border-slate-800/30"
     default: return "bg-slate-50 dark:bg-slate-800/20 border-slate-100 dark:border-slate-700/30"
   }
 }
@@ -166,6 +169,7 @@ const getStatusTextColor = (status: string) => {
     case "ANULAT": return "text-rose-700 dark:text-rose-400"
     case "FINALIZAT": return "text-blue-700 dark:text-blue-400"
     case "NEPREZENTARE": return "text-slate-600 dark:text-slate-400"
+    case "INCHEIATA": return "text-slate-600 dark:text-slate-400"
     default: return "text-slate-600 dark:text-slate-400"
   }
 }
@@ -178,6 +182,7 @@ const getStatusBorderColor = (status: string) => {
     case "ANULAT": return "border-l-rose-500"
     case "FINALIZAT": return "border-l-blue-400"
     case "NEPREZENTARE": return "border-l-slate-400"
+    case "INCHEIATA": return "border-l-slate-400"
     default: return "border-l-border"
   }
 }
@@ -2294,6 +2299,7 @@ export default function AppointmentsPage() {
                   <SelectItem value="FINALIZAT">Finalizat</SelectItem>
                   <SelectItem value="ANULAT">Anulat</SelectItem>
                   <SelectItem value="NEPREZENTARE">Neprezentare</SelectItem>
+                  <SelectItem value="INCHEIATA">Încheiată</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2, Plus, Trash2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { SignaturePad } from "@/components/signature-pad"
 
 interface Medication {
   name: string
@@ -39,6 +40,7 @@ export function PrescriptionForm({ patientId, appointmentId, open, onOpenChange,
   const [diagnosis, setDiagnosis] = useState("")
   const [notes, setNotes] = useState("")
   const [medications, setMedications] = useState<Medication[]>([emptyMedication()])
+  const [signatureData, setSignatureData] = useState("")
 
   const updateMed = (index: number, field: keyof Medication, value: string) => {
     setMedications((prev) => prev.map((m, i) => (i === index ? { ...m, [field]: value } : m)))
@@ -55,6 +57,7 @@ export function PrescriptionForm({ patientId, appointmentId, open, onOpenChange,
     setDiagnosis("")
     setNotes("")
     setMedications([emptyMedication()])
+    setSignatureData("")
   }
 
   const handleSave = async () => {
@@ -79,6 +82,7 @@ export function PrescriptionForm({ patientId, appointmentId, open, onOpenChange,
           diagnosis: diagnosis.trim(),
           medications: filledMeds,
           notes: notes.trim() || undefined,
+          signatureData: signatureData || undefined,
         }),
       })
       if (!res.ok) {
@@ -103,7 +107,7 @@ export function PrescriptionForm({ patientId, appointmentId, open, onOpenChange,
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
+      <DialogContent className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold">Rețetă Medicală Nouă</DialogTitle>
         </DialogHeader>
@@ -156,8 +160,8 @@ export function PrescriptionForm({ patientId, appointmentId, open, onOpenChange,
                     </button>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="col-span-2 space-y-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="sm:col-span-2 space-y-1.5">
                     <Label className="text-xs text-muted-foreground">Denumire</Label>
                     <Input
                       value={med.name}
@@ -220,6 +224,12 @@ export function PrescriptionForm({ patientId, appointmentId, open, onOpenChange,
               rows={3}
               className="rounded-xl resize-none"
             />
+          </div>
+
+          {/* Signature */}
+          <div className="space-y-2">
+            <Label className="font-semibold">Semnătură medic</Label>
+            <SignaturePad value={signatureData} onChange={setSignatureData} />
           </div>
         </div>
 
