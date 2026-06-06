@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   const status = searchParams.get("status")
   const date = searchParams.get("date")
   const page = parseInt(searchParams.get("page") ?? "1")
-  const pageSize = 20
+  const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get("pageSize") ?? "10")))
 
   const where: any = { doctorId }
   // "INCHEIATA" is a computed status — query all non-terminal statuses instead

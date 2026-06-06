@@ -3,6 +3,7 @@
 import type React from "react"
 import { useEffect } from "react"
 import { usePathname } from "next/navigation"
+import Link from "next/link"
 
 import { Logo } from "@/components/logo"
 import { SidebarNav } from "@/components/sidebar-nav"
@@ -25,7 +26,7 @@ export function AdminLayout({ children, userName, userRole }: AdminLayoutProps) 
     <div className="admin-dark flex min-h-screen bg-background">
       <aside className="hidden lg:flex w-64 flex-col border-r bg-card sticky top-0 h-screen shadow-sm">
         <div className="flex h-16 items-center border-b px-6">
-          <Logo size="sm" />
+          <Link href="/admin"><Logo size="sm" /></Link>
         </div>
         <div className="flex-1 overflow-y-auto py-6">
           <SidebarNav userRole={userRole as "SUPER_ADMIN" | "FRONT_DESK" | "MARKETING"} />

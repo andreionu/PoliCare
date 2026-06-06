@@ -20,6 +20,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { UserPlus, Search, Shield, User, Trash2, Edit, Mail, Phone, Loader2, Info } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
+import { useDebounce } from "@/hooks/use-debounce"
+import { Pagination } from "@/components/ui/pagination"
 
 interface AppUser {
   id: string
@@ -35,6 +37,11 @@ export default function UsersPage() {
   const { toast } = useToast()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
+  const debouncedSearch = useDebounce(searchQuery, 300)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
   const [showAddUser, setShowAddUser] = useState(false)
   const [showEditUser, setShowEditUser] = useState(false)
   const [editingUser, setEditingUser] = useState<AppUser | null>(null)
@@ -61,19 +68,20 @@ export default function UsersPage() {
   })
   const [errors, setErrors] = useState<Record<string, boolean>>({})
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (currentPage = 1, search = "") => {
+    setLoading(true)
     try {
-      const response = await fetch("/api/users")
+      const params = new URLSearchParams({ page: String(currentPage), limit: String(pageSize) })
+      if (search) params.set("search", search)
+      const response = await fetch(`/api/users?${params}`)
       if (!response.ok) throw new Error("Failed to fetch")
       const data = await response.json()
-      setUsers(data)
+      setUsers(data.users)
+      setTotalPages(data.totalPages)
+      setTotal(data.total)
     } catch (error) {
       console.error("Error fetching users:", error)
-      toast({
-        title: "Eroare",
-        description: "Nu s-au putut încărca utilizatorii.",
-        variant: "destructive",
-      })
+      toast({ title: "Eroare", description: "Nu s-au putut încărca utilizatorii.", variant: "destructive" })
     } finally {
       setLoading(false)
     }
@@ -82,23 +90,18 @@ export default function UsersPage() {
   useEffect(() => {
     if (!session) return
     if (role !== "SUPER_ADMIN") {
-      toast({
-        title: "Acces interzis",
-        description: "Această pagină este dedicată doar administratorilor.",
-        variant: "destructive",
-      })
+      toast({ title: "Acces interzis", description: "Această pagină este dedicată doar administratorilor.", variant: "destructive" })
       router.push("/admin")
       return
     }
-    fetchUsers()
-  }, [session, role, router, toast])
+    fetchUsers(1, debouncedSearch)
+    setPage(1)
+  }, [session, role, debouncedSearch])
 
-  const filteredUsers = users.filter(
-    (user) =>
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (user.phone && user.phone.includes(searchQuery)),
-  )
+  useEffect(() => {
+    if (!session || role !== "SUPER_ADMIN") return
+    fetchUsers(page, debouncedSearch)
+  }, [page, pageSize])
 
   const handleAddUser = async () => {
     const newErrors: Record<string, boolean> = {}
@@ -137,7 +140,7 @@ export default function UsersPage() {
         throw new Error(err.error || "Failed to create user")
       }
 
-      await fetchUsers()
+      await fetchUsers(page, debouncedSearch)
       setShowAddUser(false)
       setNewUser({ name: "", email: "", phone: "", role: "FRONT_DESK", password: "" })
       setErrors({})
@@ -196,7 +199,7 @@ export default function UsersPage() {
 
       if (!response.ok) throw new Error("Failed to update user")
 
-      await fetchUsers()
+      await fetchUsers(page, debouncedSearch)
       setShowEditUser(false)
       setEditingUser(null)
       toast({ title: "Utilizator actualizat", description: "Datele au fost salvate cu succes." })
@@ -221,7 +224,7 @@ export default function UsersPage() {
     try {
       const response = await fetch(`/api/users/${user.id}`, { method: "DELETE" })
       if (!response.ok) throw new Error("Failed to delete user")
-      await fetchUsers()
+      await fetchUsers(page, debouncedSearch)
       toast({ title: "Utilizator șters", description: "Utilizatorul a fost șters cu succes." })
     } catch (error) {
       console.error("Error deleting user:", error)
@@ -303,18 +306,18 @@ export default function UsersPage() {
           <div className="grid md:grid-cols-4 gap-4">
             <Card className="p-5 border-none shadow-sm hover:shadow-md transition-all rounded-2xl bg-white dark:bg-card/50">
               <div className="text-sm font-semibold text-muted-foreground mb-2">Total Utilizatori</div>
-              <div className="text-3xl font-bold tracking-tight text-primary">{users.length}</div>
+              <div className="text-3xl font-bold tracking-tight text-primary">{total}</div>
             </Card>
             <Card className="p-5 border-none shadow-sm hover:shadow-md transition-all rounded-2xl bg-white dark:bg-card/50">
-              <div className="text-sm font-semibold text-muted-foreground mb-2">Super Admini</div>
-              <div className="text-3xl font-bold tracking-tight text-purple-600">{users.filter((u) => u.role === "SUPER_ADMIN").length}</div>
+              <div className="text-sm font-semibold text-muted-foreground mb-2">Pe această pagină</div>
+              <div className="text-3xl font-bold tracking-tight text-slate-600">{users.length}</div>
             </Card>
             <Card className="p-5 border-none shadow-sm hover:shadow-md transition-all rounded-2xl bg-white dark:bg-card/50">
-              <div className="text-sm font-semibold text-muted-foreground mb-2">Personal Recepție</div>
-              <div className="text-3xl font-bold tracking-tight text-blue-600">{users.filter((u) => u.role === "FRONT_DESK").length}</div>
+              <div className="text-sm font-semibold text-muted-foreground mb-2">Pagina curentă</div>
+              <div className="text-3xl font-bold tracking-tight text-blue-600">{page} / {totalPages}</div>
             </Card>
             <Card className="p-5 border-none shadow-sm hover:shadow-md transition-all rounded-2xl bg-white dark:bg-card/50">
-              <div className="text-sm font-semibold text-muted-foreground mb-2">Activi</div>
+              <div className="text-sm font-semibold text-muted-foreground mb-2">Activi pe pagină</div>
               <div className="text-3xl font-bold tracking-tight text-emerald-600">{users.filter((u) => u.status === "ACTIVE").length}</div>
             </Card>
           </div>
@@ -377,70 +380,77 @@ export default function UsersPage() {
             </div>
           </Card>
 
-          {/* Users List */}
-          <div className="grid gap-4">
-            {loading ? (
-              <Card className="p-8 text-center">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-                <p className="mt-2 text-muted-foreground">Se încarcă utilizatorii...</p>
-              </Card>
-            ) : filteredUsers.length === 0 ? (
-              <Card className="p-8 text-center">
-                <p className="text-muted-foreground">
-                  {searchQuery ? "Nu s-au găsit utilizatori." : "Nu există utilizatori."}
-                </p>
-              </Card>
-            ) : (
-              filteredUsers.map((user) => (
-                <Card key={user.id} className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-lg font-semibold text-primary">
-                          {user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
-                        </span>
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-lg">{user.name}</h3>
-                          {getRoleBadge(user.role)}
-                          {getStatusBadge(user.status)}
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <Mail className="w-3 h-3" />
-                            {user.email}
+          {/* Users Table */}
+          <Card className="rounded-2xl border border-border/50 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-700/40">
+                    <th className="text-left py-4 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Utilizator</th>
+                    <th className="text-left py-4 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hidden md:table-cell">Email</th>
+                    <th className="text-left py-4 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hidden lg:table-cell">Telefon</th>
+                    <th className="text-left py-4 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Rol</th>
+                    <th className="text-left py-4 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Status</th>
+                    <th className="text-left py-4 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hidden xl:table-cell">Înregistrat</th>
+                    <th className="py-4 px-6" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100/80 dark:divide-slate-700/30">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={7} className="py-16 text-center">
+                        <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+                        <p className="mt-2 text-sm text-muted-foreground">Se încarcă utilizatorii...</p>
+                      </td>
+                    </tr>
+                  ) : users.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-16 text-center text-muted-foreground text-sm">
+                        {searchQuery ? "Nu s-au găsit utilizatori." : "Nu există utilizatori."}
+                      </td>
+                    </tr>
+                  ) : users.map((user) => (
+                    <tr key={user.id} className="group hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            <span className="text-sm font-bold text-primary">
+                              {user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
+                            </span>
                           </div>
-                          {user.phone && (
-                            <div className="flex items-center gap-1">
-                              <Phone className="w-3 h-3" />
-                              {user.phone}
-                            </div>
-                          )}
-                          <div>Înregistrat: {new Date(user.createdAt).toLocaleDateString("ro-RO")}</div>
+                          <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{user.name}</span>
                         </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(user)}>
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      {user.role !== "SUPER_ADMIN" && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10 rounded-lg"
-                          onClick={() => handleDeleteUser(user)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              ))
-            )}
-          </div>
+                      </td>
+                      <td className="py-4 px-6 hidden md:table-cell">
+                        <p className="text-sm text-slate-600 dark:text-slate-400 truncate max-w-[200px]">{user.email}</p>
+                      </td>
+                      <td className="py-4 px-6 hidden lg:table-cell">
+                        <p className="text-sm text-slate-600 dark:text-slate-400">{user.phone ?? "—"}</p>
+                      </td>
+                      <td className="py-4 px-6">{getRoleBadge(user.role)}</td>
+                      <td className="py-4 px-6">{getStatusBadge(user.status)}</td>
+                      <td className="py-4 px-6 hidden xl:table-cell">
+                        <p className="text-sm text-slate-500">{new Date(user.createdAt).toLocaleDateString("ro-RO")}</p>
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-1 justify-end">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 rounded-lg" onClick={() => handleOpenEdit(user)}>
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          {user.role !== "SUPER_ADMIN" && (
+                            <Button variant="ghost" size="sm" className="h-8 w-8 rounded-lg text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDeleteUser(user)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination page={page} pageCount={totalPages} total={total} pageSize={pageSize} loading={loading} onPageChange={setPage} onPageSizeChange={setPageSize} />
+          </Card>
         </div>
       </main>
 

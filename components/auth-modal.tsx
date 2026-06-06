@@ -94,6 +94,7 @@ function LoginForm({ onSuccess, onSwitchTab }: { onSuccess: () => void; onSwitch
     const result = await signIn("credentials", {
       email: email.trim().toLowerCase(),
       password,
+      surface: "patient",
       redirect: false,
     })
 

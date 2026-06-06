@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Calendar, Loader2, CheckCircle, PlayCircle, XCircle, Flag, ClipboardList, Clock, Phone } from "lucide-react"
 import { format } from "date-fns"
 import { ro } from "date-fns/locale"
+import { DatePicker } from "@/components/ui/date-picker"
+import { Pagination } from "@/components/ui/pagination"
 import { useToast } from "@/hooks/use-toast"
 
 interface Appointment {
@@ -79,7 +81,7 @@ export default function DoctorAppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
-  const pageSize = 20
+  const [pageSize, setPageSize] = useState(10)
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
@@ -100,6 +102,7 @@ export default function DoctorAppointmentsPage() {
       if (statusFilter !== "all") params.set("status", statusFilter)
       if (dateFilter) params.set("date", dateFilter)
       params.set("page", String(page))
+      params.set("pageSize", String(pageSize))
       const res = await fetch(`/api/doctor/appointments?${params}`)
       if (!res.ok) throw new Error()
       const data = await res.json()
@@ -110,7 +113,7 @@ export default function DoctorAppointmentsPage() {
     } finally {
       setLoading(false)
     }
-  }, [statusFilter, dateFilter, page])
+  }, [statusFilter, dateFilter, page, pageSize])
 
   useEffect(() => { fetchAppointments() }, [fetchAppointments])
 
@@ -248,11 +251,10 @@ export default function DoctorAppointmentsPage() {
             </button>
           ))}
         </div>
-        <Input
-          type="date"
+        <DatePicker
           value={dateFilter}
-          onChange={(e) => setDateFilter(e.target.value)}
-          className="h-9 rounded-xl w-full sm:w-44 text-sm"
+          onChange={setDateFilter}
+          className="h-9 rounded-xl w-full sm:w-52 text-sm"
         />
       </div>
 
@@ -381,56 +383,7 @@ export default function DoctorAppointmentsPage() {
         </div>
       )}
 
-      {/* Pagination */}
-      {!loading && totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-          <p className="text-xs text-muted-foreground">
-            Pagina {page} din {totalPages} · {total} programări
-          </p>
-          <div className="flex items-center gap-1 flex-wrap justify-center">
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-xl h-8 px-3 text-xs"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-            >
-              Anterior
-            </Button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1)
-              .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
-              .reduce<(number | "…")[]>((acc, p, i, arr) => {
-                if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("…")
-                acc.push(p)
-                return acc
-              }, [])
-              .map((p, i) =>
-                p === "…" ? (
-                  <span key={`ellipsis-${i}`} className="px-1 text-xs text-muted-foreground">…</span>
-                ) : (
-                  <Button
-                    key={p}
-                    variant={page === p ? "default" : "outline"}
-                    size="sm"
-                    className="rounded-xl h-8 w-8 p-0 text-xs"
-                    onClick={() => setPage(p as number)}
-                  >
-                    {p}
-                  </Button>
-                )
-              )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-xl h-8 px-3 text-xs"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Următor
-            </Button>
-          </div>
-        </div>
-      )}
+      <Pagination page={page} pageCount={totalPages} total={total} pageSize={pageSize} loading={loading} onPageChange={setPage} onPageSizeChange={setPageSize} />
 
       {/* Consultation Dialog */}
       <Dialog open={!!consultAppt} onOpenChange={(open) => { if (!open) setConsultAppt(null) }}>
@@ -509,11 +462,10 @@ export default function DoctorAppointmentsPage() {
               {consultForm.followUpRequired && (
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-foreground">Dată control</label>
-                  <Input
-                    type="date"
+                  <DatePicker
                     value={consultForm.followUpDate}
-                    onChange={f("followUpDate")}
-                    className="rounded-xl h-10"
+                    onChange={(v) => setConsultForm((c) => ({ ...c, followUpDate: v }))}
+                    className="rounded-xl h-10 w-full"
                   />
                 </div>
               )}

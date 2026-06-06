@@ -10,6 +10,8 @@ import { format } from "date-fns"
 import { ro } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
 import { formatDoctorName } from "@/lib/utils"
+import { Pagination } from "@/components/ui/pagination"
+
 
 interface Appointment {
   id: string
@@ -47,6 +49,8 @@ export default function PatientPaymentsPage() {
   const [loading, setLoading] = useState(true)
   const [paying, setPaying] = useState<string | null>(null)
   const [receiptAppt, setReceiptAppt] = useState<Appointment | null>(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   const fetchData = async () => {
     try {
@@ -72,6 +76,9 @@ export default function PatientPaymentsPage() {
     })
     return { paid, outstanding }
   }, [appointments])
+
+  const pageCount = Math.max(1, Math.ceil(appointments.length / pageSize))
+  const pagedAppointments = appointments.slice((page - 1) * pageSize, page * pageSize)
 
   const handlePay = async (apptId: string) => {
     setPaying(apptId)
@@ -136,7 +143,7 @@ export default function PatientPaymentsPage() {
           <>
             {/* Mobile card list */}
             <div className="sm:hidden divide-y divide-border/50">
-              {appointments.map(appt => {
+              {pagedAppointments.map(appt => {
                 const pb = paymentBadge[appt.paymentStatus] ?? paymentBadge.UNPAID
                 const canPay = appt.paymentStatus === "UNPAID" && !["ANULAT","NEPREZENTARE"].includes(appt.status)
                 const isPaid = appt.paymentStatus === "PAID"
@@ -202,7 +209,7 @@ export default function PatientPaymentsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
-                  {appointments.map(appt => {
+                  {pagedAppointments.map(appt => {
                     const pb = paymentBadge[appt.paymentStatus] ?? paymentBadge.UNPAID
                     const canPay = appt.paymentStatus === "UNPAID" && !["ANULAT","NEPREZENTARE"].includes(appt.status)
                     const isPaid = appt.paymentStatus === "PAID"
@@ -255,6 +262,7 @@ export default function PatientPaymentsPage() {
             </div>
           </>
         )}
+        <Pagination page={page} pageCount={pageCount} total={appointments.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />
       </Card>
 
       {/* Receipt dialog */}

@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Users, Loader2, Search, FileText, Phone, Mail, Calendar, ChevronLeft, ChevronRight } from "lucide-react"
+import { Users, Loader2, Search, FileText, Phone, Mail, Calendar } from "lucide-react"
+import { Pagination } from "@/components/ui/pagination"
 
 interface Patient {
   id: string
@@ -48,6 +49,7 @@ export default function DoctorPatientsPage() {
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   // Debounce search input
   useEffect(() => {
@@ -60,7 +62,7 @@ export default function DoctorPatientsPage() {
 
   const fetchPatients = useCallback(() => {
     setLoading(true)
-    const params = new URLSearchParams({ page: String(page) })
+    const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
     if (debouncedSearch) params.set("search", debouncedSearch)
 
     fetch(`/api/doctor/patients?${params}`)
@@ -72,7 +74,7 @@ export default function DoctorPatientsPage() {
       })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [page, debouncedSearch])
+  }, [page, debouncedSearch, pageSize])
 
   useEffect(() => {
     fetchPatients()
@@ -176,62 +178,7 @@ export default function DoctorPatientsPage() {
             ))}
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-              <p className="text-sm text-muted-foreground">
-                Pagina {page} din {totalPages} · {total} pacienți
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-xl h-9 px-3 gap-1"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => p - 1)}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Anterior
-                </Button>
-
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
-                    .reduce<(number | "...")[]>((acc, p, i, arr) => {
-                      if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("...")
-                      acc.push(p)
-                      return acc
-                    }, [])
-                    .map((item, i) =>
-                      item === "..." ? (
-                        <span key={`ellipsis-${i}`} className="px-1 text-muted-foreground text-sm">…</span>
-                      ) : (
-                        <Button
-                          key={item}
-                          variant={item === page ? "default" : "outline"}
-                          size="sm"
-                          className="rounded-xl h-9 w-9 p-0"
-                          onClick={() => setPage(item as number)}
-                        >
-                          {item}
-                        </Button>
-                      )
-                    )}
-                </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-xl h-9 px-3 gap-1"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Următor
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
+          <Pagination page={page} pageCount={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />
         </>
       )}
     </main>

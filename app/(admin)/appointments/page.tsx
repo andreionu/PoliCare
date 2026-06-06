@@ -59,6 +59,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { useDebounce } from "@/hooks/use-debounce"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { DatePicker } from "@/components/ui/date-picker"
 
 // Types
 interface Notification {
@@ -1294,19 +1295,17 @@ export default function AppointmentsPage() {
                                     {getStatusDisplay(appointment.status)}
                                   </Badge>
                                 </div>
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-                                {appointment.type && (
+                              {appointment.type && (
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
                                   <span className="inline-flex items-center px-1.5 py-0 rounded bg-muted text-[10px] font-medium uppercase tracking-tight">
                                     {appointment.type}
                                   </span>
-                                )}
-                                <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                                <span className="font-medium text-muted-foreground/60">#{appointment.id.substring(0,6)}</span>
-                              </div>
+                                </div>
+                              )}
                             </div>
                           </div>
 
-                          <div className="flex-1 flex items-center gap-12 lg:gap-30 min-w-0">
+                          <div className="flex-1 flex items-center gap-4 lg:gap-8 min-w-0 overflow-hidden">
                             {/* Doctor + Specialty */}
                             <div className="flex flex-col w-[170px] shrink-0">
                               <span className="text-sm font-semibold text-foreground/90 leading-tight truncate">{appointment.doctor.name}</span>
@@ -1355,7 +1354,7 @@ export default function AppointmentsPage() {
                             <div className="flex-1" />
 
                             {/* Actions — always at far right */}
-                            <div className="flex items-center gap-1.5 shrink-0">
+                            <div className="flex items-center flex-wrap gap-1.5 shrink-0 ml-auto">
                             {appointment.status === "IN_ASTEPTARE" && (
                               <>
                                 <Button
@@ -1920,16 +1919,13 @@ export default function AppointmentsPage() {
                 <Label htmlFor="date" className="block text-sm font-medium text-foreground">
                   Data <span className="text-destructive">*</span>
                 </Label>
-                <Input
-                  required
-                  id="date"
-                  type="date"
+                <DatePicker
                   value={appointmentFormData.date}
-                  onChange={(e) => {
-                    setAppointmentFormData({ ...appointmentFormData, date: e.target.value })
+                  onChange={(v) => {
+                    setAppointmentFormData({ ...appointmentFormData, date: v })
                     setAppointmentErrors({ ...appointmentErrors, date: false })
                   }}
-                  className={`mt-2 ${appointmentErrors.date ? "border-destructive" : ""}`}
+                  className={`mt-2 w-full ${appointmentErrors.date ? "border-destructive" : ""}`}
                 />
                 {appointmentErrors.date && <p className="text-sm text-destructive mt-1">Data este obligatorie</p>}
               </div>
@@ -2239,11 +2235,10 @@ export default function AppointmentsPage() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="edit-date">Data</Label>
-              <Input
-                id="edit-date"
-                type="date"
+              <DatePicker
                 value={editFormData.date}
-                onChange={(e) => setEditFormData({ ...editFormData, date: e.target.value })}
+                onChange={(v) => setEditFormData({ ...editFormData, date: v })}
+                className="w-full"
               />
             </div>
 

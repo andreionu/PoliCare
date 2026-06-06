@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Search, Plus, MoreHorizontal, Loader2, UserX, Users, Activity, FileText, CheckCircle, CalendarIcon, Phone, Mail, User, ArrowRight, UserPlus } from "lucide-react"
+import { Pagination } from "@/components/ui/pagination"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
@@ -73,6 +74,7 @@ export default function PatientsPage() {
   const [doctorFilter, setDoctorFilter] = useState("all")
   const [doctors, setDoctors] = useState<{ id: string; name: string }[]>([])
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -125,7 +127,7 @@ export default function PatientsPage() {
 
   useEffect(() => {
     fetchPatients(debouncedSearch || undefined, page)
-  }, [debouncedSearch, doctorFilter, page])
+  }, [debouncedSearch, doctorFilter, page, pageSize])
 
   const handleAddPatient = async () => {
     // Basic validation
@@ -262,7 +264,7 @@ export default function PatientsPage() {
   const fetchPatients = async (search?: string, currentPage = 1) => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({ page: String(currentPage), limit: "20" })
+      const params = new URLSearchParams({ page: String(currentPage), limit: String(pageSize) })
       if (search) params.set("search", search)
       if (doctorFilter !== "all") params.set("doctorId", doctorFilter)
       const response = await fetch(`/api/patients?${params}`)
@@ -430,170 +432,101 @@ export default function PatientsPage() {
             </div>
           </div>
 
-          {/* Patients List */}
-          <div className="grid gap-6">
-            {loading ? (
-              <div className="p-20 text-center bg-white dark:bg-card/50 rounded-2xl border border-border/50">
-                <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary mb-4" />
-                <p className="text-muted-foreground font-medium animate-pulse">Se încarcă baza de date a pacienților...</p>
-              </div>
-            ) : patients.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 px-6 text-center bg-white dark:bg-card/50 rounded-2xl border border-border/50 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="relative mb-6">
-                  <div className="w-24 h-24 rounded-full bg-primary/5 dark:bg-primary/10 flex items-center justify-center">
-                    <UserX className="w-10 h-10 text-primary/50" />
-                  </div>
-                  <div className="absolute -bottom-1 -right-1 w-10 h-10 rounded-full bg-white dark:bg-card border-2 border-background flex items-center justify-center shadow-sm">
-                    <Search className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold text-foreground mb-2">Niciun pacient găsit</h3>
-                <p className="text-muted-foreground max-w-sm mx-auto mb-8">
-                  {searchQuery 
-                    ? `Nu am găsit niciun pacient care să corespundă căutării "${searchQuery}".`
-                    : "Nu există pacienți înregistrați în acest moment."}
-                </p>
-                <Button 
-                  variant="outline" 
-                  className="h-11 px-6 rounded-xl border-primary/20 text-primary hover:bg-primary/5 transition-all font-semibold"
-                  onClick={() => setSearchQuery("")}
-                >
-                  Resetează căutarea
-                </Button>
-              </div>
-            ) : displayedPatients.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 px-6 text-center bg-white dark:bg-card/50 rounded-2xl border border-border/50">
-                <h3 className="text-xl font-bold text-foreground mb-2">Niciun pacient cu statusul selectat</h3>
-                <Button variant="outline" className="mt-4 h-11 px-6 rounded-xl" onClick={() => setStatusFilter("all")}>Resetează filtrul</Button>
-              </div>
-            ) : (
-              displayedPatients.map((patient) => (
-                <Card key={patient.id} className="group relative bg-white dark:bg-card/50 rounded-2xl border border-border/50 p-6 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 transition-all duration-300">
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                    <div className="flex items-center gap-6">
-                      <div className="relative h-16 w-16 border-2 border-background shadow-sm ring-2 ring-muted/50 group-hover:ring-primary/20 transition-all rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10 text-primary font-bold text-xl">
-                        {(patient.name || "?").charAt(0)}
-                      </div>
-                      <div className="space-y-1">
-                        <Link href={`/patients/${patient.id}`} className="text-xl font-bold text-foreground tracking-tight hover:text-primary transition-colors uppercase leading-none block">{patient.name}</Link>
-                        <div className="flex flex-wrap items-center gap-y-1 gap-x-4">
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
-                            <User className="w-3 h-3" />
-                            {patient.cnp || "CNP Indisponibil"}
-                          </span>
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
-                            <CalendarIcon className="w-3 h-3" />
-                            {patient.age ? `${patient.age} ani` : "Vârstă —"}
-                          </span>
-                          {patient.gender && (
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5 border-l border-border/50 pl-4 ml-0">
-                               {getGenderDisplay(patient.gender)}
-                            </span>
-                          )}
+          {/* Patients Table */}
+          <Card className="rounded-2xl border border-border/50 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-700/40">
+                    <th className="text-left py-4 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Pacient</th>
+                    <th className="text-left py-4 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hidden md:table-cell">Vârstă / Gen</th>
+                    <th className="text-left py-4 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hidden lg:table-cell">Telefon</th>
+                    <th className="text-left py-4 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hidden xl:table-cell">Doctor principal</th>
+                    <th className="text-left py-4 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Status</th>
+                    <th className="py-4 px-6" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100/80 dark:divide-slate-700/30">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="py-16 text-center">
+                        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                        <p className="mt-2 text-sm text-muted-foreground">Se încarcă pacienții...</p>
+                      </td>
+                    </tr>
+                  ) : patients.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-16 text-center">
+                        <UserX className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
+                        <p className="text-sm text-muted-foreground">{searchQuery ? `Niciun pacient găsit pentru "${searchQuery}".` : "Nu există pacienți înregistrați."}</p>
+                      </td>
+                    </tr>
+                  ) : displayedPatients.map((patient) => (
+                    <tr key={patient.id} className="group hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/10 to-primary/20 flex items-center justify-center shrink-0 text-primary font-bold text-sm">
+                            {(patient.name || "?").charAt(0)}
+                          </div>
+                          <div>
+                            <Link href={`/patients/${patient.id}`} className="font-bold text-sm text-slate-800 dark:text-slate-200 hover:text-primary transition-colors uppercase">{patient.name}</Link>
+                            <p className="text-xs text-muted-foreground">{patient.cnp || "CNP indisponibil"}</p>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-6 lg:gap-12">
-                      <div className="flex flex-col gap-1 min-w-[140px]">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
-                          <Plus className="w-3 h-3" />
-                          Doctor Asignat
-                        </span>
-                        <span className="text-sm font-bold text-foreground/90 truncate uppercase tracking-tight">
-                           {patient.primaryDoctor?.name || "Nealocat"}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-col gap-1 min-w-[100px]">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
-                          <Activity className="w-3 h-3" />
-                          Status
-                        </span>
-                        <Badge
-                          variant={patient.status === "ACTIV" ? "default" : "secondary"}
-                          className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider w-fit ${
-                            patient.status === "ACTIV"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/20"
-                              : patient.status === "PROGRAMAT"
-                                ? "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/20"
-                                : "bg-slate-50 text-slate-700 border-slate-100 dark:bg-slate-500/15 dark:text-slate-400 dark:border-slate-500/20"
-                          } border shadow-sm`}
-                        >
+                      </td>
+                      <td className="py-4 px-6 hidden md:table-cell">
+                        <p className="text-sm text-slate-600 dark:text-slate-400">{patient.age ? `${patient.age} ani` : "—"}{patient.gender ? ` · ${getGenderDisplay(patient.gender)}` : ""}</p>
+                      </td>
+                      <td className="py-4 px-6 hidden lg:table-cell">
+                        <p className="text-sm text-slate-600 dark:text-slate-400">{patient.phone || "—"}</p>
+                      </td>
+                      <td className="py-4 px-6 hidden xl:table-cell">
+                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{patient.primaryDoctor?.name || "Nealocat"}</p>
+                      </td>
+                      <td className="py-4 px-6">
+                        <Badge className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider border shadow-sm ${
+                          patient.status === "ACTIV" ? "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-400"
+                          : patient.status === "PROGRAMAT" ? "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-500/15 dark:text-blue-400"
+                          : "bg-slate-50 text-slate-700 border-slate-100 dark:bg-slate-500/15 dark:text-slate-400"
+                        }`}>
                           {getStatusDisplay(patient.status)}
                         </Badge>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-10 px-5 border-primary/10 text-primary font-bold hover:bg-primary/5 rounded-xl transition-all" 
-                          asChild
-                        >
-                          <Link href={`/patients/${patient.id}`}>Fișă</Link>
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" aria-label="Mai multe opțiuni" className="h-10 w-10 text-muted-foreground rounded-xl">
-                              <MoreHorizontal className="h-5 w-5" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="rounded-xl p-2 w-48">
-                            <DropdownMenuLabel className="text-xs uppercase font-bold text-muted-foreground px-2 pb-2">Acțiuni Pacient</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
-                              <Link href={`/patients/${patient.id}`} className="flex items-center">
-                                <FileText className="mr-2 h-4 w-4" /> Vezi Fișa Medicală
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="rounded-lg cursor-pointer"
-                              onClick={() => router.push(`/appointments?patientId=${patient.id}`)}
-                            >
-                              <Plus className="mr-2 h-4 w-4" /> Programare Nouă
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive font-semibold rounded-lg cursor-pointer"
-                              onClick={() => handleDeletePatient(patient.id)}
-                            >
-                              <UserX className="mr-2 h-4 w-4" /> Șterge Pacient
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))
-            )}
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between bg-white dark:bg-card/50 px-6 py-4 rounded-2xl border border-border/50">
-              <p className="text-sm font-medium text-muted-foreground">
-                Pagina <span className="font-bold text-foreground">{page}</span> din <span className="font-bold text-foreground">{totalPages}</span> — {totalCount} pacienți total
-              </p>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="rounded-xl" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
-                  ← Anterior
-                </Button>
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const p = Math.max(1, Math.min(totalPages - 4, page - 2)) + i
-                  return (
-                    <Button key={p} variant={p === page ? "default" : "outline"} size="sm" className="rounded-xl w-9" onClick={() => setPage(p)}>
-                      {p}
-                    </Button>
-                  )
-                })}
-                <Button variant="outline" size="sm" className="rounded-xl" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
-                  Următor →
-                </Button>
-              </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-1 justify-end">
+                          <Button variant="outline" size="sm" className="h-8 px-3 rounded-lg border-primary/20 text-primary text-xs font-bold hover:bg-primary/5" asChild>
+                            <Link href={`/patients/${patient.id}`}>Fișă</Link>
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="rounded-xl p-2 w-48">
+                              <DropdownMenuLabel className="text-xs uppercase font-bold text-muted-foreground px-2 pb-2">Acțiuni</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                                <Link href={`/patients/${patient.id}`}><FileText className="mr-2 h-4 w-4" /> Fișă Medicală</Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="rounded-lg cursor-pointer" onClick={() => router.push(`/appointments?patientId=${patient.id}`)}>
+                                <Plus className="mr-2 h-4 w-4" /> Programare Nouă
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-destructive font-semibold rounded-lg cursor-pointer" onClick={() => handleDeletePatient(patient.id)}>
+                                <UserX className="mr-2 h-4 w-4" /> Șterge Pacient
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
+            <Pagination page={page} pageCount={totalPages} total={totalCount} pageSize={pageSize} loading={loading} onPageChange={setPage} onPageSizeChange={setPageSize} />
+          </Card>
         </div>
       </main>
 

@@ -22,6 +22,7 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        surface: { label: "Surface", type: "text" },
       },
 
       // This function runs when someone tries to log in
@@ -60,7 +61,15 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Email sau parolă incorectă")
         }
 
-        // 6. Success! Return the user data
+        // 6. Enforce login surface — blocks wrong-role logins before any session is created
+        if (credentials.surface === "staff" && user.role === "PATIENT") {
+          throw new Error("Această pagină este rezervată personalului medical. Pacienții se autentifică de pe pagina principală.")
+        }
+        if (credentials.surface === "patient" && user.role !== "PATIENT") {
+          throw new Error("Această intrare este destinată pacienților. Personalul medical accesează /login.")
+        }
+
+        // 7. Success! Return the user data
         return {
           id: user.id,
           email: user.email,
@@ -68,6 +77,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           doctorId: user.doctorProfile?.id ?? null,
           patientId: user.patientProfile?.id ?? null,
+          passwordChangedAt: user.passwordChangedAt,
         }
       },
     }),
@@ -81,13 +91,28 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id
         token.doctorId = (user as any).doctorId ?? null
         token.patientId = (user as any).patientId ?? null
-      } else if (token.id && token.role === "PATIENT" && !token.patientId) {
-        // Lazy re-fetch: patient linked after initial login — pick up the new patientId
+        token.passwordIssuedAt = ((user as any).passwordChangedAt as Date | undefined)?.getTime() ?? Date.now()
+      } else if (token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          include: { patientProfile: { select: { id: true } } },
-        })
-        if (dbUser?.patientProfile) token.patientId = dbUser.patientProfile.id
+          select: {
+            passwordChangedAt: true,
+            patientProfile: { select: { id: true } },
+          },
+        }) as { passwordChangedAt: Date; patientProfile: { id: string } | null } | null
+
+        // Invalidate session if password was changed after token was issued
+        if (dbUser?.passwordChangedAt) {
+          const changedAt = dbUser.passwordChangedAt.getTime()
+          if (changedAt > (token.passwordIssuedAt ?? 0)) {
+            token.invalid = true
+          }
+        }
+
+        // Lazy re-fetch: patient linked after initial login
+        if (token.role === "PATIENT" && !token.patientId && dbUser?.patientProfile) {
+          token.patientId = dbUser.patientProfile.id
+        }
       }
       return token
     },

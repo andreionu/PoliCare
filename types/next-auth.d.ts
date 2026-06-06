@@ -23,5 +23,7 @@ declare module "next-auth/jwt" {
     id: string
     doctorId?: string | null
     patientId?: string | null
+    passwordIssuedAt?: number
+    invalid?: boolean
   }
 }

@@ -5,33 +5,42 @@ import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 
 // GET /api/users - Get all users (admin only)
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   if (session.user.role !== "SUPER_ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   try {
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        phone: true,
-        role: true,
-        status: true,
-        createdAt: true,
-        // Don't include password!
-      },
-      orderBy: { createdAt: "desc" },
-    })
+    const { searchParams } = new URL(request.url)
+    const search = searchParams.get("search") ?? ""
+    const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"))
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "20")))
 
-    return NextResponse.json(users)
+    const where = search
+      ? {
+          OR: [
+            { name: { contains: search, mode: "insensitive" as const } },
+            { email: { contains: search, mode: "insensitive" as const } },
+            { phone: { contains: search, mode: "insensitive" as const } },
+          ],
+        }
+      : {}
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        select: { id: true, email: true, name: true, phone: true, role: true, status: true, createdAt: true },
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.user.count({ where }),
+    ])
+
+    return NextResponse.json({ users, total, page, totalPages: Math.ceil(total / limit) })
   } catch (error) {
     console.error("Error fetching users:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch users" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 })
   }
 }
 
@@ -43,8 +52,6 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
-
-    // Hash the password
     const hashedPassword = await bcrypt.hash(body.password, 10)
 
     const user = await prisma.user.create({
@@ -56,23 +63,12 @@ export async function POST(request: Request) {
         role: body.role || "FRONT_DESK",
         status: body.status || "ACTIVE",
       },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        phone: true,
-        role: true,
-        status: true,
-        createdAt: true,
-      },
+      select: { id: true, email: true, name: true, phone: true, role: true, status: true, createdAt: true },
     })
 
     return NextResponse.json(user, { status: 201 })
   } catch (error) {
     console.error("Error creating user:", error)
-    return NextResponse.json(
-      { error: "Failed to create user" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Failed to create user" }, { status: 500 })
   }
 }

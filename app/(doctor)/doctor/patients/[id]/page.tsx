@@ -19,6 +19,7 @@ import { ro } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
 import { PrescriptionForm } from "@/components/prescription-form"
 import { PrescriptionPrint } from "@/components/prescription-print"
+import { DatePicker } from "@/components/ui/date-picker"
 
 const statusColors: Record<string, string> = {
   IN_ASTEPTARE:   "bg-amber-100 text-amber-700",
@@ -487,9 +488,11 @@ export default function DoctorPatientDetailPage() {
                 <span className="text-sm font-semibold">Necesită control</span>
               </label>
               {recordForm.followUpRequired && (
-                <Input type="date" className="h-9 rounded-xl w-full sm:flex-1"
+                <DatePicker
                   value={recordForm.followUpDate}
-                  onChange={(e) => setRecordForm((f) => ({ ...f, followUpDate: e.target.value }))} />
+                  onChange={(v) => setRecordForm((f) => ({ ...f, followUpDate: v }))}
+                  className="h-9 rounded-xl w-full sm:flex-1"
+                />
               )}
             </div>
           </div>

@@ -31,6 +31,14 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
 
+  // Force logout if session was invalidated (password changed after token was issued)
+  if (token?.invalid) {
+    const response = NextResponse.redirect(new URL("/login", request.url))
+    response.cookies.delete("next-auth.session-token")
+    response.cookies.delete("__Secure-next-auth.session-token")
+    return response
+  }
+
   // Redirect already-authenticated users away from login
   if (pathname === "/login") {
     if (token) return redirectByRole(token.role as string, request)

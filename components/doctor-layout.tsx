@@ -44,7 +44,7 @@ export function DoctorLayout({ children, userName }: DoctorLayoutProps) {
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex w-64 flex-col border-r bg-card sticky top-0 h-screen shadow-sm">
         <div className="flex h-16 items-center border-b px-6">
-          <Logo size="sm" />
+          <Link href="/doctor/dashboard"><Logo size="sm" /></Link>
         </div>
         <div className="flex-1 overflow-y-auto py-6">
           <nav className="space-y-1.5 px-4">
@@ -96,7 +96,7 @@ export function DoctorLayout({ children, userName }: DoctorLayoutProps) {
 
       {/* Mobile header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-40 flex h-14 items-center justify-between border-b bg-card px-4 shadow-sm">
-        <Logo size="sm" />
+        <Link href="/doctor/dashboard"><Logo size="sm" /></Link>
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="p-2 rounded-lg hover:bg-muted transition-colors"

@@ -4,27 +4,49 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
 // GET /api/services - Get all services
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const services = await prisma.service.findMany({
-      include: {
-        department: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-      orderBy: { name: "asc" },
-    })
+    const { searchParams } = new URL(request.url)
+    const search = searchParams.get("search") ?? ""
+    const departmentId = searchParams.get("departmentId")
+    const pageParam = searchParams.get("page")
+    const page = Math.max(1, parseInt(pageParam ?? "1"))
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "20")))
+    const paginated = pageParam !== null
 
-    return NextResponse.json(services)
+    const where: Record<string, unknown> = {}
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { department: { name: { contains: search, mode: "insensitive" } } },
+      ]
+    }
+    if (departmentId) where.departmentId = departmentId
+
+    if (!paginated) {
+      const services = await prisma.service.findMany({
+        where,
+        include: { department: { select: { id: true, name: true } } },
+        orderBy: { name: "asc" },
+      })
+      return NextResponse.json(services)
+    }
+
+    const [services, total] = await Promise.all([
+      prisma.service.findMany({
+        where,
+        include: { department: { select: { id: true, name: true } } },
+        orderBy: { name: "asc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.service.count({ where }),
+    ])
+
+    return NextResponse.json({ services, total, page, totalPages: Math.ceil(total / limit) })
   } catch (error) {
     console.error("Error fetching services:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch services" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Failed to fetch services" }, { status: 500 })
   }
 }
 

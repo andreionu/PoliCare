@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     const hashedPassword = await bcrypt.hash(newPassword, 10)
     await prisma.user.update({
       where: { id: user.id },
-      data: { password: hashedPassword },
+      data: { password: hashedPassword, passwordChangedAt: new Date() },
     })
 
     return NextResponse.json({ message: "Parola a fost schimbată cu succes" })

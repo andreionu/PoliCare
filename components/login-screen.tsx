@@ -41,6 +41,7 @@ export function LoginScreen() {
     const result = await signIn("credentials", {
       email: sanitizedEmail,
       password,
+      surface: "staff",
       redirect: false,
     })
 
@@ -181,9 +182,9 @@ export function LoginScreen() {
             )}
 
             <p className="text-center text-sm text-slate-500">
-              Pacient nou?{" "}
-              <Link href="/register" className="text-[#206070] font-bold hover:underline">
-                Creați un cont
+              Ești pacient?{" "}
+              <Link href="/" className="text-[#206070] font-bold hover:underline">
+                Autentifică-te de pe pagina principală
               </Link>
             </p>
 

@@ -43,6 +43,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { PrescriptionPrint } from "@/components/prescription-print"
+import { DatePicker } from "@/components/ui/date-picker"
 
 interface PatientDetail {
   id: string
@@ -1007,11 +1008,10 @@ export default function PatientDetailPage() {
             <div className="grid md:grid-cols-2 gap-8">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Data Vizitei</Label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={recordForm.visitDate}
-                  onChange={(e) => setRecordForm({ ...recordForm, visitDate: e.target.value })}
-                  className="h-12 rounded-xl bg-muted/20 border-muted/50 font-bold"
+                  onChange={(v) => setRecordForm({ ...recordForm, visitDate: v })}
+                  className="h-12 rounded-xl bg-muted/20 border-muted/50 font-bold w-full"
                 />
               </div>
               <div className="space-y-2">
@@ -1081,11 +1081,10 @@ export default function PatientDetailPage() {
                   <Label htmlFor="followUpRequired" className="font-bold text-sm text-blue-800">Da, este necesar</Label>
                 </div>
                 {recordForm.followUpRequired && (
-                  <Input
-                    type="date"
+                  <DatePicker
                     value={recordForm.followUpDate}
-                    onChange={(e) => setRecordForm({ ...recordForm, followUpDate: e.target.value })}
-                    className="h-10 rounded-xl bg-white border-blue-200 w-36 font-bold text-xs"
+                    onChange={(v) => setRecordForm({ ...recordForm, followUpDate: v })}
+                    className="h-10 rounded-xl bg-white border-blue-200 font-bold text-xs"
                   />
                 )}
               </div>

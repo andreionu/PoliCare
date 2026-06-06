@@ -12,6 +12,7 @@ import { cn, formatDoctorName } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import { ro } from "date-fns/locale"
+import { DatePicker } from "@/components/ui/date-picker"
 
 interface PatientBookingDialogProps {
   open: boolean
@@ -275,11 +276,10 @@ export function PatientBookingDialog({ open, onOpenChange, onBooked }: PatientBo
             <div className="space-y-5">
               <div className="space-y-2">
                 <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">Data</Label>
-                <Input
-                  type="date"
-                  min={today}
+                <DatePicker
                   value={selectedDate}
-                  onChange={(e) => { setSelectedDate(e.target.value); setSelectedTime("") }}
+                  onChange={(v) => { setSelectedDate(v); setSelectedTime("") }}
+                  min={today}
                   className="h-10 rounded-xl w-full sm:w-52"
                 />
               </div>

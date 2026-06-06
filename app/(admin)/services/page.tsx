@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Plus, Search, MoreHorizontal, Loader2, Wrench, Clock, Building2, ToggleLeft, Coins, Activity, CheckCircle, CalendarIcon, ArrowRight } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { useDebounce } from "@/hooks/use-debounce"
+import { Pagination } from "@/components/ui/pagination"
 
 interface Service {
   id: string
@@ -45,7 +47,12 @@ interface Department {
 export default function ServicesPage() {
   const { toast } = useToast()
   const [searchQuery, setSearchQuery] = useState("")
+  const debouncedSearch = useDebounce(searchQuery, 300)
   const [deptFilter, setDeptFilter] = useState("all")
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [services, setServices] = useState<Service[]>([])
@@ -60,12 +67,18 @@ export default function ServicesPage() {
   const [editForm, setEditForm] = useState({ ...emptyForm })
   const [addErrors, setAddErrors] = useState<Record<string, boolean>>({})
 
-  const fetchServices = async () => {
+  const fetchServices = async (currentPage = 1, search = "", dept = "all") => {
+    setLoading(true)
     try {
-      const response = await fetch("/api/services")
+      const params = new URLSearchParams({ page: String(currentPage), limit: String(pageSize) })
+      if (search) params.set("search", search)
+      if (dept !== "all") params.set("departmentId", dept)
+      const response = await fetch(`/api/services?${params}`)
       if (!response.ok) throw new Error("Failed to fetch")
       const data = await response.json()
-      setServices(data)
+      setServices(data.services)
+      setTotalPages(data.totalPages)
+      setTotal(data.total)
     } catch (error) {
       console.error("Error fetching services:", error)
       toast({ title: "Eroare", description: "Nu s-au putut încărca serviciile.", variant: "destructive" })
@@ -86,16 +99,15 @@ export default function ServicesPage() {
   }
 
   useEffect(() => {
-    fetchServices()
-    fetchDepartments()
-  }, [])
+    fetchServices(1, debouncedSearch, deptFilter)
+    setPage(1)
+  }, [debouncedSearch, deptFilter])
 
-  const filteredServices = services.filter(
-    (s) =>
-      (deptFilter === "all" || s.department.id === deptFilter) &&
-      (s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-       s.department.name.toLowerCase().includes(searchQuery.toLowerCase()))
-  )
+  useEffect(() => {
+    fetchServices(page, debouncedSearch, deptFilter)
+  }, [page, pageSize])
+
+  useEffect(() => { fetchDepartments() }, [])
 
   const handleAdd = async () => {
     const errors: Record<string, boolean> = {}
@@ -124,7 +136,7 @@ export default function ServicesPage() {
         }),
       })
       if (!response.ok) throw new Error("Failed to create service")
-      await fetchServices()
+      await fetchServices(page, debouncedSearch, deptFilter)
       setShowAdd(false)
       setAddForm(emptyForm)
       setAddErrors({})
@@ -167,7 +179,7 @@ export default function ServicesPage() {
         }),
       })
       if (!response.ok) throw new Error("Failed to update service")
-      await fetchServices()
+      await fetchServices(page, debouncedSearch, deptFilter)
       setShowEdit(false)
       setEditingService(null)
       toast({ title: "Succes", description: "Serviciul a fost actualizat." })
@@ -183,7 +195,7 @@ export default function ServicesPage() {
     try {
       const response = await fetch(`/api/services/${service.id}`, { method: "DELETE" })
       if (!response.ok) throw new Error("Failed to delete service")
-      await fetchServices()
+      await fetchServices(page, debouncedSearch, deptFilter)
       toast({ title: "Succes", description: "Serviciul a fost șters." })
     } catch (error) {
       console.error("Error deleting service:", error)
@@ -196,6 +208,9 @@ export default function ServicesPage() {
     ? Math.round(services.reduce((sum, s) => sum + s.duration, 0) / services.length)
     : 0
   const deptsCovered = new Set(services.map((s) => s.department.id)).size
+
+  // Remove client-side filter (now server-side)
+  const filteredServices = services
 
   return (
     <>
@@ -304,117 +319,72 @@ export default function ServicesPage() {
             </div>
           </div>
 
-          {/* Services list */}
-          <div className="grid gap-6">
-            {loading ? (
-              <div className="p-20 text-center bg-white dark:bg-card/50 rounded-2xl border border-border/50">
-                <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary mb-4" />
-                <p className="text-muted-foreground font-medium animate-pulse">Se încarcă lista serviciilor...</p>
-              </div>
-            ) : filteredServices.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 px-6 text-center bg-white dark:bg-card/50 rounded-2xl border border-border/50 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="relative mb-6">
-                  <div className="w-24 h-24 rounded-full bg-primary/5 dark:bg-primary/10 flex items-center justify-center">
-                    <Wrench className="w-10 h-10 text-primary/50" />
-                  </div>
-                  <div className="absolute -bottom-1 -right-1 w-10 h-10 rounded-full bg-white dark:bg-card border-2 border-background flex items-center justify-center shadow-sm">
-                    <Search className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold text-foreground mb-2">Niciun serviciu găsit</h3>
-                <p className="text-muted-foreground max-w-sm mx-auto mb-8">
-                  {searchQuery 
-                    ? `Nu am găsit niciun serviciu care să corespundă căutării "${searchQuery}".`
-                    : "Nu există servicii medicale înregistrate în sistem."}
-                </p>
-                <Button 
-                  variant="outline" 
-                  className="h-11 px-6 rounded-xl border-primary/20 text-primary hover:bg-primary/5 transition-all font-semibold"
-                  onClick={() => setSearchQuery("")}
-                >
-                  Resetează căutarea
-                </Button>
-              </div>
-            ) : (
-              filteredServices.map((service) => (
-                <Card key={service.id} className="group relative bg-white dark:bg-card/50 rounded-2xl border border-border/50 p-6 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 transition-all duration-300">
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                    <div className="flex items-center gap-6">
-                      <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform duration-300">
-                        <Wrench className="h-7 w-7 text-white" />
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex flex-wrap items-center gap-3">
-                          <h3 className="text-xl font-bold text-foreground tracking-tight group-hover:text-primary transition-colors uppercase">{service.name}</h3>
-                          <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-widest border-primary/20 text-primary px-2 py-0.5 rounded-full">
-                            {service.department.name}
-                          </Badge>
-                          <Badge className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${
-                            service.isActive
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/20"
-                              : "bg-slate-50 text-slate-700 border-slate-100 dark:bg-slate-500/15 dark:text-slate-400 dark:border-slate-500/20"
-                          } border shadow-sm`}>
-                            {service.isActive ? "Activ" : "Inactiv"}
-                          </Badge>
+          {/* Services Table */}
+          <Card className="rounded-2xl border border-border/50 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-700/40">
+                    <th className="text-left py-4 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Serviciu</th>
+                    <th className="text-left py-4 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hidden md:table-cell">Departament</th>
+                    <th className="text-left py-4 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hidden lg:table-cell">Durată</th>
+                    <th className="text-right py-4 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Tarif</th>
+                    <th className="text-center py-4 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Status</th>
+                    <th className="py-4 px-6" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100/80 dark:divide-slate-700/30">
+                  {loading ? (
+                    <tr><td colSpan={6} className="py-16 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /><p className="mt-2 text-sm text-muted-foreground">Se încarcă serviciile...</p></td></tr>
+                  ) : services.length === 0 ? (
+                    <tr><td colSpan={6} className="py-16 text-center"><Wrench className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" /><p className="text-sm text-muted-foreground">{searchQuery ? `Niciun serviciu găsit pentru "${searchQuery}".` : "Nu există servicii înregistrate."}</p></td></tr>
+                  ) : services.map((service) => (
+                    <tr key={service.id} className="group hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shrink-0">
+                            <Wrench className="h-4 w-4 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-sm text-slate-800 dark:text-slate-200">{service.name}</p>
+                            {service.description && <p className="text-xs text-muted-foreground truncate max-w-[200px]">{service.description}</p>}
+                          </div>
                         </div>
-                        {service.description && (
-                          <p className="text-sm text-muted-foreground mt-1 italic line-clamp-1">{service.description}</p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-6 lg:gap-12">
-                      <div className="flex flex-col gap-1 min-w-[100px]">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
-                          <Clock className="w-3 h-3" />
-                          Durată
-                        </span>
-                        <span className="text-lg font-bold text-foreground/90 tracking-tight">{service.duration} MIN</span>
-                      </div>
-
-                      <div className="flex flex-col gap-1 min-w-[120px]">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
-                          <Coins className="w-3 h-3" />
-                          Tarif
-                        </span>
-                        <span className="text-lg font-extrabold text-primary tracking-tight">
-                          {service.price !== null ? `${service.price.toFixed(2)} RON` : "GRATUIT"}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-10 px-5 border-primary/20 text-primary font-bold hover:bg-primary/5 rounded-xl transition-all" 
-                          onClick={() => handleOpenEdit(service)}
-                        >
-                          Editează
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" aria-label="Mai multe opțiuni" className="h-10 w-10 text-muted-foreground rounded-xl">
-                              <MoreHorizontal className="h-5 w-5" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="rounded-xl p-2 w-42">
-                            <DropdownMenuLabel className="text-xs uppercase font-bold text-muted-foreground px-2 pb-2">Opțiuni</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="text-destructive font-semibold rounded-lg cursor-pointer hover:bg-destructive/10 hover:text-destructive"
-                              onClick={() => handleDelete(service)}
-                            >
-                              Șterge Serviciu
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))
-            )}
-          </div>
+                      </td>
+                      <td className="py-4 px-6 hidden md:table-cell">
+                        <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-widest border-primary/20 text-primary rounded-full">{service.department.name}</Badge>
+                      </td>
+                      <td className="py-4 px-6 hidden lg:table-cell">
+                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{service.duration} min</p>
+                      </td>
+                      <td className="py-4 px-6 text-right">
+                        <span className="text-sm font-black text-primary">{service.price !== null ? `${service.price.toFixed(2)} RON` : "GRATUIT"}</span>
+                      </td>
+                      <td className="py-4 px-6 text-center">
+                        <Badge className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider border shadow-sm ${service.isActive ? "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-400" : "bg-slate-50 text-slate-700 border-slate-100 dark:bg-slate-500/15 dark:text-slate-400"}`}>
+                          {service.isActive ? "Activ" : "Inactiv"}
+                        </Badge>
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-1 justify-end">
+                          <Button variant="outline" size="sm" className="h-8 px-3 rounded-lg border-primary/20 text-primary text-xs font-bold hover:bg-primary/5" onClick={() => handleOpenEdit(service)}>Editează</Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground"><MoreHorizontal className="h-4 w-4" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="rounded-xl p-2 w-40">
+                              <DropdownMenuItem className="text-destructive font-semibold rounded-lg cursor-pointer hover:bg-destructive/10" onClick={() => handleDelete(service)}>Șterge Serviciu</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination page={page} pageCount={totalPages} total={total} pageSize={pageSize} loading={loading} onPageChange={setPage} onPageSizeChange={setPageSize} />
+          </Card>
         </div>
       </main>
 

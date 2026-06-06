@@ -27,15 +27,20 @@ export async function GET(request: Request) {
       }
     }
 
-    const [activities, todayCount, weekCount, activeUsersRaw] = await Promise.all([
+    const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"))
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "30")))
+
+    const [activities, total, todayCount, weekCount, activeUsersRaw] = await Promise.all([
       prisma.activityLog.findMany({
         where: feedWhere,
         include: {
           user: { select: { name: true, role: true } },
         },
         orderBy: { createdAt: "desc" },
-        take: 100,
+        skip: (page - 1) * limit,
+        take: limit,
       }),
+      prisma.activityLog.count({ where: feedWhere }),
       prisma.activityLog.count({
         where: { createdAt: { gte: startOfToday } },
       }),
@@ -51,6 +56,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       activities,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
       todayCount,
       weekCount,
       activeUsers: activeUsersRaw.length,

@@ -25,6 +25,8 @@ model User {
   patientProfile Patient?
   resetTokens    PasswordResetToken[]
 
+  passwordChangedAt DateTime @default(now())
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

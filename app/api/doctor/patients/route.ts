@@ -4,7 +4,6 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
 const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000
-const PAGE_SIZE = 20
 
 function computePatientStatus(appointments: { date: Date; status: string }[]): string {
   if (appointments.length === 0) return "NOU"
@@ -37,6 +36,7 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url)
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10))
+  const PAGE_SIZE = Math.min(100, Math.max(1, parseInt(searchParams.get("pageSize") ?? "10", 10)))
   const search = searchParams.get("search")?.trim() ?? ""
 
   const where = {

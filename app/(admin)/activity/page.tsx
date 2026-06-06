@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { Users, Calendar, FileText, Settings, UserPlus, Clock, Loader2, Activity, Filter, X } from "lucide-react"
+import { DatePicker } from "@/components/ui/date-picker"
+import { Pagination } from "@/components/ui/pagination"
 
 interface ActivityLog {
   id: string
@@ -21,6 +23,9 @@ interface ActivityLog {
 
 interface ActivityData {
   activities: ActivityLog[]
+  total: number
+  page: number
+  totalPages: number
   todayCount: number
   weekCount: number
   activeUsers: number
@@ -70,15 +75,17 @@ export default function ActivityPage() {
   const [actionFilter, setActionFilter] = useState("all")
   const [fromDate, setFromDate] = useState("")
   const [toDate, setToDate] = useState("")
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
-  const fetchActivity = useCallback(async () => {
+  const fetchActivity = useCallback(async (currentPage = 1) => {
     setLoading(true)
     try {
-      const params = new URLSearchParams()
+      const params = new URLSearchParams({ page: String(currentPage), limit: String(pageSize) })
       if (actionFilter !== "all") params.set("action", actionFilter)
       if (fromDate) params.set("from", fromDate)
       if (toDate) params.set("to", toDate)
-      const res = await fetch(`/api/activity${params.size ? `?${params}` : ""}`)
+      const res = await fetch(`/api/activity?${params}`)
       const json = await res.json()
       setData(json)
     } catch (e) {
@@ -86,11 +93,16 @@ export default function ActivityPage() {
     } finally {
       setLoading(false)
     }
-  }, [actionFilter, fromDate, toDate])
+  }, [actionFilter, fromDate, toDate, pageSize])
 
   useEffect(() => {
-    fetchActivity()
+    fetchActivity(1)
+    setPage(1)
   }, [fetchActivity])
+
+  useEffect(() => {
+    fetchActivity(page)
+  }, [page])
 
   const hasFilters = actionFilter !== "all" || fromDate || toDate
 
@@ -205,19 +217,17 @@ export default function ActivityPage() {
                     <SelectItem value="LOGIN">Autentificare</SelectItem>
                   </SelectContent>
                 </Select>
-                <Input
-                  type="date"
+                <DatePicker
                   value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="h-9 w-36 text-xs rounded-xl border-border/50"
+                  onChange={setFromDate}
                   placeholder="De la"
+                  className="h-9 w-44 text-xs rounded-xl border-border/50"
                 />
-                <Input
-                  type="date"
+                <DatePicker
                   value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="h-9 w-36 text-xs rounded-xl border-border/50"
+                  onChange={setToDate}
                   placeholder="Până la"
+                  className="h-9 w-44 text-xs rounded-xl border-border/50"
                 />
                 {hasFilters && (
                   <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 px-3 rounded-xl text-muted-foreground hover:text-foreground">
@@ -228,70 +238,66 @@ export default function ActivityPage() {
               </div>
             </div>
 
-            {loading ? (
-              <div className="p-20 text-center">
-                <Loader2 className="h-10 w-10 animate-spin mx-auto text-blue-500 mb-4" />
-                <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Se încarcă jurnalul de activitate...</p>
-              </div>
-            ) : activities.length === 0 ? (
-              <div className="p-20 text-center">
-                <div className="w-20 h-20 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-6 text-muted-foreground/30">
-                  <Activity className="w-10 h-10" />
-                </div>
-                <p className="text-lg font-bold text-foreground/70">Nu există activitate pentru filtrele selectate.</p>
-                <p className="text-sm font-medium text-muted-foreground mt-2">Toate acțiunile vor fi listate aici cronologic.</p>
-                {hasFilters && (
-                  <Button variant="outline" onClick={clearFilters} className="mt-6 rounded-xl">Resetează filtrele</Button>
-                )}
-              </div>
-            ) : (
-              <div className="divide-y divide-muted/30">
-                {activities.map((activity) => {
-                  const Icon = getEntityIcon(activity.entity)
-                  const colors = getEntityColor(activity.entity)
-                  return (
-                    <div key={activity.id} className="group p-6 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all duration-300 relative overflow-hidden">
-                      <div className="flex items-start gap-5 relative z-10">
-                        <div className={cn(
-                          "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 border transition-transform duration-300 group-hover:scale-110 shadow-sm",
-                          colors.bg, colors.icon, colors.border
-                        )}>
-                          <Icon className="w-6 h-6" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-2 flex-wrap">
-                            <span className="text-sm font-bold text-foreground group-hover:text-blue-600 transition-colors uppercase tracking-tight">
-                              {activity.user?.name ?? "Sistem"}
-                            </span>
-                            <span className="text-sm font-medium text-muted-foreground">
-                              {activity.description}
-                            </span>
-                            {activity.entityId && (
-                              <Badge variant="outline" className={cn(
-                                "rounded-lg text-[10px] font-bold uppercase tracking-widest py-0.5",
-                                colors.bg, colors.icon, colors.border
-                              )}>
-                                {activity.entity}
-                              </Badge>
-                            )}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-700/40">
+                    <th className="text-left py-4 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Acțiune</th>
+                    <th className="text-left py-4 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hidden sm:table-cell">Utilizator</th>
+                    <th className="text-left py-4 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Descriere</th>
+                    <th className="text-left py-4 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hidden md:table-cell">Entitate</th>
+                    <th className="text-right py-4 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Moment</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100/80 dark:divide-slate-700/30">
+                  {loading ? (
+                    <tr><td colSpan={5} className="py-16 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500 mb-2" /><p className="text-sm text-muted-foreground">Se încarcă jurnalul de activitate...</p></td></tr>
+                  ) : activities.length === 0 ? (
+                    <tr><td colSpan={5} className="py-16 text-center"><Activity className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" /><p className="text-sm text-muted-foreground">Nu există activitate pentru filtrele selectate.</p>{hasFilters && <Button variant="outline" onClick={clearFilters} className="mt-4 rounded-xl text-xs">Resetează filtrele</Button>}</td></tr>
+                  ) : activities.map((activity) => {
+                    const Icon = getEntityIcon(activity.entity)
+                    const colors = getEntityColor(activity.entity)
+                    const actionColors: Record<string, string> = {
+                      CREATE: "bg-emerald-50 text-emerald-700 border-emerald-100",
+                      UPDATE: "bg-blue-50 text-blue-700 border-blue-100",
+                      DELETE: "bg-red-50 text-red-700 border-red-100",
+                      LOGIN: "bg-purple-50 text-purple-700 border-purple-100",
+                    }
+                    return (
+                      <tr key={activity.id} className="group hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-2">
+                            <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border", colors.bg, colors.icon, colors.border)}>
+                              <Icon className="w-3.5 h-3.5" />
+                            </div>
+                            <Badge variant="outline" className={cn("text-[10px] font-bold uppercase tracking-widest rounded-lg border", actionColors[activity.action] ?? "bg-slate-50 text-slate-700 border-slate-100")}>
+                              {activity.action}
+                            </Badge>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <p className="text-xs font-bold text-muted-foreground/60 flex items-center gap-1.5 uppercase tracking-widest">
-                              <Clock className="w-3.5 h-3.5" />
-                              {formatRelativeTime(activity.createdAt)}
-                            </p>
-                            <div className="h-1 w-1 rounded-full bg-slate-300" />
-                            <p className="text-xs font-bold text-muted-foreground/40 uppercase tracking-widest">
-                               ID: {activity.id.slice(0, 8)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+                        </td>
+                        <td className="py-4 px-6 hidden sm:table-cell">
+                          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{activity.user?.name ?? "Sistem"}</p>
+                        </td>
+                        <td className="py-4 px-6">
+                          <p className="text-sm text-slate-600 dark:text-slate-400">{activity.description}</p>
+                        </td>
+                        <td className="py-4 px-6 hidden md:table-cell">
+                          {activity.entityId && (
+                            <Badge variant="outline" className={cn("text-[10px] font-bold uppercase tracking-widest rounded-lg border", colors.bg, colors.icon, colors.border)}>
+                              {activity.entity}
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="py-4 px-6 text-right">
+                          <p className="text-xs font-medium text-muted-foreground whitespace-nowrap">{formatRelativeTime(activity.createdAt)}</p>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <Pagination page={page} pageCount={data?.totalPages ?? 1} total={data?.total ?? 0} pageSize={pageSize} loading={loading} onPageChange={setPage} onPageSizeChange={setPageSize} />
           </Card>
         </div>
       </div>

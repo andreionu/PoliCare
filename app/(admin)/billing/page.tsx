@@ -21,7 +21,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { CreditCard, TrendingUp, Clock, Loader2, MoreHorizontal, CheckCircle2, RotateCcw, Ban, ChevronLeft, ChevronRight, ExternalLink, Mail } from "lucide-react"
+import { CreditCard, TrendingUp, Clock, Loader2, MoreHorizontal, CheckCircle2, RotateCcw, Ban, ExternalLink, Mail } from "lucide-react"
+import { Pagination } from "@/components/ui/pagination"
 import { format } from "date-fns"
 import { ro } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
@@ -64,7 +65,7 @@ const paymentLabels: Record<string, string> = {
 export default function BillingPage() {
   const { toast } = useToast()
   const searchParams = useSearchParams()
-  const PAGE_SIZE = 20
+  const [pageSize, setPageSize] = useState(10)
 
   const [appointments, setAppointments] = useState<PaymentAppointment[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
@@ -87,7 +88,7 @@ export default function BillingPage() {
       if (statusFilter !== "all") params.set("status", statusFilter)
       params.set("period", periodFilter)
       params.set("page", String(page))
-      params.set("pageSize", String(PAGE_SIZE))
+      params.set("pageSize", String(pageSize))
       const res = await fetch(`/api/payments?${params}`)
       const data = await res.json()
       setAppointments(data.appointments ?? [])
@@ -99,7 +100,7 @@ export default function BillingPage() {
     } finally {
       setLoading(false)
     }
-  }, [statusFilter, periodFilter, page])
+  }, [statusFilter, periodFilter, page, pageSize])
 
   useEffect(() => { fetchData() }, [fetchData])
   useRealtimeEvent("payment_updated", fetchData)
@@ -404,76 +405,7 @@ export default function BillingPage() {
               </tbody>
             </table>
           </div>
-          {total > 0 && (
-            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-700/40 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between gap-4">
-              <p className="text-xs text-muted-foreground font-medium">
-                {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} din {total} înregistrări
-              </p>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 rounded-lg border-slate-200 dark:border-slate-700"
-                  disabled={page <= 1 || loading}
-                  onClick={() => setPage(1)}
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                  <ChevronLeft className="h-3.5 w-3.5 -ml-2.5" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 rounded-lg border-slate-200 dark:border-slate-700"
-                  disabled={page <= 1 || loading}
-                  onClick={() => setPage((p) => p - 1)}
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                </Button>
-                {Array.from({ length: pageCount }, (_, i) => i + 1)
-                  .filter((p) => p === 1 || p === pageCount || Math.abs(p - page) <= 1)
-                  .reduce<(number | "…")[]>((acc, p, i, arr) => {
-                    if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("…")
-                    acc.push(p)
-                    return acc
-                  }, [])
-                  .map((p, i) =>
-                    p === "…" ? (
-                      <span key={`ellipsis-${i}`} className="w-8 text-center text-xs text-muted-foreground">…</span>
-                    ) : (
-                      <Button
-                        key={p}
-                        variant={p === page ? "default" : "outline"}
-                        size="icon"
-                        className={`h-8 w-8 rounded-lg text-xs font-bold ${p === page ? "bg-primary text-white border-primary shadow-sm" : "border-slate-200 dark:border-slate-700"}`}
-                        disabled={loading}
-                        onClick={() => setPage(p as number)}
-                      >
-                        {p}
-                      </Button>
-                    )
-                  )}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 rounded-lg border-slate-200 dark:border-slate-700"
-                  disabled={page >= pageCount || loading}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 rounded-lg border-slate-200 dark:border-slate-700"
-                  disabled={page >= pageCount || loading}
-                  onClick={() => setPage(pageCount)}
-                >
-                  <ChevronRight className="h-3.5 w-3.5" />
-                  <ChevronRight className="h-3.5 w-3.5 -ml-2.5" />
-                </Button>
-              </div>
-            </div>
-          )}
+          <Pagination page={page} pageCount={pageCount} total={total} pageSize={pageSize} loading={loading} onPageChange={setPage} onPageSizeChange={setPageSize} />
         </Card>
       </div>
 

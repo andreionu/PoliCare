@@ -23,6 +23,7 @@ import {
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useEffect, useMemo } from "react"
+import { Pagination } from "@/components/ui/pagination"
 import { useDebounce } from "@/hooks/use-debounce"
 import {
   Dialog,
@@ -71,6 +72,7 @@ export default function DoctorsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const debouncedSearch = useDebounce(searchQuery, 300)
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const [isAddDoctorOpen, setIsAddDoctorOpen] = useState(false)
@@ -96,7 +98,7 @@ export default function DoctorsPage() {
   const fetchDoctors = async (search?: string, currentPage = 1) => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({ page: String(currentPage), limit: "20" })
+      const params = new URLSearchParams({ page: String(currentPage), limit: String(pageSize) })
       if (search) params.set("search", search)
       if (departmentIdFilter) params.set("departmentId", departmentIdFilter)
       const response = await fetch(`/api/doctors?${params}`)
@@ -136,7 +138,7 @@ export default function DoctorsPage() {
 
   useEffect(() => {
     fetchDoctors(debouncedSearch, page)
-  }, [debouncedSearch, departmentIdFilter, page])
+  }, [debouncedSearch, departmentIdFilter, page, pageSize])
 
   useEffect(() => {
     fetchDepartments()
@@ -400,30 +402,7 @@ export default function DoctorsPage() {
             )}
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between bg-white dark:bg-card/50 px-6 py-4 rounded-2xl border border-border/50">
-              <p className="text-sm font-medium text-muted-foreground">
-                Pagina <span className="font-bold text-foreground">{page}</span> din <span className="font-bold text-foreground">{totalPages}</span> — {totalCount} medici total
-              </p>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="rounded-xl" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
-                  ← Anterior
-                </Button>
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const p = Math.max(1, Math.min(totalPages - 4, page - 2)) + i
-                  return (
-                    <Button key={p} variant={p === page ? "default" : "outline"} size="sm" className="rounded-xl w-9" onClick={() => setPage(p)}>
-                      {p}
-                    </Button>
-                  )
-                })}
-                <Button variant="outline" size="sm" className="rounded-xl" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
-                  Următor →
-                </Button>
-              </div>
-            </div>
-          )}
+          <Pagination page={page} pageCount={totalPages} total={totalCount} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />
         </div>
       </main>
 
