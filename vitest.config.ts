@@ -5,6 +5,7 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
+    setupFiles: ["__tests__/setup-api.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],

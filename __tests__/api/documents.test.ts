@@ -102,8 +102,8 @@ describe("POST /api/documents", () => {
     expect(res.status).toBe(401)
   })
 
-  it("returns 403 for DOCTOR role", async () => {
-    mockGetServerSession.mockResolvedValue({ user: { role: "DOCTOR" } })
+  it("returns 403 for PATIENT role", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { role: "PATIENT" } })
     const req = new Request("http://localhost/api/documents", { method: "POST", body: new FormData() })
     const res = await POST(req)
     expect(res.status).toBe(403)

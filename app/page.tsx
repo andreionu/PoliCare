@@ -427,7 +427,7 @@ export default function LandingPage() {
                         <div className="space-y-0.5">
                           <p className="text-xs text-white font-medium">Luni - Vineri: {settings.workdayStart} - {settings.workdayEnd}</p>
                           <p className="text-xs text-slate-500 font-medium">
-                            {settings.workingDays.split(",").includes("5") || settings.workingDays.split(",").includes("6") 
+                            {(settings.workingDays ?? "").split(",").includes("5") || (settings.workingDays ?? "").split(",").includes("6")
                               ? "Sâmbătă - Duminică: Consultă booking" 
                               : "Sâmbătă - Duminică: Închis"}
                           </p>

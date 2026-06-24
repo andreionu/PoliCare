@@ -7,6 +7,13 @@ const mockPrisma = vi.hoisted(() => ({
 }))
 
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }))
+vi.mock("next-auth", () => ({
+  default: vi.fn(),
+  getServerSession: vi.fn().mockResolvedValue({
+    user: { id: "user-1", role: "SUPER_ADMIN", name: "Test Admin", email: "admin@test.com" },
+  }),
+}))
+vi.mock("@/lib/auth", () => ({ authOptions: {} }))
 
 import { GET } from "@/app/api/appointments/check/route"
 

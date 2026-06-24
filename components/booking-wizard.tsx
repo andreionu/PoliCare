@@ -97,9 +97,9 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
       fetch("/api/settings").then(r => r.json()),
     ])
       .then(([depts, docs, svcs, sett]) => {
-        setDepartments(depts)
-        setDoctors(docs)
-        setServices(svcs)
+        setDepartments(Array.isArray(depts) ? depts : [])
+        setDoctors(Array.isArray(docs) ? docs : [])
+        setServices(Array.isArray(svcs) ? svcs : [])
         setSettings(sett)
       })
       .catch(() => toast({ title: "Eroare", description: "Nu s-au putut încărca datele.", variant: "destructive" }))
