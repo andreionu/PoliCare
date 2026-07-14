@@ -195,7 +195,7 @@ export default function SettingsPage() {
                   System Configuration
                 </Badge>
               </div>
-              <h1 className="text-4xl font-extrabold tracking-tight text-foreground">Setări Generală</h1>
+              <h1 className="text-4xl font-extrabold tracking-tight text-foreground">Setări Generale</h1>
               <p className="text-muted-foreground font-medium">Configurează parametrii clinicii și preferințele de administrare.</p>
             </div>
             <div className="hidden lg:block text-right">

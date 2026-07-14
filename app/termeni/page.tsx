@@ -33,7 +33,7 @@ export default function TermeniPage() {
             </div>
             <div>
               <h2 className="text-lg font-black text-slate-900 mb-3">2. Descrierea serviciilor</h2>
-              <p>PoliCare oferă o platformă de programare online la servicii medicale, facilitate de o rețea de medici specialiști. Platforma nu oferă consultații medicale de urgență — în caz de urgență, apelați 112.</p>
+              <p>PoliCare oferă o platformă de programare online la servicii medicale, facilitată de o rețea de medici specialiști. Platforma nu oferă consultații medicale de urgență — în caz de urgență, apelați 112.</p>
             </div>
             <div>
               <h2 className="text-lg font-black text-slate-900 mb-3">3. Programări și anulări</h2>

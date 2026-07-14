@@ -21,7 +21,7 @@ interface RecentAppointmentsProps {
 }
 
 const statusConfig: Record<string, { label: string; bg: string; dot: string; text: string }> = {
-  CONFIRMAT: { label: "Confirmat", bg: "bg-emerald-50 content-emerald-600 dark:bg-emerald-500/10", dot: "bg-emerald-500", text: "text-emerald-700 dark:text-emerald-400" },
+  CONFIRMAT: { label: "Confirmat", bg: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10", dot: "bg-emerald-500", text: "text-emerald-700 dark:text-emerald-400" },
   IN_ASTEPTARE: { label: "În așteptare", bg: "bg-primary/5 dark:bg-primary/10", dot: "bg-primary", text: "text-primary dark:text-primary/90" },
   IN_DESFASURARE: { label: "În desfășurare", bg: "bg-purple-50 dark:bg-purple-500/10", dot: "bg-purple-500", text: "text-purple-700 dark:text-purple-400" },
   FINALIZAT: { label: "Finalizat", bg: "bg-slate-50 dark:bg-slate-500/10", dot: "bg-slate-500", text: "text-slate-700 dark:text-slate-400" },

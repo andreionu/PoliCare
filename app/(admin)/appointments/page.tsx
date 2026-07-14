@@ -1269,7 +1269,7 @@ export default function AppointmentsPage() {
                     <div className="flex items-center gap-3 mb-2 px-1">
                       <span className={`text-sm font-bold ${group.isToday ? "text-primary" : "text-muted-foreground"}`}>{group.label}</span>
                       <div className="h-px flex-1 bg-border/40" />
-                      <span className="text-xs text-muted-foreground">{group.appointments.length} programăr{group.appointments.length === 1 ? "e" : "i"}</span>
+                      <span className="text-xs text-muted-foreground">{group.appointments.length} programar{group.appointments.length === 1 ? "e" : "i"}</span>
                     </div>
                     <div className="space-y-3">
                     {group.appointments.map((appointment) => (

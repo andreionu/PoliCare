@@ -723,7 +723,7 @@ export default function PatientDetailPage() {
                           <Card className="p-8 border-none shadow-sm bg-white dark:bg-card/50 rounded-3xl group">
                             <div className="flex flex-col gap-6">
                               <div className="flex justify-between items-start">
-                                <h4 className="text-xl font-black text-foreground uppercase tracking-tight">Consultatie</h4>
+                                <h4 className="text-xl font-black text-foreground uppercase tracking-tight">Consultație</h4>
                                 <Badge variant="outline" className="font-mono text-[10px]">{new Date(record.visitDate).toLocaleDateString("ro-RO")}</Badge>
                               </div>
                               <div className="grid md:grid-cols-2 gap-8">
@@ -1017,7 +1017,7 @@ export default function PatientDetailPage() {
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Diagnostic Principal</Label>
                 <Input
-                  placeholder="ex: Rinita Alergica"
+                  placeholder="ex: Rinită Alergică"
                   value={recordForm.diagnosis}
                   onChange={(e) => setRecordForm({ ...recordForm, diagnosis: e.target.value })}
                   className="h-12 rounded-xl bg-muted/20 border-muted/50 font-black text-indigo-600"
