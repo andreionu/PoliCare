@@ -38,17 +38,31 @@ function buildEmailHtml(event: NotificationEvent, data: AppointmentData, customM
   })
 
   const wrap = (title: string, body: string) => `
-    <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#fff">
-      <div style="border-bottom:2px solid #0ea5e9;padding-bottom:16px;margin-bottom:24px">
-        <h2 style="margin:0;color:#0ea5e9;font-size:20px">${title}</h2>
+    <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:600px;margin:0 auto;background:#f8fafc">
+      <div style="background:#0b2530;padding:28px 32px;text-align:center">
+        <table role="presentation" align="center" style="margin:0 auto"><tr>
+          <td style="padding-right:10px;vertical-align:middle">
+            <svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="50" cy="50" r="40" stroke="#40A0D0" stroke-width="12" fill="none"/>
+              <path d="M42 30V70 M42 30H58C68 30 68 45 58 45H42" stroke="#40A0D0" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </td>
+          <td style="vertical-align:middle">
+            <span style="font-size:24px;font-weight:800;color:#e2e8f0">Poli<span style="color:#40A0D0">Care</span></span>
+          </td>
+        </tr></table>
       </div>
-      <p style="color:#374151">Stimate/Stimată <strong>${data.patient.name}</strong>,</p>
-      ${body}
-      <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb"/>
-      <p style="color:#9ca3af;font-size:12px">
-        Dacă aveți întrebări, contactați clinica noastră.<br/>
-        Vă mulțumim că ați ales serviciile noastre.
-      </p>
+      <div style="background:#ffffff;padding:32px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0">
+        <h2 style="margin:0 0 20px;color:#206070;font-size:20px">${title}</h2>
+        <p style="color:#374151;margin:0 0 16px">Stimate/Stimată <strong>${data.patient.name}</strong>,</p>
+        ${body}
+      </div>
+      <div style="background:#f1f5f9;padding:20px 32px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px">
+        <p style="color:#94a3b8;font-size:12px;margin:0;line-height:1.6">
+          Dacă aveți întrebări, contactați clinica noastră.<br/>
+          Vă mulțumim că ați ales serviciile PoliCare.
+        </p>
+      </div>
     </div>
   `
 
