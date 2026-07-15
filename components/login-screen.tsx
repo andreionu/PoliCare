@@ -13,6 +13,17 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 
+async function getSessionRole(retries = 5, delayMs = 100) {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    const session = await getSession()
+    const role = session?.user?.role
+    if (role) return role
+    await new Promise((resolve) => setTimeout(resolve, delayMs))
+  }
+
+  return null
+}
+
 export function LoginScreen() {
   const { toast } = useToast()
   const router = useRouter()
@@ -58,8 +69,7 @@ export function LoginScreen() {
       }
       setIsLoading(false)
     } else {
-      const session = await getSession()
-      const role = session?.user?.role
+      const role = await getSessionRole()
 
       toast({
         title: "Autentificare reușită",

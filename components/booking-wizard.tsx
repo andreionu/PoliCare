@@ -9,6 +9,7 @@ import { X, Heart, Users, Baby, Eye, Ear, ChevronRight, Check, Loader2, Clock, C
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { Calendar } from "@/components/ui/calendar"
+import { normalizeEmail, normalizePhone } from "@/lib/contact"
 import { ro as roLocale } from "date-fns/locale"
 
 interface BookingWizardProps {
@@ -160,14 +161,17 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
 
   const handleSubmit = async () => {
     const name = sanitize(formData.name).trim()
-    const email = sanitize(formData.email.toLowerCase()).trim()
-    const phone = sanitize(formData.phone).trim()
+    const email = normalizeEmail(sanitize(formData.email))
+    const phone = normalizePhone(sanitize(formData.phone))
 
     if (name.length < 2) {
       toast({ title: "Eroare", description: "Introduceți un nume valid.", variant: "destructive" }); return
     }
-    if (!validateEmail(email)) {
+    if (!email || !validateEmail(email)) {
       toast({ title: "Eroare", description: "Introduceți un email valid.", variant: "destructive" }); return
+    }
+    if (!phone) {
+      toast({ title: "Eroare", description: "Introduceți un număr de telefon valid.", variant: "destructive" }); return
     }
 
     setSubmitting(true)
@@ -175,7 +179,9 @@ export function BookingWizard({ onClose, initialDepartmentId }: BookingWizardPro
       let patientId: string
       // Smart lookup by phone OR email
       const existing = await fetch(`/api/patients?phone=${encodeURIComponent(phone)}&email=${encodeURIComponent(email)}`).then(r => r.json())
-      const found = existing.find((p: any) => p.phone === phone || p.email === email)
+      const found =
+        existing.find((p: any) => p.email === email) ??
+        existing.find((p: any) => p.phone === phone)
       
       if (found) {
         patientId = found.id

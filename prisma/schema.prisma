@@ -148,7 +148,8 @@ model Patient {
   notes     String?
 
   userId String? @unique
-  user   User?   @relation(fields: [userId], references: [id])
+  // A portal account can be removed without deleting the clinical record.
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   primaryDoctor   Doctor? @relation("PrimaryDoctor", fields: [primaryDoctorId], references: [id], onDelete: SetNull)
   primaryDoctorId String?

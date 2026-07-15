@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { emitAppEvent } from "@/lib/event-bus"
 import { logActivity } from "@/lib/activity"
+import { normalizeEmail, normalizePhone } from "@/lib/contact"
 
 // GET /api/patients/[id] - Get single patient
 export async function GET(
@@ -86,8 +87,8 @@ export async function PUT(
         birthDate: body.birthDate !== undefined ? (body.birthDate ? new Date(body.birthDate) : null) : undefined,
         age: body.age,
         gender: body.gender !== undefined ? (body.gender || null) : undefined,
-        phone: body.phone,
-        email: body.email,
+        phone: body.phone !== undefined ? normalizePhone(body.phone) : undefined,
+        email: body.email !== undefined ? normalizeEmail(body.email) : undefined,
         address: body.address,
         status: body.status,
         notes: body.notes,

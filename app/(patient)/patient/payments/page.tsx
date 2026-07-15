@@ -41,7 +41,7 @@ const statusLabels: Record<string, string> = {
   NEPREZENTARE: "Neprezentare",
 }
 
-const CLINIC_NAME = "MedClinic"
+const CLINIC_NAME = "PoliCare"
 
 export default function PatientPaymentsPage() {
   const { toast } = useToast()
@@ -277,6 +277,7 @@ export default function PatientPaymentsPage() {
               <div className="text-center border-b pb-4">
                 <p className="text-xl font-black text-teal-600">{CLINIC_NAME}</p>
                 <p className="text-xs text-muted-foreground mt-1">Confirmare plată serviciu medical</p>
+                <p className="text-[10px] text-muted-foreground mt-2">Chitanță #{receiptAppt.id.slice(-8).toUpperCase()} · Emisă {format(new Date(), "dd.MM.yyyy")}</p>
               </div>
 
               <div className="space-y-2 text-sm">
@@ -331,6 +332,25 @@ export default function PatientPaymentsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <style>{`
+        @media print {
+          @page { size: A4 portrait; margin: 18mm; }
+          body * { visibility: hidden !important; }
+          #receipt-content, #receipt-content * { visibility: visible !important; }
+          #receipt-content {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            max-width: 170mm;
+            margin: 0 auto;
+            padding: 12mm !important;
+            color: #0f172a;
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+          }
+        }
+      `}</style>
     </main>
   )
 }

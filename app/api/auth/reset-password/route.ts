@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
+import { updateUserPassword } from "@/lib/password-change"
 
 export async function POST(request: Request) {
   try {
@@ -37,16 +38,11 @@ export async function POST(request: Request) {
 
     const hashed = await bcrypt.hash(password, 12)
 
-    await prisma.$transaction([
-      prisma.user.update({
-        where: { id: record.userId },
-        data: { password: hashed, passwordChangedAt: new Date() },
-      }),
-      prisma.passwordResetToken.update({
-        where: { id: record.id },
-        data: { used: true },
-      }),
-    ])
+    await updateUserPassword(record.userId, hashed)
+    await prisma.passwordResetToken.update({
+      where: { id: record.id },
+      data: { used: true },
+    })
 
     return NextResponse.json({ success: true })
   } catch (error) {

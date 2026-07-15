@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
+import { updateUserPassword } from "@/lib/password-change"
 
 // POST /api/users/change-password
 // Body: { email, currentPassword, newPassword }
@@ -28,10 +29,7 @@ export async function POST(request: Request) {
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10)
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { password: hashedPassword, passwordChangedAt: new Date() },
-    })
+    await updateUserPassword(user.id, hashedPassword)
 
     return NextResponse.json({ message: "Parola a fost schimbată cu succes" })
   } catch (error) {

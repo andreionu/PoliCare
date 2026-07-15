@@ -28,6 +28,7 @@
 # Dependencies
 # ============================================
 node_modules/
+.tools/
 /.pnp
 .pnp.js
 

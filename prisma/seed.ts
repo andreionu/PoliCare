@@ -13,6 +13,17 @@ const prisma = new PrismaClient({ adapter } as any)
 async function main() {
   console.log("🌱 Seeding database...")
 
+  // These personal demo contacts must belong only to a clinical patient record,
+  // never to an authentication account.
+  await prisma.user.deleteMany({
+    where: {
+      OR: [
+        { email: "andrei.maras@yahoo.com" },
+        { phone: "0770166200" },
+      ],
+    },
+  })
+
   const adminPassword = await bcrypt.hash("admin123", 10)
   const frontDeskPassword = await bcrypt.hash("receptie123", 10)
   const demoPassword = await bcrypt.hash("Demo2026!", 10)
@@ -225,10 +236,7 @@ async function main() {
       create: { doctorId, dayOfWeek: day, startTime: start, endTime: end, isActive: true },
     })
   }
-  const scheduleDoctors = await prisma.doctor.findMany({
-    where: { email: { in: ["mihai.popescu@policare.ro", "elena.ionescu@policare.ro", "andrei.radu@policare.ro", "ionut.stan@policare.ro", "daniela.stoica@policare.ro"] } },
-    select: { id: true, email: true },
-  })
+  const scheduleDoctors = await prisma.doctor.findMany({ select: { id: true, email: true } })
   for (const doc of scheduleDoctors) {
     for (const day of [0, 1, 2, 3, 4]) {
       await upsertSchedule(doc.id, day, "08:00", "17:00")
@@ -275,6 +283,7 @@ async function main() {
 
   // ── Additional Patients ──────────────────────────────────────────────────────
   const patientData = [
+    { name: "Andrei Măraș",       email: "andrei.maras@yahoo.com",    phone: "0770166200",   cnp: "1960512401234", birthDate: new Date("1996-05-12"), age: 30, gender: "MASCULIN" as const, address: "Str. Memorandumului nr. 18, Cluj-Napoca", status: "ACTIV" as const },
     { name: "Ion Popescu",       email: "ion.popescu@gmail.com",      phone: "0722 111 222", cnp: "1750612034567", birthDate: new Date("1975-06-12"), age: 50, gender: "MASCULIN" as const, address: "Str. Republicii nr. 5, Ploiești",         status: "ACTIV" as const  },
     { name: "Ana Constantin",    email: "ana.constantin@yahoo.com",    phone: "0733 222 333", cnp: "2830218154321", birthDate: new Date("1983-02-18"), age: 41, gender: "FEMININ" as const,   address: "Calea Victoriei nr. 88, București",     status: "ACTIV" as const  },
     { name: "George Radu",       email: "george.radu@gmail.com",       phone: "0744 333 444", cnp: "1910905325678", birthDate: new Date("1991-09-05"), age: 33, gender: "MASCULIN" as const, address: "Str. Mihai Viteazul nr. 3, Brașov",     status: "PROGRAMAT" as const },
@@ -358,14 +367,14 @@ async function main() {
     { date: daysFromNow(-3,  13), startTime: "13:00", endTime: endTime(13,0,45), duration: 45, status: "FINALIZAT", paymentStatus: "PAID",   patientId: allPatients[10].id,  doctorId: drPopescu!.id, departmentId: deptCardio!.id,   serviceId: svcEcho?.id    },
     { date: daysFromNow(-1,  9),  startTime: "09:00", endTime: endTime(9,0,30),  duration: 30, status: "FINALIZAT", paymentStatus: "PAID",   patientId: alexandruPatient.id, doctorId: drIonescu!.id, departmentId: deptORL!.id,      serviceId: svcORL?.id     },
     // ── Today ────────────────────────────────────────────────────────────────
-    { date: daysFromNow(0, 9),    startTime: "09:00", endTime: endTime(9,0,30),  duration: 30, status: "CONFIRMAT",        paymentStatus: "UNPAID", patientId: mariaPatient.id,     doctorId: drPopescu!.id, departmentId: deptCardio!.id,   serviceId: svcCardio?.id  },
-    { date: daysFromNow(0, 10),   startTime: "10:00", endTime: endTime(10,0,30), duration: 30, status: "IN_DESFASURARE",   paymentStatus: "UNPAID", patientId: allPatients[11].id,  doctorId: drPopescu!.id, departmentId: deptCardio!.id,   serviceId: svcEKG?.id     },
-    { date: daysFromNow(0, 14),   startTime: "14:00", endTime: endTime(14,0,30), duration: 30, status: "CONFIRMAT",        paymentStatus: "UNPAID", patientId: alexandruPatient.id, doctorId: drStoica!.id,  departmentId: deptNeuro!.id,    serviceId: svcNeuro?.id   },
+    { date: daysFromNow(0, 15),   startTime: "15:00", endTime: endTime(15,0,30), duration: 30, status: "CONFIRMAT",        paymentStatus: "UNPAID", patientId: mariaPatient.id,     doctorId: drPopescu!.id, departmentId: deptCardio!.id,   serviceId: svcCardio?.id  },
+    { date: daysFromNow(0, 16),   startTime: "16:00", endTime: endTime(16,0,30), duration: 30, status: "IN_DESFASURARE",   paymentStatus: "UNPAID", patientId: allPatients[2].id,   doctorId: drPopescu!.id, departmentId: deptCardio!.id,   serviceId: svcEKG?.id     },
+    { date: daysFromNow(0, 16),   startTime: "16:00", endTime: endTime(16,0,30), duration: 30, status: "CONFIRMAT",        paymentStatus: "UNPAID", patientId: alexandruPatient.id, doctorId: drStoica!.id,  departmentId: deptNeuro!.id,    serviceId: svcNeuro?.id   },
     // ── Near future: next 7 days ─────────────────────────────────────────────
     { date: daysFromNow(1, 9),    startTime: "09:00", endTime: endTime(9,0,30),  duration: 30, status: "CONFIRMAT",   paymentStatus: "UNPAID", patientId: allPatients[12].id,  doctorId: drIonescu!.id, departmentId: deptORL!.id,      serviceId: svcORL?.id     },
     { date: daysFromNow(2, 11),   startTime: "11:00", endTime: endTime(11,0,30), duration: 30, status: "IN_ASTEPTARE", paymentStatus: "UNPAID", patientId: allPatients[0].id,   doctorId: drRadu!.id,    departmentId: deptOftalmo!.id,  serviceId: svcOftalmo?.id },
     { date: daysFromNow(3, 10),   startTime: "10:00", endTime: endTime(10,0,30), duration: 30, status: "CONFIRMAT",   paymentStatus: "UNPAID", patientId: allPatients[1].id,   doctorId: drPopescu!.id, departmentId: deptCardio!.id,   serviceId: svcCardio?.id  },
-    { date: daysFromNow(4, 9),    startTime: "09:00", endTime: endTime(9,0,30),  duration: 30, status: "IN_ASTEPTARE", paymentStatus: "UNPAID", patientId: mariaPatient.id,     doctorId: drPopescu!.id, departmentId: deptCardio!.id,   serviceId: svcEKG?.id,    notes: "Control tensiune" },
+    { date: daysFromNow(4, 16),   startTime: "16:00", endTime: endTime(16,0,30), duration: 30, status: "IN_ASTEPTARE", paymentStatus: "UNPAID", patientId: mariaPatient.id,     doctorId: drPopescu!.id, departmentId: deptCardio!.id,   serviceId: svcEKG?.id,    notes: "Control tensiune" },
     { date: daysFromNow(5, 14),   startTime: "14:00", endTime: endTime(14,0,45), duration: 45, status: "IN_ASTEPTARE", paymentStatus: "UNPAID", patientId: allPatients[13].id,  doctorId: drStan!.id,    departmentId: deptPediatrie!.id, serviceId: svcPediatrie?.id },
     { date: daysFromNow(5, 15),   startTime: "15:00", endTime: endTime(15,0,30), duration: 30, status: "IN_ASTEPTARE", paymentStatus: "UNPAID", patientId: alexandruPatient.id, doctorId: drPopescu!.id, departmentId: deptCardio!.id,   serviceId: svcCardio?.id  },
     { date: daysFromNow(6, 10),   startTime: "10:00", endTime: endTime(10,0,30), duration: 30, status: "IN_ASTEPTARE", paymentStatus: "UNPAID", patientId: allPatients[14].id,  doctorId: drStoica!.id,  departmentId: deptNeuro!.id,    serviceId: svcNeuro?.id   },
@@ -394,6 +403,85 @@ async function main() {
     }
   }
   console.log(`✅ ${createdAppts.length} appointments`)
+
+  // ── Balanced analytics data ─────────────────────────────────────────────────
+  // Keep the six-month reports readable even when the seed is run repeatedly.
+  // Existing records are reused and only months below the target are completed.
+  const analyticsPatients = await prisma.patient.findMany({ orderBy: { id: "asc" } })
+  const analyticsDoctors = await prisma.doctor.findMany({
+    include: {
+      department: true,
+    },
+    orderBy: { id: "asc" },
+  })
+  const analyticsServices = await prisma.service.findMany({ orderBy: { name: "asc" } })
+  const analyticsTargetPerMonth = 60
+  let analyticsAppointmentsCreated = 0
+
+  if (analyticsPatients.length && analyticsDoctors.length) {
+    for (let monthOffset = 5; monthOffset >= 0; monthOffset--) {
+      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth() - monthOffset, 1)
+      const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1)
+      const existingCount = await prisma.appointment.count({
+        where: { date: { gte: monthStart, lt: monthEnd } },
+      })
+      const missingCount = Math.max(0, analyticsTargetPerMonth - existingCount)
+
+      for (let i = 0; i < missingCount; i++) {
+        const doctor = analyticsDoctors[(i + monthOffset * 3) % analyticsDoctors.length]
+        const patient = analyticsPatients[(i * 7 + monthOffset) % analyticsPatients.length]
+        const services = analyticsServices.filter(service => service.departmentId === doctor.departmentId)
+        const service = services[i % services.length]
+        const day = 2 + (i % 25)
+        const hour = 8 + (i % 9)
+        const date = new Date(monthStart.getFullYear(), monthStart.getMonth(), day, hour)
+        const isPast = date < new Date()
+        const status = isPast
+          ? (i % 13 === 0 ? "ANULAT" as const : i % 17 === 0 ? "NEPREZENTARE" as const : "FINALIZAT" as const)
+          : (i % 3 === 0 ? "CONFIRMAT" as const : "IN_ASTEPTARE" as const)
+        const paymentStatus = status === "ANULAT" || status === "NEPREZENTARE"
+          ? "REFUNDED" as const
+          : isPast
+            ? (i % 4 === 0 ? "UNPAID" as const : "PAID" as const)
+            : (i % 5 === 0 ? "PENDING" as const : "UNPAID" as const)
+
+        await prisma.appointment.create({
+          data: {
+            date,
+            startTime: `${String(hour).padStart(2, "0")}:00`,
+            endTime: `${String(hour).padStart(2, "0")}:30`,
+            duration: 30,
+            status,
+            paymentStatus,
+            type: service?.name ?? `Consultație ${doctor.department.name}`,
+            notes: "Programare demonstrativă pentru rapoarte",
+            patientId: patient.id,
+            doctorId: doctor.id,
+            departmentId: doctor.departmentId,
+            serviceId: service?.id,
+            createdById: frontDesk.id,
+          },
+        })
+        analyticsAppointmentsCreated++
+      }
+    }
+
+    // Spread existing mock patients across the same reporting interval.
+    for (let i = 0; i < analyticsPatients.length; i++) {
+      const monthOffset = 5 - (i % 6)
+      const createdAt = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth() - monthOffset,
+        2 + (i % 25),
+        9,
+      )
+      await prisma.patient.update({
+        where: { id: analyticsPatients[i].id },
+        data: { createdAt },
+      })
+    }
+  }
+  console.log(`✅ ${analyticsAppointmentsCreated} analytics appointments added; six-month trend balanced`)
 
   // ── Medical Records ──────────────────────────────────────────────────────────
   const finishedAppts = createdAppts.filter(a => a.status === "FINALIZAT")
@@ -510,7 +598,7 @@ async function main() {
   if (alexFutureAppt) await upsertNotif(alexFutureAppt.id, "BOOKING_RECEIVED", alexandruPatient.email!, "Cererea dvs. de programare a fost primită.")
   console.log("✅ Notifications created")
 
-  // ── Documents for client test account (Alexandru Dima) ───────────────────────
+  // ── Documents for the secondary client account (Alexandru Dima) ─────────────────
   const alexDocs = [
     { name: "Analize de sânge — hemogramă completă",   type: "application/pdf", size: 184320,  url: "https://mockstorage.blob.core.windows.net/documents/alex-dima/analize-sange-2026-04.pdf",    createdAt: daysFromNow(-45) },
     { name: "Ecografie abdominală",                     type: "application/pdf", size: 2621440, url: "https://mockstorage.blob.core.windows.net/documents/alex-dima/ecografie-abdomen-2026-03.pdf", createdAt: daysFromNow(-72) },

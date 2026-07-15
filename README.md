@@ -141,6 +141,7 @@ App runs at [http://localhost:3000](http://localhost:3000).
 | `npm run dev` | Start dev server |
 | `npm run build` | Production build |
 | `npm run seed` | Seed database with sample data |
+| `npm run menu` | Interactive launcher; option 1 installs, syncs DB, builds, and starts Next.js + Stripe |
 | `npm test` | Run all tests |
 | `npm run test:watch` | Vitest watch mode |
 | `npm run test:coverage` | Coverage report |

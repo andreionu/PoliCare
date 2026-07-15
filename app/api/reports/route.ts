@@ -44,6 +44,8 @@ function toCsvRow(fields: (string | number | null | undefined)[]): string {
   return fields.map(escapeCsv).join(",")
 }
 
+type ReportCell = string | number | null | undefined
+
 // GET /api/reports?type=patients&period=current-month&format=csv
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
@@ -64,8 +66,8 @@ export async function GET(request: Request) {
   try {
     let csvContent = ""
     let filename = `raport-${type}-${dateStr}.csv`
-    let header = ""
-    let rows: string[] = []
+    let headers: string[] = []
+    let rows: ReportCell[][] = []
 
     if (type === "patients") {
       const patients = await prisma.patient.findMany({
@@ -73,12 +75,11 @@ export async function GET(request: Request) {
         include: { primaryDoctor: { select: { name: true } } },
         orderBy: { createdAt: "desc" },
       })
-      header = toCsvRow(["Nume", "CNP", "Vârstă", "Gen", "Telefon", "Email", "Status", "Medic primar", "Data înregistrare"])
-      rows = patients.map((p) => toCsvRow([
+      headers = ["Nume", "CNP", "Vârstă", "Gen", "Telefon", "Email", "Status", "Medic primar", "Data înregistrare"]
+      rows = patients.map((p) => [
         p.name, p.cnp, p.age, p.gender, p.phone, p.email, p.status,
         p.primaryDoctor?.name, new Date(p.createdAt).toLocaleDateString("ro-RO"),
-      ]))
-      csvContent = [header, ...rows].join("\r\n")
+      ])
     } else if (type === "appointments") {
       const appointments = await prisma.appointment.findMany({
         where: { date: { gte: start, lt: end } },
@@ -89,8 +90,8 @@ export async function GET(request: Request) {
         },
         orderBy: [{ date: "asc" }, { startTime: "asc" }],
       })
-      header = toCsvRow(["ID", "Data", "Ora", "Pacient", "Medic", "Departament", "Status", "Durată (min)"])
-      rows = appointments.map((a) => toCsvRow([
+      headers = ["ID", "Data", "Ora", "Pacient", "Medic", "Departament", "Status", "Durată (min)"]
+      rows = appointments.map((a) => [
         a.id,
         new Date(a.date).toLocaleDateString("ro-RO"),
         a.startTime,
@@ -99,8 +100,7 @@ export async function GET(request: Request) {
         a.department?.name,
         a.status,
         a.duration,
-      ]))
-      csvContent = [header, ...rows].join("\r\n")
+      ])
     } else if (type === "doctors") {
       const doctors = await prisma.doctor.findMany({
         include: {
@@ -109,12 +109,11 @@ export async function GET(request: Request) {
         },
         orderBy: { name: "asc" },
       })
-      header = toCsvRow(["Nume", "Specialitate", "Departament", "Experiență", "Rating", "Nr. programări", "Nr. pacienți"])
-      rows = doctors.map((d) => toCsvRow([
+      headers = ["Nume", "Specialitate", "Departament", "Experiență", "Rating", "Nr. programări", "Nr. pacienți"]
+      rows = doctors.map((d) => [
         d.name, d.specialty, d.department.name, d.experience, d.rating,
         d._count.appointments, d._count.patients,
-      ]))
-      csvContent = [header, ...rows].join("\r\n")
+      ])
     } else if (type === "departments") {
       const departments = await prisma.department.findMany({
         include: {
@@ -122,18 +121,20 @@ export async function GET(request: Request) {
         },
         orderBy: { name: "asc" },
       })
-      header = toCsvRow(["Departament", "Status", "Nr. medici", "Nr. programări"])
-      rows = departments.map((d) => toCsvRow([
+      headers = ["Departament", "Status", "Nr. medici", "Nr. programări"]
+      rows = departments.map((d) => [
         d.name, d.status, d._count.doctors, d._count.appointments,
-      ]))
-      csvContent = [header, ...rows].join("\r\n")
+      ])
     } else {
       return NextResponse.json({ error: "Unknown report type" }, { status: 400 })
     }
 
     if (format === "json") {
-      return NextResponse.json({ headers: header.split(","), rows: rows.map(r => r.split(",")) })
+      return NextResponse.json({ headers, rows })
     }
+
+
+    csvContent = [headers, ...rows].map(toCsvRow).join("\r\n")
 
     // BOM for Excel UTF-8 compatibility
     const bom = "\uFEFF"
@@ -141,6 +142,7 @@ export async function GET(request: Request) {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": `attachment; filename="${filename}"`,
+        "Content-Language": "ro",
       },
     })
   } catch (error) {

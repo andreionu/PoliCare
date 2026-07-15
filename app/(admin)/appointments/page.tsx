@@ -60,6 +60,7 @@ import { Label } from "@/components/ui/label"
 import { useDebounce } from "@/hooks/use-debounce"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DatePicker } from "@/components/ui/date-picker"
+import { format } from "date-fns"
 
 // Types
 interface Notification {
@@ -294,7 +295,12 @@ export default function AppointmentsPage() {
       ])
 
       setAppointments(appointmentsData)
-      setPatients(patientsData)
+      setPatients(
+        patientsData.map((patient: Patient & { phone?: string | null }) => ({
+          ...patient,
+          phone: patient.phone ?? "",
+        })),
+      )
       setDoctors(doctorsData)
       setDepartments(departmentsData)
       setServices(servicesData)
@@ -335,12 +341,21 @@ export default function AppointmentsPage() {
     if (patientId) {
       setPatientMode("existing")
       setSelectedPatientId(patientId)
+      const patient = patients.find((entry) => entry.id === patientId)
+      if (patient) {
+        setAppointmentFormData((prev) => ({
+          ...prev,
+          patientName: patient.name,
+          patientPhone: patient.phone ?? "",
+          patientEmail: patient.email || "",
+        }))
+      }
       // Only auto-open if we came from a patient context, not doctor calendar
       setIsNewAppointmentOpen(true)
     } else if (doctorId) {
       setViewMode("calendar")
     }
-  }, [loading, searchParams])
+  }, [loading, patients, searchParams])
 
   // Real-time availability check when doctor + date + time are all filled (debounced 400ms)
   useEffect(() => {
@@ -764,13 +779,16 @@ export default function AppointmentsPage() {
 
   // Filter patients for search (memoized + debounced to avoid re-filtering on unrelated state changes)
   const filteredPatients = useMemo(
-    () =>
-      patients.filter(
+    () => {
+      const normalizedSearchTerm = debouncedPatientSearchTerm.toLowerCase()
+
+      return patients.filter(
         (patient) =>
-          patient.name.toLowerCase().includes(debouncedPatientSearchTerm.toLowerCase()) ||
-          patient.phone.includes(debouncedPatientSearchTerm) ||
-          (patient.email && patient.email.toLowerCase().includes(debouncedPatientSearchTerm.toLowerCase())),
-      ),
+          patient.name.toLowerCase().includes(normalizedSearchTerm) ||
+          (patient.phone ?? "").includes(debouncedPatientSearchTerm) ||
+          (patient.email && patient.email.toLowerCase().includes(normalizedSearchTerm)),
+      )
+    },
     [patients, debouncedPatientSearchTerm],
   )
 
@@ -779,7 +797,7 @@ export default function AppointmentsPage() {
     setAppointmentFormData({
       ...appointmentFormData,
       patientName: patient.name,
-      patientPhone: patient.phone,
+      patientPhone: patient.phone ?? "",
       patientEmail: patient.email || "",
     })
     setAppointmentErrors({
@@ -789,10 +807,42 @@ export default function AppointmentsPage() {
     })
   }
 
+  const handlePatientModeChange = (mode: "existing" | "new") => {
+    setPatientMode(mode)
+
+    setAppointmentErrors((prev) => ({
+      ...prev,
+      patientName: false,
+      patientPhone: false,
+      patientGender: false,
+      patientCnp: false,
+    }))
+
+    if (mode === "new") {
+      setSelectedPatientId("")
+      setPatientSearchTerm("")
+      setAppointmentFormData((prev) => ({
+        ...prev,
+        patientName: "",
+        patientPhone: "",
+        patientEmail: "",
+        patientGender: "",
+        patientCnp: "",
+      }))
+      return
+    }
+
+    setAppointmentFormData((prev) => ({
+      ...prev,
+      patientGender: "",
+      patientCnp: "",
+    }))
+  }
+
   const handleAddAppointment = async () => {
     const errors: Record<string, boolean> = {
-      patientName: !appointmentFormData.patientName,
-      patientPhone: !appointmentFormData.patientPhone,
+      patientName: patientMode === "new" && !appointmentFormData.patientName,
+      patientPhone: patientMode === "new" && !appointmentFormData.patientPhone,
       patientGender: patientMode === "new" && !appointmentFormData.patientGender,
       patientCnp: patientMode === "new" && !appointmentFormData.patientCnp,
       departmentId: !appointmentFormData.departmentId,
@@ -1668,7 +1718,7 @@ export default function AppointmentsPage() {
           </DialogHeader>
 
           <form onSubmit={(e) => { e.preventDefault(); handleAddAppointment(); }} className="space-y-6">
-            <Tabs value={patientMode} onValueChange={(v) => setPatientMode(v as "existing" | "new")}>
+            <Tabs value={patientMode} onValueChange={(v) => handlePatientModeChange(v as "existing" | "new")}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="existing">Pacient Existent</TabsTrigger>
                 <TabsTrigger value="new">Pacient Nou</TabsTrigger>
@@ -1921,6 +1971,7 @@ export default function AppointmentsPage() {
                 </Label>
                 <DatePicker
                   value={appointmentFormData.date}
+                  min={format(new Date(), "yyyy-MM-dd")}
                   onChange={(v) => {
                     setAppointmentFormData({ ...appointmentFormData, date: v })
                     setAppointmentErrors({ ...appointmentErrors, date: false })

@@ -45,11 +45,14 @@ export async function POST(request: Request) {
         patient: true,
         doctor: true,
         department: true,
+        notifications: {
+          select: {
+            type: true,
+            event: true,
+          },
+        },
       },
     })
-
-    const emailOpt = body.sendEmail !== undefined ? body.sendEmail : settings.emailNotifications
-    const smsOpt = body.sendSMS !== undefined ? body.sendSMS : settings.smsNotifications
 
     const eligible = appointments.filter((appt) => {
       const aptDate = new Date(appt.date)
@@ -58,13 +61,17 @@ export async function POST(request: Request) {
       return aptDate >= now
     })
 
-    if (!emailOpt && !smsOpt) {
-      return NextResponse.json({ message: "0 reminder(e) trimise", sent: 0 })
-    }
-
     const results = await Promise.all(
-      eligible.map((appt) =>
-        sendAppointmentNotification(
+      eligible.map((appt) => {
+        const smsReminderOptIn = appt.notifications.some(
+          (notification) => notification.type === "SMS" && notification.event === "BOOKING_RECEIVED"
+        )
+        const sendEmail = (body.sendEmail !== undefined ? body.sendEmail : settings.emailNotifications) && settings.emailNotifications
+        const sendSMS = (body.sendSMS !== undefined ? body.sendSMS : smsReminderOptIn) && settings.smsNotifications
+
+        if (!sendEmail && !sendSMS) return Promise.resolve(false)
+
+        return sendAppointmentNotification(
           {
             id: appt.id,
             date: appt.date,
@@ -74,9 +81,9 @@ export async function POST(request: Request) {
             department: appt.department ? { name: appt.department.name } : null,
           },
           "REMINDER",
-          { sendEmail: emailOpt, sendSMS: smsOpt }
+          { sendEmail, sendSMS }
         ).then(() => true).catch(() => false)
-      )
+      })
     )
 
     const sent = results.filter(Boolean).length

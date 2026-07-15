@@ -57,20 +57,20 @@ export async function middleware(request: NextRequest) {
       const allowed = MARKETING_PATHS.some(p => pathname === p || pathname.startsWith(p + "/"))
       return allowed ? NextResponse.next() : NextResponse.redirect(new URL("/reports", request.url))
     }
-    return NextResponse.redirect(new URL("/login", request.url))
+    return redirectByRole(role, request)
   }
 
   // Doctor portal
   if (pathname.startsWith("/doctor")) {
     if (!token) return NextResponse.redirect(new URL("/login", request.url))
-    if (token.role !== "DOCTOR") return NextResponse.redirect(new URL("/login", request.url))
+    if (token.role !== "DOCTOR") return redirectByRole(token.role as string, request)
     return NextResponse.next()
   }
 
   // Patient portal
   if (pathname.startsWith("/patient")) {
     if (!token) return NextResponse.redirect(new URL("/login", request.url))
-    if (token.role !== "PATIENT") return NextResponse.redirect(new URL("/login", request.url))
+    if (token.role !== "PATIENT") return redirectByRole(token.role as string, request)
     return NextResponse.next()
   }
 

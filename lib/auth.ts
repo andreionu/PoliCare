@@ -2,6 +2,7 @@ import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
 import { prisma } from "./prisma"
+import { getPasswordChangedAt } from "./password-change"
 
 export const authOptions: NextAuthOptions = {
   // Where to redirect after login/logout
@@ -77,7 +78,6 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           doctorId: user.doctorProfile?.id ?? null,
           patientId: user.patientProfile?.id ?? null,
-          passwordChangedAt: user.passwordChangedAt,
         }
       },
     }),
@@ -91,22 +91,18 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id
         token.doctorId = (user as any).doctorId ?? null
         token.patientId = (user as any).patientId ?? null
-        token.passwordIssuedAt = ((user as any).passwordChangedAt as Date | undefined)?.getTime() ?? Date.now()
+        token.passwordIssuedAt = Date.now()
       } else if (token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
           select: {
-            passwordChangedAt: true,
             patientProfile: { select: { id: true } },
           },
-        }) as { passwordChangedAt: Date; patientProfile: { id: string } | null } | null
+        }) as { patientProfile: { id: string } | null } | null
 
-        // Invalidate session if password was changed after token was issued
-        if (dbUser?.passwordChangedAt) {
-          const changedAt = dbUser.passwordChangedAt.getTime()
-          if (changedAt > (token.passwordIssuedAt ?? 0)) {
-            token.invalid = true
-          }
+        const changedAt = await getPasswordChangedAt(token.id as string)
+        if (changedAt && changedAt.getTime() > (token.passwordIssuedAt ?? 0)) {
+          token.invalid = true
         }
 
         // Lazy re-fetch: patient linked after initial login

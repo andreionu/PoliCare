@@ -134,25 +134,47 @@ export default function ReportsPage() {
         if (!response.ok) throw new Error("API Error")
         const data = await response.json()
         
-        // Remove quotes from JSON strings that were escaped for CSV
-        const cleanStr = (s: string) => s.replace(/^"|"$/g, '').replace(/""/g, '"')
-        const headers = data.headers.map(cleanStr)
-        const rows = data.rows.map((row: string[]) => row.map(cleanStr))
+        const headers = data.headers.map((value: unknown) => String(value ?? ""))
+        const rows = data.rows.map((row: unknown[]) => row.map((value) => value ?? ""))
 
         if (reportFormData.format === "excel") {
           const XLSX = await import("xlsx")
-          const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
+          const generatedLabel = `Generat la ${new Date().toLocaleString("ro-RO")}`
+          const sheetRows = [
+            [title],
+            [`Perioadă: ${periodLabel}`],
+            [generatedLabel],
+            [],
+            headers,
+            ...rows,
+          ]
+          const ws = XLSX.utils.aoa_to_sheet(sheetRows)
           ws["!cols"] = headers.map((_: string, i: number) => ({
             wch: Math.min(
               Math.max(
                 headers[i].length,
-                ...rows.map((r: string[]) => (r[i] ?? "").length),
+                ...rows.map((r: unknown[]) => String(r[i] ?? "").length),
                 10
               ) + 3,
               45
             ),
           }))
+          const lastColumn = XLSX.utils.encode_col(Math.max(headers.length - 1, 0))
+          ws["!merges"] = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: Math.max(headers.length - 1, 0) } },
+            { s: { r: 1, c: 0 }, e: { r: 1, c: Math.max(headers.length - 1, 0) } },
+            { s: { r: 2, c: 0 }, e: { r: 2, c: Math.max(headers.length - 1, 0) } },
+          ]
+          ws["!rows"] = [{ hpt: 24 }, { hpt: 18 }, { hpt: 18 }, { hpt: 8 }, { hpt: 22 }]
+          ws["!autofilter"] = { ref: `A5:${lastColumn}${Math.max(rows.length + 5, 5)}` }
+          ;(ws as any)["!freeze"] = { xSplit: 0, ySplit: 5, topLeftCell: "A6", activePane: "bottomLeft", state: "frozen" }
           const wb = XLSX.utils.book_new()
+          wb.Props = {
+            Title: title,
+            Subject: periodLabel,
+            Author: "PoliCare",
+            CreatedDate: new Date(),
+          }
           XLSX.utils.book_append_sheet(wb, ws, TYPE_LABELS[reportFormData.type] ?? "Raport")
           XLSX.writeFile(wb, `raport-${reportFormData.type}-${dateStr}.xlsx`)
         } else if (reportFormData.format === "pdf") {
@@ -162,7 +184,7 @@ export default function ReportsPage() {
           ])
           // jsPDF Helvetica only covers Latin-1; ă ș ț are missing and cause broken layout.
           // Replace unsupported Romanian chars with their closest ASCII equivalents.
-          const toPdf = (s: string) => s
+          const toPdf = (value: unknown) => String(value === null || value === undefined || value === "" ? "—" : value)
             .replace(/ă/g, "a").replace(/Ă/g, "A")
             .replace(/ș/g, "s").replace(/Ș/g, "S")
             .replace(/ş/g, "s").replace(/Ş/g, "S")
@@ -206,11 +228,11 @@ export default function ReportsPage() {
             pdfHeaders[0] = "Nr."
             pdfHeaders[pdfHeaders.length - 1] = "Min."
           }
-          const pdfRows: string[][] = rows.map((r: string[], rowIdx: number) => {
+          const pdfRows: string[][] = rows.map((r: unknown[], rowIdx: number) => {
             const base = reportFormData.type === "appointments"
               ? [String(rowIdx + 1), ...r.slice(1)]
               : [...r]
-            return base.filter((_: string, i: number) => !dropSet.has(i)).map(toPdf)
+            return base.filter((_: unknown, i: number) => !dropSet.has(i)).map(toPdf)
           })
 
           // Column widths after dropping (landscape 297mm, 14mm margins = 269mm usable)
@@ -265,7 +287,7 @@ export default function ReportsPage() {
 
           autoTable(doc, {
             head: [pdfHeaders],
-            body: pdfRows,
+            body: pdfRows.length ? pdfRows : [[toPdf("Nu există date pentru perioada selectată.")]],
             startY: 52,
             theme: "striped",
             headStyles: {
@@ -515,7 +537,7 @@ export default function ReportsPage() {
                <div className="mb-8 flex items-center justify-between">
                  <div>
                     <h3 className="font-bold tracking-tight text-slate-800 text-lg">Demografice</h3>
-                    <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Distribuția pe Vârstă</p>
+                    <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Distribuția pe Gen</p>
                  </div>
                  <div className="w-12 h-12 rounded-[16px] bg-gradient-to-br from-purple-500/10 to-fuchsia-500/10 border border-purple-500/10 flex items-center justify-center shadow-inner">
                     <Users className="w-6 h-6 text-purple-600" />

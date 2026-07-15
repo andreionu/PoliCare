@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Printer } from "lucide-react"
 import { format } from "date-fns"
 import { ro } from "date-fns/locale"
+import { formatDoctorName } from "@/lib/utils"
 
 interface Medication {
   name: string
@@ -105,7 +106,7 @@ export function PrescriptionPrint({ prescription }: PrescriptionPrintProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 sm:divide-x divide-gray-200 divide-y sm:divide-y-0">
           <div className="px-6 py-4 bg-gray-50">
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Medic</p>
-            <p className="font-bold text-gray-800">Dr. {prescription.doctor.name}</p>
+            <p className="font-bold text-gray-800">{formatDoctorName(prescription.doctor.name)}</p>
             <p className="text-gray-600 text-xs">{prescription.doctor.specialty}</p>
             <p className="text-gray-500 text-xs">{prescription.doctor.department.name}</p>
           </div>

@@ -13,6 +13,17 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 
+async function getSessionRole(retries = 5, delayMs = 100) {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    const session = await getSession()
+    const role = session?.user?.role
+    if (role) return role
+    await new Promise((resolve) => setTimeout(resolve, delayMs))
+  }
+
+  return null
+}
+
 interface AuthModalProps {
   open: boolean
   defaultTab?: "login" | "register"
@@ -113,12 +124,11 @@ function LoginForm({ onSuccess, onSwitchTab }: { onSuccess: () => void; onSwitch
       }
       setIsLoading(false)
     } else {
-      const session = await getSession()
-      const role = session?.user?.role
+      const role = await getSessionRole()
       toast({ title: "Autentificare reușită", description: "Bine ai venit în PoliCare!" })
       onSuccess()
       if (role === "DOCTOR") router.push("/doctor/dashboard")
-      else if (role === "PATIENT") router.push("/patient/dashboard")
+      else if (role === "PATIENT" || !role) router.push("/patient/dashboard")
       else router.push("/admin")
     }
   }

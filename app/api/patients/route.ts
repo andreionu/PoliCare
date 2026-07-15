@@ -4,13 +4,14 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { emitAppEvent } from "@/lib/event-bus"
 import { logActivity } from "@/lib/activity"
+import { normalizeEmail, normalizePhone } from "@/lib/contact"
 
 // GET /api/patients - Get all patients (supports ?phone=X, ?email=X and ?search=X filters)
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
-    const phone = searchParams.get("phone")
-    const email = searchParams.get("email")
+    const phone = normalizePhone(searchParams.get("phone"))
+    const email = normalizeEmail(searchParams.get("email"))
     const search = searchParams.get("search")
     const doctorId = searchParams.get("doctorId")
 
@@ -102,8 +103,8 @@ export async function POST(request: Request) {
         birthDate: body.birthDate ? new Date(body.birthDate) : null,
         age: body.age,
         gender: body.gender || null,
-        phone: body.phone,
-        email: body.email,
+        phone: normalizePhone(body.phone),
+        email: normalizeEmail(body.email),
         address: body.address,
         status: body.status || "NOU",
         notes: body.notes,

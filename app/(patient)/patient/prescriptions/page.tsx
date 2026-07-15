@@ -62,7 +62,7 @@ async function downloadPrescriptionPdf(rx: any, settings: ClinicSettings) {
   doc.setTextColor(30, 30, 30)
   doc.setFontSize(10)
   doc.setFont("helvetica", "bold")
-  doc.text(`Dr. ${rx.doctor.name}`, margin, rowY + 5)
+  doc.text(formatDoctorName(rx.doctor.name), margin, rowY + 5)
   doc.text(rx.patient.name, W / 2 + 2, rowY + 5)
 
   doc.setFont("helvetica", "normal")
@@ -85,7 +85,7 @@ async function downloadPrescriptionPdf(rx: any, settings: ClinicSettings) {
   doc.setTextColor(30, 30, 30)
   doc.setFontSize(11)
   doc.setFont("helvetica", "bold")
-  doc.text(rx.diagnosis, margin, diagY + 6)
+  doc.text(doc.splitTextToSize(rx.diagnosis || "Nespecificat", W - margin * 2), margin, diagY + 6)
 
   doc.line(margin, diagY + 11, W - margin, diagY + 11)
 
@@ -124,7 +124,12 @@ async function downloadPrescriptionPdf(rx: any, settings: ClinicSettings) {
   }
 
   // ── Signature ─────────────────────────────────────────────────────────────
-  const sigY = 265
+  const contentEndY = Math.max(
+    (doc as any).lastAutoTable?.finalY ?? 100,
+    rx.notes ? (doc as any).lastAutoTable.finalY + 30 : 100,
+  )
+  if (contentEndY > 245) doc.addPage()
+  const sigY = contentEndY > 245 ? 55 : Math.max(245, contentEndY + 20)
   if (rx.signatureData) {
     doc.addImage(rx.signatureData, "PNG", W - margin - 50, sigY - 20, 50, 18)
   }
@@ -134,6 +139,17 @@ async function downloadPrescriptionPdf(rx: any, settings: ClinicSettings) {
   doc.setFontSize(7)
   doc.setFont("helvetica", "normal")
   doc.text("Semnătura și parafa medicului", W - margin - 50, sigY + 4)
+
+  const pageCount = doc.getNumberOfPages()
+  for (let page = 1; page <= pageCount; page++) {
+    doc.setPage(page)
+    doc.setDrawColor(220, 220, 220)
+    doc.line(margin, 284, W - margin, 284)
+    doc.setFontSize(7)
+    doc.setTextColor(140, 140, 140)
+    doc.text(`${settings.clinicName} · Document medical confidențial`, margin, 289)
+    doc.text(`Pagina ${page} din ${pageCount}`, W - margin, 289, { align: "right" })
+  }
 
   doc.save(`Reteta-${rx.number}.pdf`)
 }
